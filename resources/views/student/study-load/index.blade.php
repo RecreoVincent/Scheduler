@@ -1,0 +1,6 @@
+@extends('layouts.student')
+@section('title','Study Load') @section('page-title','Study Load')
+@section('content')<div class="page-header"><div><h2>Student Study Load</h2><p>View your enrolled subjects and section class schedule.</p></div><a class="button" target="_blank" href="{{ route('student.print.study-load') }}">Print Study Load</a></div>
+@unless($student->academicSection)<div class="assignment-notice"><strong>No section assigned.</strong> Ask the administrator to assign your section before viewing your Study Load.</div>@endunless
+<div class="card"><div class="table-wrap"><table><thead><tr><th>Day/Time</th><th>Subject</th><th>Units</th><th>Instructor</th><th>Room</th></tr></thead><tbody>@forelse($schedules as $schedule)<tr><td><strong>{{ $schedule->day }}</strong><br>{{ date('g:i A',strtotime($schedule->start_time)) }}–{{ date('g:i A',strtotime($schedule->end_time)) }}</td><td><strong>{{ $schedule->subject?->code }}</strong><br>{{ $schedule->subject?->name }}</td><td>{{ $schedule->subject?->units }}</td><td>{{ $schedule->instructor?->name }}</td><td>{{ $schedule->room?->name ?? 'TBA' }}</td></tr>@empty<tr><td colspan="5">No study-load schedules found.</td></tr>@endforelse</tbody></table></div></div>
+@endsection

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Instructor Portal') | Scheduler</title>
+    <style>
+        :root { --primary:#2563eb; --navy:#172554; --text:#334155; --muted:#64748b; --bg:#f1f5f9; --border:#dbeafe; --danger:#dc2626; --success:#15803d; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { min-height:100vh; font-family:Arial,Helvetica,sans-serif; color:var(--text); background:radial-gradient(circle at top right,#dbeafe,transparent 30%),var(--bg); }
+        body.modal-open { overflow:hidden; } a { color:inherit; text-decoration:none; }
+        .app { display:flex; min-height:100vh; }
+        .sidebar { position:fixed; inset:0 auto 0 0; width:260px; padding:24px 18px; overflow-y:auto; background:rgba(239,246,255,.97); border-right:1px solid var(--border); }
+        .brand { display:flex; align-items:center; gap:11px; margin-bottom:28px; padding:0 10px; font-size:21px; font-weight:700; color:var(--navy); }
+        .brand-icon { width:42px; height:42px; display:grid; place-items:center; color:white; background:var(--primary); border-radius:12px; }
+        .department-chip { margin:0 10px 24px; padding:10px; font-size:12px; font-weight:700; color:#1d4ed8; text-align:center; background:white; border:1px solid #bfdbfe; border-radius:10px; }
+        .menu-label { margin:20px 12px 8px; font-size:10px; font-weight:700; letter-spacing:1px; color:#94a3b8; text-transform:uppercase; }
+        .menu-link { width:100%; display:flex; align-items:center; gap:11px; margin-bottom:5px; padding:11px 13px; font-size:13px; font-weight:600; color:#475569; background:transparent; border:0; border-radius:10px; cursor:pointer; }
+        .menu-icon { width:20px; flex:0 0 20px; color:#64748b; font-size:18px; line-height:1; text-align:center; }
+        .menu-link:hover .menu-icon,.menu-link.active .menu-icon { color:var(--primary); }
+        .menu-link:hover,.menu-link.active { color:var(--primary); background:white; box-shadow:0 6px 16px rgba(15,23,42,.06); }
+        .main { width:calc(100% - 260px); margin-left:260px; }
+        .topbar { min-height:76px; display:flex; justify-content:space-between; align-items:center; padding:16px 32px; background:rgba(255,255,255,.9); border-bottom:1px solid var(--border); }
+        .topbar h1 { font-size:22px; color:var(--navy); } .profile { text-align:right; } .profile strong { display:block; font-size:14px; } .profile span { font-size:12px; color:var(--muted); }
+        .content { padding:30px 32px; } .page-header { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:24px; }
+        .page-header h2 { margin-bottom:5px; color:var(--navy); } .page-header p { font-size:14px; color:var(--muted); }
+        .card { padding:24px; background:rgba(255,255,255,.94); border:1px solid var(--border); border-radius:17px; box-shadow:0 10px 28px rgba(15,23,42,.05); }
+        .button { display:inline-flex; justify-content:center; align-items:center; padding:10px 15px; font-size:13px; font-weight:700; color:white; background:var(--primary); border:0; border-radius:9px; cursor:pointer; }
+        .button:disabled { opacity:.55; cursor:not-allowed; } .button-secondary { color:#1d4ed8; background:#eff6ff; border:1px solid #bfdbfe; }
+        .input { width:100%; padding:11px 12px; font-size:14px; background:white; border:1px solid #cbd5e1; border-radius:9px; outline:none; }
+        .input:focus { border-color:#60a5fa; box-shadow:0 0 0 3px rgba(96,165,250,.13); } label { display:block; margin-bottom:7px; font-size:13px; font-weight:700; }
+        .form-grid,.filters { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; } .filters { grid-template-columns:repeat(3,1fr); margin-bottom:20px; }
+        .form-actions { display:flex; gap:10px; margin-top:20px; } .error { margin-top:5px; font-size:12px; color:var(--danger); }
+        .table-wrap { overflow-x:auto; } table { width:100%; border-collapse:collapse; } th,td { padding:13px; text-align:left; border-bottom:1px solid #e2e8f0; } th { font-size:11px; color:var(--muted); text-transform:uppercase; } td { font-size:13px; }
+        .badge { display:inline-block; padding:5px 9px; font-size:11px; font-weight:700; color:#1d4ed8; background:#eff6ff; border-radius:20px; }
+        .notice-modal { position:fixed; z-index:2000; inset:0; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.58); }
+        .notice-dialog { width:min(440px,100%); padding:30px; text-align:center; background:white; border-radius:18px; }
+        .notice-dialog h2 { margin-bottom:10px; color:var(--navy); } .notice-dialog p { color:var(--muted); line-height:1.6; } .notice-dialog ul { margin:14px 0 0; padding-left:28px; color:var(--danger); text-align:left; }
+        @media(max-width:950px){ .sidebar{position:static;width:100%;height:auto}.app{display:block}.main{width:100%;margin:0}.filters,.form-grid{grid-template-columns:1fr}.content,.topbar{padding-left:18px;padding-right:18px}.page-header{align-items:flex-start;flex-direction:column} }
+    </style>
+    @include('layouts.partials.sidebar-toggle-styles')
+    @stack('styles')
+    @include('layouts.partials.portal-unified-theme')
+    @include('layouts.partials.schedule-notification-styles')
+</head>
+@php
+    $instructorDepartmentLogos=[
+        'BSIT'=>'images/bsit-department-logo.jpg',
+        'BSBA'=>'images/bsba-department-logo.jpg',
+        'BSHM'=>'images/bshm-department-logo.jpg',
+        'BSED'=>'images/education-department-logo.jpg',
+        'BEED'=>'images/education-department-logo.jpg',
+    ];
+    $instructorDepartmentLogo=$instructorDepartmentLogos[strtoupper((string)auth()->user()->course)]??'images/mcc-college-logo.png';
+@endphp
+<body>
+<div class="app">
+    <aside id="portalSidebar" class="sidebar">
+        <a href="{{ route('instructor.dashboard') }}" class="brand"><span class="brand-icon brand-icon--department"><img src="{{ asset($instructorDepartmentLogo) }}" alt="{{ auth()->user()->course }} department logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Instructor Portal</small></span></a>
+        <div class="department-chip">{{ auth()->user()->course }} Department</div>
+        <p class="menu-label">Overview</p>
+        <a class="menu-link {{ request()->routeIs('instructor.dashboard') ? 'active' : '' }}" href="{{ route('instructor.dashboard') }}"><span class="menu-icon" aria-hidden="true">⌂</span>Dashboard</a>
+        <a class="menu-link {{ request()->routeIs('instructor.workload.*') ? 'active' : '' }}" href="{{ route('instructor.workload.index') }}"><span class="menu-icon" aria-hidden="true">▤</span>Workload</a>
+        <a class="menu-link {{ request()->routeIs('instructor.scanner.*') ? 'active' : '' }}" href="{{ route('instructor.scanner.index') }}"><span class="menu-icon" aria-hidden="true">▣</span>QR Scanner</a>
+        <p class="menu-label">Account</p>
+        <a class="menu-link {{ request()->routeIs('instructor.profile.*') ? 'active' : '' }}" href="{{ route('instructor.profile.edit') }}"><span class="menu-icon" aria-hidden="true">♙</span>Edit Profile</a>
+        <a class="menu-link {{ request()->routeIs('instructor.print.*') ? 'active' : '' }}" target="_blank" href="{{ route('instructor.print.workload') }}"><span class="menu-icon" aria-hidden="true">🖨</span>Print Workload</a>
+        <form method="POST" action="{{ route('logout') }}">@csrf<input type="hidden" name="role" value="instructor"><button class="menu-link" type="submit"><span class="menu-icon" aria-hidden="true">↪</span>Sign Out</button></form>
+    </aside>
+    <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
+    <main class="main">
+        <header class="topbar">
+            <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Instructor workspace</span><h1>@yield('page-title','Instructor Portal')</h1></div></div>
+            <div class="topbar-actions">
+                @include('layouts.partials.schedule-notifications')
+                <div class="profile"><span class="profile-avatar">{{ strtoupper(substr(auth()->user()->first_name ?: 'I',0,1)) }}</span><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><span>Instructor · {{ auth()->user()->course }}</span></span></div>
+            </div>
+        </header>
+        <section class="content">@yield('content')</section>
+    </main>
+</div>
+@php $hasNotice=session()->has('success')||session()->has('error')||$errors->any(); @endphp
+@if($hasNotice)
+<div id="instructorNotice" class="notice-modal"><section class="notice-dialog" role="dialog" aria-modal="true" aria-labelledby="instructorNoticeTitle">
+    <h2 id="instructorNoticeTitle">{{ session()->has('success') ? 'Success' : 'Action unsuccessful' }}</h2>
+    @if(session('success'))<p>{{ session('success') }}</p>@endif
+    @if(session('error'))<p>{{ session('error') }}</p>@endif
+    @if($errors->any())<ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>@endif
+    <button id="closeInstructorNotice" class="button" style="margin-top:20px" type="button">OK</button>
+</section></div>
+@endif
+@stack('scripts')
+@include('layouts.partials.sidebar-toggle-script')
+@include('layouts.partials.auto-filter-script')
+@if($hasNotice)<script>(()=>{const m=document.getElementById('instructorNotice'),b=document.getElementById('closeInstructorNotice');document.body.classList.add('modal-open');const close=()=>{m.remove();document.body.classList.remove('modal-open')};b.focus();b.onclick=close;m.onclick=e=>{if(e.target===m)close()};document.addEventListener('keydown',e=>{if(e.key==='Escape')close()})})();</script>@endif
+</body>
+</html>
