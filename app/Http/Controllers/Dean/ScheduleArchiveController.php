@@ -22,7 +22,7 @@ class ScheduleArchiveController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $archiveQuery = ClassSchedule::onlyTrashed()->where('course', $course);
+        $archiveQuery = ClassSchedule::onlyTrashed()->forDepartment($course);
         $academicYears = (clone $archiveQuery)
             ->select('academic_year')
             ->distinct()
@@ -58,7 +58,7 @@ class ScheduleArchiveController extends DeanController
             ->withQueryString();
 
         $sectionsById = AcademicSection::query()
-            ->where('course', $course)
+            ->forDepartment($course)
             ->whereIn('id', $archivePages->getCollection()->pluck('section_id'))
             ->get()
             ->keyBy('id');
@@ -174,7 +174,7 @@ class ScheduleArchiveController extends DeanController
 
         try {
             $deleted = ClassSchedule::onlyTrashed()
-                ->where('course', $this->course($request))
+                ->forDepartment($this->course($request))
                 ->where('section_id', $section->id)
                 ->where('academic_year', $validated['academic_year'])
                 ->where('semester', $validated['semester'])
@@ -206,7 +206,7 @@ class ScheduleArchiveController extends DeanController
     private function archivedSchedule(Request $request, int $schedule): ClassSchedule
     {
         return ClassSchedule::onlyTrashed()
-            ->where('course', $this->course($request))
+            ->forDepartment($this->course($request))
             ->findOrFail($schedule);
     }
 }

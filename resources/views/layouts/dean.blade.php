@@ -11,6 +11,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('layouts.partials.favicon')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Dean Portal') | Scheduler</title>
@@ -135,6 +136,7 @@
         body.dean-department-portal .main {
             position:relative;
             isolation:isolate;
+            background-image:none;
         }
 
         body.dean-department-portal .main::before {
@@ -145,43 +147,114 @@
             right:0;
             bottom:0;
             left:0;
+            background-color:#fff;
+            background-image:none;
+            opacity:1;
+            pointer-events:none;
+        }
+
+        body.dean-department-portal .main::after {
+            content:'';
+            position:fixed;
+            z-index:1;
+            top:82px;
+            right:0;
+            bottom:0;
+            left:220px;
             background-image:var(--dean-department-logo);
             background-repeat:no-repeat;
             background-position:50% 50%;
-            background-size:min(82vmin,900px) min(82vmin,900px);
+            background-size:min(66vmin,720px) min(66vmin,720px);
             opacity:.5;
+            mix-blend-mode:multiply;
             pointer-events:none;
         }
 
         body.dean-department-portal .topbar,
         body.dean-department-portal .content {
             position:relative;
-            z-index:1;
+            z-index:2;
         }
 
         body.dean-department-portal .content {
             background-color:transparent;
         }
 
-        @media(max-width:1000px) {
-            body.dean-department-portal .main::before {
+        body.dean-department-portal .content :is(.card,.welcome,.welcome-card,.stat-card,.stat) {
+            color:#180d20;
+            background-color:rgba(255,255,255,.68) !important;
+            background-image:none !important;
+            border-color:rgba(69,6,147,.28) !important;
+        }
+
+        body.dean-department-portal .content :is(.card,.welcome,.welcome-card,.stat-card,.stat) :is(h1,h2,h3,h4,p,span,strong,label,td,th) {
+            color:#180d20 !important;
+        }
+
+        body.dean-department-portal .content .filters {
+            background-color:rgba(255,255,255,.72);
+            background-image:none;
+        }
+
+        body.dean-department-portal .content .filters .input {
+            color:#180d20;
+        }
+
+        body.dean-department-portal .content .filters .input::placeholder {
+            color:#3b2944;
+            opacity:1;
+        }
+
+        body.dean-department-portal .content .card :is(.table-wrap,.table-wrapper) {
+            background:rgba(255,255,255,.75);
+        }
+
+        body.dean-department-portal .content .card th {
+            background:rgba(248,243,251,.85);
+        }
+
+        body.dean-department-portal .content .card :is(.badge,.role-badge) {
+            color:#450693 !important;
+        }
+
+        body.dean-department-portal .content .card .portal-page-button.is-active {
+            color:#fff !important;
+        }
+
+        body.dean-department-portal .content .card .instructor-mark {
+            display:grid;
+            place-items:center;
+            color:#fff !important;
+            font-size:18px;
+            font-weight:850;
+            line-height:1;
+        }
+
+        @media(max-width:950px) {
+            body.dean-department-portal .main::after {
                 left:0;
-                background-size:min(82vmin,760px) min(82vmin,760px);
+                background-size:min(66vmin,610px) min(66vmin,610px);
             }
         }
 
         @media(max-width:600px) {
-            body.dean-department-portal .main::before {
+            body.dean-department-portal .main::before,
+            body.dean-department-portal .main::after {
                 top:110px;
-                background-size:min(92vmin,520px) min(92vmin,520px);
+            }
+
+            body.dean-department-portal .main::after {
+                background-size:min(74vmin,420px) min(74vmin,420px);
             }
         }
+
     </style>
+    @include('layouts.partials.scrollbar-styles')
 </head>
 <body class="dean-department-portal" style="--dean-department-logo:url('{{ asset($deanDepartmentLogo) }}')">
 <div class="app">
     <aside id="portalSidebar" class="sidebar">
-        <a href="{{ route('dean.dashboard') }}" class="brand"><span class="brand-icon brand-icon--department"><img src="{{ asset($deanDepartmentLogo) }}" alt="{{ auth()->user()->course }} department logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Dean Portal</small></span></a>
+        <a href="{{ route('dean.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Dean Portal</small></span></a>
         <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} Department</div>
 
         <p class="menu-label">Overview</p>
@@ -201,21 +274,20 @@
         <a class="menu-link {{ request()->routeIs('dean.archive.*') ? 'active' : '' }}" href="{{ route('dean.archive.index') }}"><span class="menu-icon" aria-hidden="true">♲</span>Archive</a>
         <a class="menu-link {{ request()->routeIs('dean.print.*') ? 'active' : '' }}" href="{{ route('dean.print.index') }}"><span class="menu-icon" aria-hidden="true">▧</span>Print Reports</a>
 
-        <p class="menu-label">Account</p>
-        <form method="POST" action="{{ route('logout') }}">@csrf<input type="hidden" name="role" value="dean"><button class="menu-link" type="submit"><span class="menu-icon" aria-hidden="true">↪</span>Sign Out</button></form>
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
 
     <main class="main">
         <header class="topbar">
             <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Dean workspace</span><h1>@yield('page-title','Dean Portal')</h1></div></div>
-            <div class="profile"><span class="profile-avatar">{{ strtoupper(substr(auth()->user()->first_name ?: 'D',0,1)) }}</span><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><span>Dean · {{ auth()->user()->course }}</span></span></div>
+            @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Dean'])
         </header>
         <section class="content">@yield('content')</section>
     </main>
 </div>
+@stack('portal-profile-overlay')
 
-@php $hasNotice=session()->has('success')||session()->has('error')||$errors->any(); @endphp
+@php $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')&&!old('section_modal')&&!old('subject_modal')&&!old('assignment_modal')&&!old('room_modal')); @endphp
 @if($hasNotice)
 <div id="deanNotice" class="notice-modal"><section class="notice-dialog" role="dialog" aria-modal="true" aria-labelledby="deanNoticeTitle">
     <div class="notice-icon" aria-hidden="true">{{ session()->has('success') ? '✓' : '!' }}</div>

@@ -19,6 +19,32 @@ class DashboardController extends Controller
             'total_students' => User::where('role', 'student')->count(),
         ];
 
+        $accountStatusSummary = function (?string $role = null): array {
+            $query = User::query();
+
+            if ($role !== null) {
+                $query->where('role', $role);
+            }
+
+            $total = (clone $query)->count();
+            $active = (clone $query)->where('account_status', 'active')->count();
+            $pending = (clone $query)->where('account_status', 'pending')->count();
+
+            return [
+                'total' => $total,
+                'active' => $active,
+                'pending' => $pending,
+                'active_percentage' => $total > 0 ? (int) round(($active / $total) * 100) : 0,
+            ];
+        };
+
+        $accountStatusAnalytics = [
+            'all' => $accountStatusSummary(),
+            'dean' => $accountStatusSummary('dean'),
+            'instructor' => $accountStatusSummary('instructor'),
+            'student' => $accountStatusSummary('student'),
+        ];
+
         $analyticsByRole = [];
 
         foreach ($roles as $role) {
@@ -51,6 +77,7 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', compact(
             'statistics',
+            'accountStatusAnalytics',
             'analyticsByRole',
             'recentUsers'
         ));

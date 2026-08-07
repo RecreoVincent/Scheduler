@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicSection;
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -18,13 +19,10 @@ class UserController extends Controller
         'student',
     ];
 
-    private array $courses = [
-        'BSIT',
-        'BSBA',
-        'BSHM',
-        'BSED',
-        'BEED',
-    ];
+    private function courses(): array
+    {
+        return Department::query()->orderBy('sort_order')->pluck('code')->all();
+    }
 
     public function index(Request $request)
     {
@@ -61,15 +59,25 @@ class UserController extends Controller
         return view('admin.users.index', [
             'users' => $users,
             'roles' => $this->roles,
-            'courses' => $this->courses,
+            'courses' => $this->courses(),
         ]);
+    }
+
+    public function deleted()
+    {
+        $deletedUsers = User::onlyTrashed()
+            ->whereIn('role', $this->roles)
+            ->latest('deleted_at')
+            ->paginate(10);
+
+        return view('admin.users.deleted', compact('deletedUsers'));
     }
 
     public function create()
     {
         return view('admin.users.create', [
             'roles' => $this->roles,
-            'courses' => $this->courses,
+            'courses' => $this->courses(),
             'sections' => AcademicSection::orderBy('course')->orderBy('year_level')->orderBy('name')->get(),
         ]);
     }
@@ -97,7 +105,7 @@ class UserController extends Controller
             ],
             'course' => [
                 'required',
-                Rule::in($this->courses),
+                Rule::in($this->courses()),
             ],
             'year_level' => ['nullable', 'required_if:role,student', 'integer', 'between:1,4'],
             'academic_section_id' => [
@@ -154,7 +162,7 @@ class UserController extends Controller
         return view('admin.users.edit', [
             'user' => $user,
             'roles' => $this->roles,
-            'courses' => $this->courses,
+            'courses' => $this->courses(),
             'sections' => AcademicSection::orderBy('course')->orderBy('year_level')->orderBy('name')->get(),
         ]);
     }
@@ -184,7 +192,7 @@ class UserController extends Controller
             ],
             'course' => [
                 'required',
-                Rule::in($this->courses),
+                Rule::in($this->courses()),
             ],
             'year_level' => ['nullable', 'required_if:role,student', 'integer', 'between:1,4'],
             'academic_section_id' => [
@@ -252,5 +260,17 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'Account deleted successfully.');
+    }
+
+    public function restore(int $user)
+    {
+        $deletedUser = User::onlyTrashed()->findOrFail($user);
+        abort_if($deletedUser->role === 'admin', 403);
+
+        $deletedUser->restore();
+
+        return redirect()
+            ->route('admin.users.deleted')
+            ->with('success', 'Account restored successfully.');
     }
 }

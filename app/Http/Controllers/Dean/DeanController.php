@@ -9,11 +9,17 @@ abstract class DeanController extends Controller
 {
     protected function course(Request $request): string
     {
-        return strtoupper((string) $request->user()->course);
+        return strtoupper((string) ($request->user()->department?->code ?? $request->user()->course));
     }
 
     protected function ensureCourse(Request $request, object $model): void
     {
-        abort_unless(strtoupper((string) $model->course) === $this->course($request), 404);
+        $modelDepartmentId = $model->department_id ?? $model->department?->id;
+        abort_unless(
+            $modelDepartmentId
+                ? (int) $modelDepartmentId === (int) $request->user()->department_id
+                : strtoupper((string) $model->course) === $this->course($request),
+            404,
+        );
     }
 }

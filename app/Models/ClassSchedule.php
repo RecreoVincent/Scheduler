@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToAcademicPeriod;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['course', 'section_id', 'subject_id', 'instructor_id', 'room_id', 'academic_year', 'semester', 'day', 'start_time', 'end_time'])]
+#[Fillable(['course', 'section_id', 'subject_id', 'instructor_id', 'room_id', 'academic_year', 'semester', 'academic_period_id', 'day', 'start_time', 'end_time'])]
 class ClassSchedule extends Model
 {
-    use SoftDeletes;
+    use BelongsToAcademicPeriod, SoftDeletes;
 
     public const DAY_PATTERNS = [
         'M - W' => ['Monday', 'Wednesday'],
@@ -68,5 +70,10 @@ class ClassSchedule extends Model
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function scopeForDepartment(Builder $query, string $code): Builder
+    {
+        return $query->whereHas('section.department', fn (Builder $department) => $department->where('code', strtoupper($code)));
     }
 }

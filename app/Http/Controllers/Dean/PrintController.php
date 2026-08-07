@@ -25,10 +25,10 @@ class PrintController extends DeanController
         abort_unless(in_array($type, ['teaching-loads', 'instructor-workload', 'class-schedules'], true), 404);
         $course = $this->course($request);
         $dean = $request->user();
-        $schedules = ClassSchedule::with(['section', 'subject', 'instructor', 'room'])->where('course', $course)
+        $schedules = ClassSchedule::with(['section', 'subject', 'instructor', 'room'])->forDepartment($course)
             ->orderByRaw(ClassSchedule::dayOrderSql())->orderBy('start_time')->get();
         $instructors = User::where('role', 'instructor')
-            ->where('course', $course)
+            ->forDepartment($course)
             ->orderBy('last_name')
             ->get();
 
@@ -145,12 +145,12 @@ class PrintController extends DeanController
         $course = $this->course($request);
         $dean = $request->user();
         $schedules = ClassSchedule::with(['section', 'subject', 'instructor', 'room'])
-            ->where('course', $course)
+            ->forDepartment($course)
             ->orderByRaw(ClassSchedule::dayOrderSql())
             ->orderBy('start_time')
             ->get();
         $instructors = User::where('role', 'instructor')
-            ->where('course', $course)
+            ->forDepartment($course)
             ->orderBy('last_name')
             ->get();
 

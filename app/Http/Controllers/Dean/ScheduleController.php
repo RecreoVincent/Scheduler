@@ -26,7 +26,7 @@ class ScheduleController extends DeanController
     public function create(Request $request): View
     {
         $course = $this->course($request);
-        $sections = AcademicSection::where('course', $course)
+        $sections = AcademicSection::forDepartment($course)
             ->orderByDesc('academic_year')
             ->orderBy('year_level')
             ->orderBy('name')
@@ -41,16 +41,41 @@ class ScheduleController extends DeanController
             'academic_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
             'semester' => ['required', Rule::in(['1st', '2nd', 'Summer'])],
             'curriculum' => ['nullable', Rule::in(['New', 'Old'])],
-            'year_level' => ['required', Rule::in(['all', '1', '2', '3', '4'])],
-            'number_of_sections' => ['required_unless:year_level,all', 'nullable', 'integer', 'between:1,20'],
+            // Keep accepting the former scalar field for old links/tests while
+            // the form now submits a checkbox-based list.
+            'year_level' => ['nullable', Rule::in(['all', '1', '2', '3', '4'])],
+            'year_levels' => ['nullable', 'array', 'min:1'],
+            'year_levels.*' => [Rule::in(['1', '2', '3', '4'])],
+            'number_of_sections' => ['nullable', 'integer', 'between:1,20'],
         ]);
         $validated['curriculum'] ??= 'New';
+        $selectedYearLevels = collect($validated['year_levels'] ?? [])
+            ->map(fn ($level): int => (int) $level)
+            ->filter(fn (int $level): bool => $level >= 1 && $level <= 4)
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($selectedYearLevels->isEmpty() && filled($validated['year_level'] ?? null)) {
+            $selectedYearLevels = $validated['year_level'] === 'all'
+                ? collect(range(1, 4))
+                : collect([(int) $validated['year_level']]);
+        }
+
+        if ($selectedYearLevels->isEmpty()) {
+            throw ValidationException::withMessages(['year_levels' => 'Select at least one year level.']);
+        }
+
+        $singleYearLevel = $selectedYearLevels->count() === 1;
+        if ($singleYearLevel && blank($validated['number_of_sections'] ?? null)) {
+            throw ValidationException::withMessages(['number_of_sections' => 'Enter the number of existing sections to use.']);
+        }
+
         $course = $this->course($request);
-        $allYearLevels = $validated['year_level'] === 'all';
         $availableSections = AcademicSection::query()
-            ->where('course', $course)
+            ->forDepartment($course)
             ->where('academic_year', $validated['academic_year'])
-            ->when(! $allYearLevels, fn ($query) => $query->where('year_level', $validated['year_level']))
+            ->whereIn('year_level', $selectedYearLevels)
             ->get()
             ->sortBy(
                 fn (AcademicSection $section): string => sprintf('%02d-%s', $section->year_level, $section->name),
@@ -64,9 +89,7 @@ class ScheduleController extends DeanController
             ]);
         }
 
-        if ($allYearLevels) {
-            $sections = $availableSections;
-        } else {
+        if ($singleYearLevel) {
             if ($availableSections->count() < $validated['number_of_sections']) {
                 throw ValidationException::withMessages([
                     'number_of_sections' => "Only {$availableSections->count()} existing section(s) are available for the selected academic year and year level.",
@@ -74,11 +97,13 @@ class ScheduleController extends DeanController
             }
 
             $sections = $availableSections->take($validated['number_of_sections'])->values();
+        } else {
+            $sections = $availableSections;
         }
 
         $selectedYearLevels = $sections->pluck('year_level')->unique()->values();
         $subjects = Subject::with('instructors')
-            ->where('course', $course)
+            ->forDepartment($course)
             ->whereIn('year_level', $selectedYearLevels)
             ->where('semester', $validated['semester'])
             ->where('curriculum', $validated['curriculum'])
@@ -93,13 +118,13 @@ class ScheduleController extends DeanController
             ]);
         }
 
-        $rooms = Room::where('course', $course)->orderBy('name')->get();
+        $rooms = Room::forDepartment($course)->orderBy('name')->get();
         $roomCapacityError = $this->roomCapacityError($course, $sections, $subjects, $rooms);
         if ($roomCapacityError !== null) {
             return $this->failureResponse($roomCapacityError);
         }
 
-        $instructors = User::where('course', $course)->where('role', 'instructor')->where('account_status', 'active')->get();
+        $instructors = User::forDepartment($course)->where('role', 'instructor')->where('account_status', 'active')->get();
 
         $assignedInstructors = $subjects->flatMap->instructors->where('account_status', 'active');
         $subjectsRequireRooms = $subjects->contains(
@@ -165,11 +190,11 @@ class ScheduleController extends DeanController
             $requiredEntries = $roomSubjects->sum(
                 fn (Subject $subject): int => (int) ($sectionsByYear[$subject->year_level] ?? 0),
             );
-            // From 7:30 AM to 7:30 PM, with 12:00 PM to 1:00 PM reserved
+            // From 7:00 AM to 7:00 PM, with 12:00 PM to 1:00 PM reserved
             // for lunch, one room can hold seven 90-minute Minor slots on
             // each of the three day pairs (21 weekly placements), or
-            // nine non-conflicting 150-minute Major slots each week.
-            $slotsPerRoom = $classification === 'Minor' ? 21 : 9;
+            // twelve non-conflicting 150-minute Major slots each week.
+            $slotsPerRoom = $classification === 'Minor' ? 21 : 12;
             $matchingRoomCount = $rooms->filter(
                 fn (Room $room): bool => $this->generator->roomIsCompatible($course, $representativeSubject, $room),
             )->count();

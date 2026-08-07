@@ -28,15 +28,17 @@
 
     .statistics {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
         margin-bottom: 24px;
     }
 
     .stat-card {
+        --card-accent: #4f46e5;
         position: relative;
         width: 100%;
-        padding: 22px;
+        min-height: 205px;
+        padding: 16px;
         overflow: hidden;
         font: inherit;
         text-align: left;
@@ -56,16 +58,112 @@
         outline: none;
     }
 
-    .stat-card span {
-        font-size: 14px;
-        color: #64748b;
+    .stat-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(99, 102, 241, .18);
     }
 
-    .stat-card strong {
+    .stat-card-icon {
+        display: grid;
+        flex: 0 0 28px;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        color: var(--card-accent);
+        background: color-mix(in srgb, var(--card-accent) 12%, white);
+        border-radius: 9px;
+    }
+
+    .stat-card-icon svg {
+        width: 17px;
+        height: 17px;
+        stroke: currentColor;
+    }
+
+    .stat-card-title {
+        font-size: 16px;
+        font-weight: 800;
+        color: #221538;
+    }
+
+    .stat-card-metrics {
+        display: grid;
+        gap: 7px;
+        padding: 11px 0 9px;
+    }
+
+    .stat-metric {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #40364f;
+    }
+
+    .stat-metric-label {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .stat-metric-value {
+        display: inline-grid;
+        grid-template-columns: minmax(24px, auto) 17px;
+        align-items: center;
+        justify-content: end;
+        gap: 7px;
+        min-width: 55px;
+        font-size: 14px;
+        font-weight: 800;
+        color: #1e1231;
+        text-align: right;
+    }
+
+    .status-dot {
+        display: inline-block;
+        flex: 0 0 17px;
+        width: 17px;
+        height: 17px;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 6px rgba(255, 255, 255, .75);
+    }
+
+    .status-dot.active { background: #22c55e; }
+    .status-dot.pending { background: #f59e0b; }
+
+    .stat-progress {
         display: block;
-        margin-top: 10px;
-        font-size: 31px;
-        color: #172554;
+        width: 100%;
+        height: 6px;
+        max-height: 6px;
+        overflow: hidden;
+        background: rgba(148, 163, 184, .24);
+        border-radius: 999px;
+    }
+
+    .stat-progress-bar {
+        display: block;
+        width: var(--progress);
+        height: 6px;
+        max-height: 6px;
+        background: var(--card-accent);
+        border-radius: inherit;
+        transition: width .35s ease;
+    }
+
+    .stat-card-footer {
+        display: block;
+        width: 100%;
+        margin-top: 9px;
+        padding: 8px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #554a65;
+        background: rgba(248, 250, 252, .72);
+        border-radius: 10px;
+        white-space: nowrap;
     }
 
     body.modal-open {
@@ -79,7 +177,10 @@
     .chart-modal {
         position: fixed;
         z-index: 1000;
-        inset: 0;
+        top: 68px;
+        right: 0;
+        bottom: 0;
+        left: 220px;
         display: grid;
         place-items: center;
         padding: 24px;
@@ -88,11 +189,20 @@
     }
 
     .chart-panel {
-        width: min(900px, 100%);
-        max-height: calc(100vh - 48px);
+        width: min(1100px, 100%);
+        max-height: calc(100vh - 132px);
+        padding: 26px;
         overflow-y: auto;
+        color: #24152f;
+        background-color: rgba(239, 226, 248, .68) !important;
+        border-color: rgba(69, 6, 147, .32) !important;
+        border-radius: 18px;
+        backdrop-filter: blur(8px);
         box-shadow: 0 24px 65px rgba(15, 23, 42, .25);
     }
+
+    .chart-panel .chart-header h3 { margin-bottom: 5px; font-size: 24px; color: #2d045f !important; }
+    .chart-panel .chart-header p { color: #4b3d55 !important; }
 
     .chart-header,
     .chart-toolbar,
@@ -142,26 +252,26 @@
     }
 
     .chart-toolbar {
-        gap: 8px;
+        gap: 6px;
         padding: 5px;
-        background: #eff6ff;
-        border-radius: 11px;
+        background: #f3e9fa;
+        border-radius: 10px;
     }
 
     .chart-type-button {
-        padding: 8px 13px;
-        font-size: 13px;
+        padding: 8px 12px;
+        font-size: 12px;
         font-weight: 700;
         color: #475569;
         cursor: pointer;
         background: transparent;
         border: 0;
-        border-radius: 8px;
+        border-radius: 7px;
     }
 
     .chart-type-button.active {
         color: white;
-        background: #2563eb;
+        background: var(--primary);
     }
 
     .chart-layout {
@@ -174,10 +284,10 @@
         display: flex;
         align-items: flex-end;
         justify-content: space-around;
-        gap: 18px;
+        gap: 12px;
         width: 100%;
         height: 280px;
-        padding: 30px 10px 0;
+        padding: 28px 8px 0;
         border-bottom: 1px solid #cbd5e1;
     }
 
@@ -191,23 +301,24 @@
     }
 
     .bar-value {
-        margin-bottom: 7px;
-        font-size: 13px;
+        margin-bottom: 6px;
+        font-size: 12px;
         font-weight: 700;
         color: #334155;
     }
 
     .bar-fill {
-        width: min(70px, 75%);
+        width: min(62px, 75%);
         min-height: 3px;
-        border-radius: 9px 9px 0 0;
+        border-radius: 8px 8px 0 0;
         transition: height .35s ease;
     }
 
     .bar-label {
-        margin-top: 9px;
-        font-size: 12px;
+        margin-top: 8px;
+        font-size: 10px;
         color: #64748b;
+        text-align: center;
     }
 
     .chart-circle {
@@ -259,7 +370,7 @@
 
     .dashboard-grid {
         display: grid;
-        grid-template-columns: 1.4fr .8fr;
+        grid-template-columns: 1fr;
         gap: 20px;
     }
 
@@ -302,22 +413,6 @@
         text-transform: capitalize;
     }
 
-    .quick-link {
-        display: block;
-        margin-bottom: 11px;
-        padding: 14px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #1d4ed8;
-        background: #eff6ff;
-        border: 1px solid #dbeafe;
-        border-radius: 11px;
-    }
-
-    .quick-link:hover {
-        background: #dbeafe;
-    }
-
     @media (max-width: 1050px) {
         .statistics {
             grid-template-columns: repeat(2, 1fr);
@@ -343,6 +438,12 @@
         }
     }
 
+    @media (max-width: 950px) {
+        .chart-modal {
+            left: 0;
+        }
+    }
+
     @media (max-width: 550px) {
         .statistics {
             grid-template-columns: 1fr;
@@ -363,29 +464,49 @@
 </div>
 
 <div class="statistics">
-    <button type="button" class="stat-card" data-stat="total_users">
-        <span>Total Accounts</span>
-        <strong>{{ $statistics['total_users'] }}</strong>
-    </button>
+    @php
+        $analyticsCards = [
+            ['stat' => 'total_users', 'summary' => 'all', 'title' => 'Account Status', 'total_label' => 'Total Accounts', 'accent' => '#3b82f6', 'icon' => 'users'],
+            ['stat' => 'total_deans', 'summary' => 'dean', 'title' => 'Dean Status', 'total_label' => 'Total Deans', 'accent' => '#8b5cf6', 'icon' => 'cap'],
+            ['stat' => 'total_instructors', 'summary' => 'instructor', 'title' => 'Instructor Status', 'total_label' => 'Total Instructors', 'accent' => '#14b8a6', 'icon' => 'board'],
+            ['stat' => 'total_students', 'summary' => 'student', 'title' => 'Student Status', 'total_label' => 'Total Students', 'accent' => '#f59e0b', 'icon' => 'book'],
+        ];
+    @endphp
 
-    <button type="button" class="stat-card" data-stat="total_deans">
-        <span>Deans</span>
-        <strong>{{ $statistics['total_deans'] }}</strong>
-    </button>
+    @foreach ($analyticsCards as $card)
+        @php($summary = $accountStatusAnalytics[$card['summary']])
+        <button type="button" class="stat-card" data-stat="{{ $card['stat'] }}" style="--card-accent: {{ $card['accent'] }}; --progress: {{ $summary['active_percentage'] }}%;">
+            <span class="stat-card-header">
+                <span class="stat-card-icon" aria-hidden="true">
+                    @if ($card['icon'] === 'users')
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    @elseif ($card['icon'] === 'cap')
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="m2 10 10-5 10 5-10 5Z"/><path d="M6 12v5c3 2.5 9 2.5 12 0v-5M22 10v6"/></svg>
+                    @elseif ($card['icon'] === 'board')
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 3h18v12H3zM8 21l4-6 4 6M7 8h4M7 11h7"/></svg>
+                    @else
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 5.5v14A2.5 2.5 0 0 0 6.5 22H20"/></svg>
+                    @endif
+                </span>
+                <span class="stat-card-title">{{ $card['title'] }}</span>
+            </span>
 
-    <button type="button" class="stat-card" data-stat="total_instructors">
-        <span>Instructors</span>
-        <strong>{{ $statistics['total_instructors'] }}</strong>
-    </button>
+            <span class="stat-card-metrics">
+                <span class="stat-metric"><span class="stat-metric-label">{{ $card['total_label'] }}</span><span class="stat-metric-value">{{ $summary['total'] }}</span></span>
+                <span class="stat-metric"><span class="stat-metric-label">Active</span><span class="stat-metric-value">{{ $summary['active'] }} <span class="status-dot active" aria-hidden="true"></span></span></span>
+                <span class="stat-metric"><span class="stat-metric-label">Pending</span><span class="stat-metric-value">{{ $summary['pending'] }} <span class="status-dot pending" aria-hidden="true"></span></span></span>
+            </span>
 
-    <button type="button" class="stat-card" data-stat="total_students">
-        <span>Students</span>
-        <strong>{{ $statistics['total_students'] }}</strong>
-    </button>
+            <span class="stat-progress" aria-label="{{ $summary['active_percentage'] }} percent active">
+                <span class="stat-progress-bar"></span>
+            </span>
+            <span class="stat-card-footer">{{ $summary['active_percentage'] }}% active</span>
+        </button>
+    @endforeach
 </div>
 
 <div id="analyticsModal" class="chart-modal" hidden>
-<section class="card chart-panel" role="dialog" aria-modal="true" aria-labelledby="chartTitle">
+<section class="card chart-panel" role="dialog" aria-modal="true" aria-labelledby="chartTitle" style="background-color:#d9bfea !important;background-image:var(--portal-panel-image) !important;background-position:center !important;background-repeat:no-repeat !important;background-size:cover !important;border:1px solid rgba(69,6,147,.16) !important;">
     <div class="chart-header">
         <div>
             <h3 id="chartTitle" class="card-title" style="margin-bottom:0;">Account Analytics</h3>
@@ -430,21 +551,6 @@
         @empty
             <p>No accounts have been created.</p>
         @endforelse
-    </div>
-
-    <div class="card">
-        <h3 class="card-title">Quick Actions</h3>
-
-        <a href="{{ route('admin.users.create') }}"
-           class="quick-link">
-            ＋ Create New Account
-        </a>
-
-        <a href="{{ route('admin.users.index') }}"
-           class="quick-link">
-            ♙ Manage User Accounts
-        </a>
-
     </div>
 
 </div>

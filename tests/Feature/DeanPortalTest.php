@@ -573,7 +573,7 @@ class DeanPortalTest extends TestCase
         $this->actingAs($dean)->get(route('dean.dashboard'))
             ->assertOk()
             ->assertSee('BSIT Dean Dashboard')
-            ->assertSee('grid-template-columns:repeat(5,minmax(0,1fr))', false)
+            ->assertSee('grid-template-columns:repeat(auto-fit,minmax(210px,1fr))', false)
             ->assertViewHas('analytics', fn (array $analytics): bool => $analytics['students']['Year 2'] === 1);
         $this->actingAs($dean)->get(route('dean.sections.edit', $otherSection))->assertNotFound();
     }
@@ -795,7 +795,7 @@ class DeanPortalTest extends TestCase
         $this->actingAs($dean)->post(route('dean.schedules.store'), [
             'academic_year' => '2026-2027',
             'semester' => '1st',
-            'year_level' => 'all',
+            'year_levels' => ['1', '2'],
             'number_of_sections' => 1,
         ])->assertRedirect()->assertSessionHas('success');
 
@@ -932,8 +932,8 @@ class DeanPortalTest extends TestCase
             'number_of_sections' => 2,
         ])->assertRedirect()->assertSessionHas('success');
 
-        $this->assertSame(9, ClassSchedule::whereNotNull('room_id')->count());
-        $this->assertSame(1, ClassSchedule::whereNull('room_id')->count());
+        $this->assertSame(10, ClassSchedule::whereNotNull('room_id')->count());
+        $this->assertSame(0, ClassSchedule::whereNull('room_id')->count());
     }
 
     public function test_priority_laboratory_subjects_receive_rooms_before_non_priority_laboratories(): void
@@ -989,7 +989,7 @@ class DeanPortalTest extends TestCase
             ClassSchedule::whereIn('subject_id', $subjects->take(2)->pluck('id'))->whereNotNull('room_id')->count(),
         );
         $this->assertSame(
-            3,
+            1,
             ClassSchedule::where('subject_id', $subjects[2]->id)->whereNull('room_id')->count(),
         );
     }
@@ -1049,8 +1049,8 @@ class DeanPortalTest extends TestCase
         foreach ($schedules as $schedule) {
             $start = substr($schedule->start_time, 0, 5);
             $end = substr($schedule->end_time, 0, 5);
-            $this->assertGreaterThanOrEqual('07:30', $start);
-            $this->assertLessThanOrEqual('19:30', $end);
+            $this->assertGreaterThanOrEqual('07:00', $start);
+            $this->assertLessThanOrEqual('19:00', $end);
             $this->assertFalse($start < '13:00' && $end > '12:00');
 
             $durationMinutes = (int) ((strtotime($end) - strtotime($start)) / 60);
@@ -1209,8 +1209,8 @@ class DeanPortalTest extends TestCase
 
         $this->assertSame($room->id, $secondYearSchedule->room_id);
         $this->assertSame($room->id, $fourthYearSchedule->room_id);
-        $this->assertSame('07:30', substr($secondYearSchedule->start_time, 0, 5));
-        $this->assertSame('17:00', substr($fourthYearSchedule->start_time, 0, 5));
+        $this->assertSame('07:00', substr($secondYearSchedule->start_time, 0, 5));
+        $this->assertSame('16:30', substr($fourthYearSchedule->start_time, 0, 5));
     }
 
     public function test_first_year_generation_rolls_back_when_monday_to_saturday_cannot_be_covered(): void
@@ -1296,21 +1296,21 @@ class DeanPortalTest extends TestCase
         $targetSubject->instructors()->attach($instructor);
 
         foreach ([
-            ['M - W', '07:30', '10:00'],
+            ['M - W', '07:00', '09:30'],
             ['M - W', '09:30', '12:00'],
             ['M - W', '13:00', '15:30'],
             ['M - W', '15:30', '18:00'],
-            ['M - W', '17:00', '19:30'],
-            ['T - Th', '07:30', '10:00'],
+            ['M - W', '16:30', '19:00'],
+            ['T - Th', '07:00', '09:30'],
             ['T - Th', '09:30', '12:00'],
             ['T - Th', '13:00', '15:30'],
             ['T - Th', '15:30', '18:00'],
-            ['T - Th', '17:00', '19:30'],
-            ['F - S', '07:30', '10:00'],
+            ['T - Th', '16:30', '19:00'],
+            ['F - S', '07:00', '09:30'],
             ['F - S', '09:30', '12:00'],
             ['F - S', '13:00', '15:30'],
             ['F - S', '15:30', '18:00'],
-            ['F - S', '17:00', '19:30'],
+            ['F - S', '16:30', '19:00'],
         ] as [$day, $start, $end]) {
             ClassSchedule::create([
                 'course' => 'BSBA',
@@ -1524,9 +1524,9 @@ class DeanPortalTest extends TestCase
             ->get(route('dean.subjects.create'))
             ->assertOk()
             ->assertSee('Enter the curriculum information for BSIT')
-            ->assertSee('name="curriculum"', false)
-            ->assertSee('New Curriculum')
-            ->assertSee('Old Curriculum')
+            ->assertSee('type="hidden" name="curriculum" value="New"', false)
+            ->assertDontSee('New Curriculum')
+            ->assertDontSee('Old Curriculum')
             ->assertDontSee('name="instructor_department"', false)
             ->assertDontSee('name="instructor_ids[]"', false);
 
@@ -1927,7 +1927,7 @@ class DeanPortalTest extends TestCase
         $targetSubject->instructors()->attach($instructor, ['priority' => 1]);
 
         foreach (['M - W', 'T - Th', 'F - S'] as $day) {
-            foreach ([['07:30', '10:00'], ['13:00', '15:30'], ['17:00', '19:30']] as [$start, $end]) {
+            foreach ([['07:00', '09:30'], ['13:00', '15:30'], ['16:30', '19:00']] as [$start, $end]) {
                 ClassSchedule::create([
                     'course' => 'BSBA', 'section_id' => $blockingSection->id, 'subject_id' => $blockingSubject->id,
                     'instructor_id' => $instructor->id, 'room_id' => null,

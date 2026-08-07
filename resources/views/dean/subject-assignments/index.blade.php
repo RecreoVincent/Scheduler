@@ -11,7 +11,7 @@
     .assignment-actions .button { min-width:112px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }
-    .assignment-filters { grid-template-columns:repeat(5,minmax(0,1fr)); }
+    .assignment-filters { grid-template-columns:repeat(4,minmax(0,1fr)); }
     @media(max-width:1200px) { .assignment-filters { grid-template-columns:repeat(3,minmax(0,1fr)); } }
     @media(max-width:760px) { .assignment-filters { grid-template-columns:1fr; } }
 </style>
@@ -21,12 +21,8 @@
 @include('dean.subject-assignments.form')
 
 <div class="page-header">
-    <div>
-        <h2>Existing Subject Assignments</h2>
-        <p>Search, filter, and update instructor priorities for a subject.</p>
-    </div>
     <div class="actions">
-        <button type="button" class="button assignment-form-trigger">Assign Instructor</button>
+        <button type="button" class="button assignment-form-trigger" aria-label="Assign Instructor to a Subject">Assign Instructor</button>
         <button
             type="button"
             class="button button-danger delete-confirmation-trigger"
@@ -37,6 +33,10 @@
             data-delete-confirm-label="Remove All Assignments"
             @disabled($assignmentCount === 0)
         >Remove All Subject Assignments</button>
+    </div>
+    <div style="order:-1">
+        <h2>Existing Subject Assignments</h2>
+        <p>Search, filter, and update instructor priorities for a subject.</p>
     </div>
 </div>
 
@@ -66,11 +66,6 @@
             <option value="">All assignment statuses</option>
             <option value="assigned" @selected(request('assignment_status') === 'assigned')>Assigned</option>
             <option value="unassigned" @selected(request('assignment_status') === 'unassigned')>Unassigned</option>
-        </select>
-        <select class="input" name="curriculum">
-            <option value="">All curricula</option>
-            <option value="New" @selected(request('curriculum') === 'New')>New Curriculum</option>
-            <option value="Old" @selected(request('curriculum') === 'Old')>Old Curriculum</option>
         </select>
     </form>
 
@@ -105,7 +100,7 @@
                             </div>
                         </td>
                         <td class="assignment-actions">
-                            <a class="button button-secondary" href="{{ route('dean.subject-assignments.index', array_merge(request()->only(['search', 'year_level', 'semester', 'curriculum', 'assignment_status']), ['subject_id' => $subject->id, 'open_assignment_modal' => 1])) }}#assignment-form">
+                            <a class="button button-secondary" href="{{ route('dean.subject-assignments.index', array_merge(request()->only(['search', 'year_level', 'semester', 'assignment_status']), ['subject_id' => $subject->id, 'open_assignment_modal' => 1])) }}#assignment-form">
                                 {{ $subject->instructors->isEmpty() ? 'Assign' : 'Update' }}
                             </a>
                         </td>

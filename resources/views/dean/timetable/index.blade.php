@@ -18,7 +18,8 @@
     .section-schedule .cancel-selection { display:none; }
     .section-schedule[data-mode] .cancel-selection { display:inline-flex; }
     .section-schedule[data-mode] .mode-button { display:none; }
-    .schedule-table { width:100%; min-width:1050px; table-layout:fixed; }
+    .schedule-table { width:100%; min-width:0; table-layout:fixed; }
+    .section-schedule .table-wrap { overflow-x:hidden; }
     .schedule-table col.time-column { width:16%; }
     .schedule-table col.days-column { width:10%; }
     .schedule-table col.code-column { width:12%; }
@@ -43,7 +44,8 @@
     .empty-timetable { padding:46px 24px; text-align:center; }
     .empty-timetable h3 { margin:0 0 7px; color:var(--navy); }
     .empty-timetable p { margin:0 0 19px; color:#64748b; }
-    .timetable-header-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .timetable-header-actions { display:flex; align-items:center; gap:10px; flex:0 0 auto; flex-wrap:nowrap; }
+    .timetable-header-actions .button { width:auto !important; white-space:nowrap; }
     .timetable-header-actions .button[disabled] { opacity:.5; cursor:not-allowed; }
     .timetable-filters { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
     @media (max-width:1100px) {

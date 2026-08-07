@@ -40,16 +40,15 @@
     <div><h2>{{ $course }} Subjects by Year Level</h2><p>Each year level has a separate curriculum table. Choose Edit or Delete, then select the exact subject.</p></div>
     <div class="actions">
         <a class="button button-secondary" href="{{ route('dean.subject-assignments.index') }}">Subject Assignment</a>
-        <a class="button" href="{{ route('dean.subjects.create') }}">Add Subject</a>
+        <button id="openSubjectCreate" class="button" type="button">Add Subject</button>
     </div>
 </div>
 
 <div class="card">
-    <form class="filters" method="GET" data-auto-filter style="grid-template-columns:repeat(4,minmax(0,1fr));">
+    <form class="filters" method="GET" data-auto-filter style="grid-template-columns:repeat(3,minmax(0,1fr));">
         <select class="input" name="year_level"><option value="">All years</option>@for($level = 1; $level <= 4; $level++)<option value="{{ $level }}" @selected((string) request('year_level') === (string) $level)>Year {{ $level }}</option>@endfor</select>
         <select class="input" name="semester"><option value="">All semesters</option>@foreach(['1st', '2nd', 'Summer'] as $semester)<option value="{{ $semester }}" @selected(request('semester') === $semester)>{{ $semester }}</option>@endforeach</select>
         <select class="input" name="subject_type"><option value="">All types</option>@foreach(['Lecture', 'Laboratory'] as $type)<option value="{{ $type }}" @selected(request('subject_type') === $type)>{{ $type }}</option>@endforeach</select>
-        <select class="input" name="curriculum"><option value="">All curricula</option>@foreach(['New' => 'New Curriculum', 'Old' => 'Old Curriculum'] as $value => $label)<option value="{{ $value }}" @selected(request('curriculum') === $value)>{{ $label }}</option>@endforeach</select>
     </form>
 </div>
 
@@ -111,8 +110,106 @@
 ])
 @endsection
 
+@push('portal-profile-overlay')
+<div id="subjectCreateModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="subjectCreateTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="subjectCreateTitle">Add Subject</h2>
+                <p>Enter the curriculum information for {{ $course }}.</p>
+            </div>
+            <button class="admin-profile-close" type="button" data-close-subject-create aria-label="Close subject form">&times;</button>
+        </header>
+
+        <form id="subjectCreateForm" method="POST" action="{{ route('dean.subjects.store') }}">
+            @csrf
+            <input type="hidden" name="subject_modal" value="1">
+            <input type="hidden" name="curriculum" value="{{ old('curriculum', 'New') }}">
+            <div class="admin-profile-form-grid">
+                <div class="admin-profile-field">
+                    <label for="subject_code">Subject code</label>
+                    <input id="subject_code" class="input" name="code" value="{{ old('code') }}" required>
+                    @error('code')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="subject_name">Subject name</label>
+                    <input id="subject_name" class="input" name="name" value="{{ old('name') }}" required>
+                    @error('name')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="subject_type">Subject type</label>
+                    <select id="subject_type" class="input" name="subject_type" required>
+                        @foreach(['Lecture','Laboratory'] as $type)<option @selected(old('subject_type', 'Lecture') === $type)>{{ $type }}</option>@endforeach
+                    </select>
+                    @error('subject_type')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="subject_classification">Subject classification</label>
+                    <select id="subject_classification" class="input" name="classification" required>
+                        @foreach(['Major','Minor'] as $classification)<option @selected(old('classification', 'Major') === $classification)>{{ $classification }}</option>@endforeach
+                    </select>
+                    @error('classification')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="subject_year_level">Year level</label>
+                    <select id="subject_year_level" class="input" name="year_level" required>
+                        @for($i=1;$i<=4;$i++)<option value="{{ $i }}" @selected((int) old('year_level', 1) === $i)>Year {{ $i }}</option>@endfor
+                    </select>
+                    @error('year_level')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="subject_semester">Semester</label>
+                    <select id="subject_semester" class="input" name="semester" required>
+                        @foreach(['1st','2nd','Summer'] as $semester)<option @selected(old('semester', '1st') === $semester)>{{ $semester }}</option>@endforeach
+                    </select>
+                    @error('semester')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field full">
+                    <label for="subject_units">Units</label>
+                    <input id="subject_units" class="input" type="number" step="0.5" min="0.5" max="12" name="units" value="{{ old('units', 3) }}" required>
+                    @error('units')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+            </div>
+
+            <footer class="admin-profile-actions">
+                <button class="button button-secondary" type="button" data-close-subject-create>Cancel</button>
+                <button class="button" type="submit">Add Subject</button>
+            </footer>
+        </form>
+    </section>
+</div>
+@endpush
+
 @push('scripts')
 <script>
+    (() => {
+        const modal = document.getElementById('subjectCreateModal');
+        const openButton = document.getElementById('openSubjectCreate');
+        const closeButtons = [...modal.querySelectorAll('[data-close-subject-create]')];
+        const firstInput = document.getElementById('subject_code');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => firstInput.focus(), 0);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            openButton.focus();
+        }
+
+        openButton.addEventListener('click', openModal);
+        closeButtons.forEach(button => button.addEventListener('click', closeModal));
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        @if($errors->hasAny(['code', 'name', 'subject_type', 'classification', 'year_level', 'semester', 'curriculum', 'units']))
+            openModal();
+        @endif
+    })();
+
     (() => {
         document.querySelectorAll('[data-subject-year-card]').forEach(card => {
             const message = card.querySelector('[data-subject-selection-message]');

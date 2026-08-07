@@ -12,6 +12,7 @@
     .instructor-cell { display:flex; align-items:center; gap:10px; min-width:210px; }
     .instructor-mark { width:38px; height:38px; display:grid; place-items:center; flex:0 0 38px; font-weight:850; color:white; background:var(--primary); border-radius:10px; }
     .instructor-cell strong,.instructor-cell span { display:block; }
+    .instructor-cell > .instructor-mark { display:grid; place-items:center; margin-top:0; color:#fff !important; line-height:1; }
     .instructor-cell span { margin-top:2px; color:var(--muted); font-size:10px; }
     .unit-number { font-size:18px; font-weight:850; color:var(--navy); }
     .unit-capacity { min-width:145px; }

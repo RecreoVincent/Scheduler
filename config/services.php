@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'microsoft_graph' => [
+        'tenant_id' => env('MS365_TENANT_ID'),
+        'client_id' => env('MS365_CLIENT_ID'),
+        'client_secret' => env('MS365_CLIENT_SECRET'),
+        'sender_email' => env('MS365_SENDER_EMAIL'),
+    ],
+
 ];

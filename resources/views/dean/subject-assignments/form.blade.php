@@ -1,13 +1,6 @@
 @push('styles')
 <style>
-    .assignment-form-modal[hidden] { display:none; }
-    .assignment-form-modal { position:fixed; z-index:1850; inset:0; display:grid; place-items:center; padding:10px; background:rgba(28,8,43,.62); backdrop-filter:blur(5px); }
-    .assignment-form-dialog { width:min(1120px,100%); max-height:calc(100vh - 20px); overflow:hidden; background:#fbf9fc; border:1px solid rgba(255,255,255,.65); border-radius:18px; box-shadow:0 28px 80px rgba(24,3,48,.32); }
-    .assignment-form-modal-header { position:sticky; z-index:2; top:0; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding:17px 19px 14px; background:rgba(251,249,252,.96); border-bottom:1px solid var(--border); backdrop-filter:blur(12px); }
-    .assignment-form-modal-header h2 { margin-bottom:5px; color:var(--navy); }
-    .assignment-form-modal-header p { color:var(--muted); font-size:12px; line-height:1.5; }
-    .assignment-form-close { width:40px; height:40px; display:grid; place-items:center; flex:0 0 40px; color:var(--primary); background:#f4ecf9; border:1px solid #ddcaeb; border-radius:10px; font-size:22px; cursor:pointer; }
-    .assignment-form-card { width:100%; padding:14px 17px 20px !important; border:0; border-radius:0; box-shadow:none; }
+    .assignment-form-card { width:100%; padding:0 !important; background:transparent !important; border:0 !important; border-radius:0; box-shadow:none !important; }
     #priorityAssignmentForm { width:100%; margin:0 auto; }
     .assignment-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 15px; }
     .assignment-fields > .assignment-control-group { width:100%; }
@@ -24,11 +17,8 @@
     .priority-select option[hidden] { display:none; }
     .priority-empty { display:none; margin:0; padding:14px; color:var(--muted); text-align:center; font-size:10px; background:rgba(255,255,255,.66); border-radius:8px; }
     .priority-explanation { margin-top:7px; padding:9px 11px; color:#584663; background:#f7f1fb; border-left:3px solid var(--primary); border-radius:7px; font-size:9px; line-height:1.5; }
-    .assignment-form-card .form-actions { margin-top:9px; padding:10px 0 8px; }
+    .assignment-form-card .admin-profile-actions { margin-top:18px; }
     @media(max-width:640px) {
-        .assignment-form-modal { padding:10px; }
-        .assignment-form-dialog { max-height:calc(100vh - 20px); overflow-y:auto; }
-        .assignment-form-modal-header { padding:18px; }
         .assignment-fields,.priority-list { grid-template-columns:1fr; }
         .assignment-priority-group { grid-column:auto; }
         .priority-row { grid-template-columns:1fr; gap:7px; }
@@ -42,19 +32,21 @@
         ->filter(fn($id)=>filled($id))->map(fn($id)=>(int)$id)->values()->all();
 @endphp
 
-<div id="assignmentFormModal" class="assignment-form-modal" hidden>
-<section id="assignment-form" class="assignment-form-dialog" role="dialog" aria-modal="true" aria-labelledby="assignmentFormTitle">
-    <header class="assignment-form-modal-header">
+@push('portal-profile-overlay')
+<div id="assignmentFormModal" class="admin-profile-modal" hidden>
+<section id="assignment-form" class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="assignmentFormTitle">
+    <header class="admin-profile-header">
         <div>
             <h2 id="assignmentFormTitle">Assign Instructor to a Subject</h2>
             <p>Select the semester, year level, subject, instructor department, and teaching priority in order.</p>
         </div>
-        <button id="closeAssignmentForm" class="assignment-form-close" type="button" aria-label="Close assignment form">&times;</button>
+        <button id="closeAssignmentForm" class="admin-profile-close" type="button" aria-label="Close assignment form">&times;</button>
     </header>
 
 <div class="card assignment-form-card">
     <form id="priorityAssignmentForm" method="POST" action="{{ route('dean.subject-assignments.store') }}">
         @csrf
+        <input type="hidden" name="assignment_modal" value="1">
         <input type="hidden" name="return_search" value="{{ request('search') }}">
         <input type="hidden" name="return_year_level" value="{{ request('year_level') }}">
         <input type="hidden" name="return_semester" value="{{ request('semester') }}">
@@ -150,14 +142,15 @@
             </div>
         </div>
 
-        <div class="form-actions">
-            <button class="button" type="submit" @disabled($subjectOptions->isEmpty())>Submit Assignment</button>
+        <footer class="admin-profile-actions">
             <button id="cancelAssignmentForm" class="button button-secondary" type="button">Cancel</button>
-        </div>
+            <button class="button" type="submit" @disabled($subjectOptions->isEmpty())>Submit Assignment</button>
+        </footer>
     </form>
 </div>
 </section>
 </div>
+@endpush
 
 @push('scripts')
 <script>

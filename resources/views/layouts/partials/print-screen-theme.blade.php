@@ -1,44 +1,62 @@
+@php
+    $printDepartmentLogo = match(strtoupper((string) ($course ?? 'BSIT'))) {
+        'BSBA' => 'images/bsba-department-logo.jpg',
+        'BSHM' => 'images/bshm-department-logo.jpg',
+        'BSED', 'BEED' => 'images/education-department-logo.jpg',
+        default => 'images/bsit-department-logo.jpg',
+    };
+@endphp
 <style>
     @media screen {
-        html { min-height:100%; background:#bfa3d6; }
+        html { min-height:100%; background:#fff; }
 
         body.print-preview {
+            position:relative;
             min-height:100vh;
             margin:0;
             padding:0 0 40px !important;
             color:#34283d;
-            background-image:
-                linear-gradient(rgba(0,0,0,.20),rgba(0,0,0,.20)),
-                url("{{ asset('images/landing-background.png') }}");
+            background:#fff;
+            font-family:"Segoe UI",Inter,Arial,Helvetica,sans-serif;
+        }
+
+        body.print-preview::before {
+            position:fixed;
+            z-index:0;
+            inset:76px 0 0;
+            content:'';
+            pointer-events:none;
+            background-image:url("{{ asset($printDepartmentLogo) }}");
             background-position:center;
             background-repeat:no-repeat;
-            background-size:cover;
-            background-attachment:fixed;
-            font-family:"Segoe UI",Inter,Arial,Helvetica,sans-serif;
+            background-size:min(54vmin,650px) min(54vmin,650px);
+            opacity:.12;
         }
 
         .print-preview .print-toolbar,
         .print-preview .toolbar {
-            position:relative;
+            position:sticky;
             z-index:20;
-            top:auto;
+            top:0;
             left:auto;
             width:100%;
-            min-height:76px;
+            min-height:64px;
             display:flex;
             align-items:center;
             justify-content:space-between;
             gap:20px;
-            margin:0 0 24px;
-            padding:12px clamp(20px,3vw,48px);
+            margin:0 0 28px;
+            padding:8px clamp(20px,3vw,48px);
             color:#fff;
-            background:linear-gradient(145deg,rgba(255,255,255,.22),rgba(255,255,255,.12));
+            background-image:
+                linear-gradient(100deg,rgba(45,4,95,.98),rgba(69,6,147,.97) 58%,rgba(101,20,171,.96)),
+                url("{{ asset('images/landing-background.png') }}");
+            background-position:center;
+            background-size:cover;
             border:0;
-            border-bottom:1px solid rgba(255,255,255,.3);
+            border-bottom:1px solid rgba(255,255,255,.18);
             border-radius:0;
-            box-shadow:0 18px 45px rgba(30,4,50,.19);
-            backdrop-filter:blur(16px) saturate(125%);
-            -webkit-backdrop-filter:blur(16px) saturate(125%);
+            box-shadow:0 12px 35px rgba(45,4,95,.22);
             transform:none;
         }
 
@@ -89,17 +107,20 @@
         .print-preview .toolbar .button:hover { background:#5d0bad; }
         .print-preview .exit-button:hover { background:rgba(255,255,255,.20); }
 
-        .print-preview .reports { padding:0 24px 30px; }
+        .print-preview .reports { position:relative;z-index:1;padding:0 24px 30px; }
 
         .print-preview .schedule-sheet,
         .print-preview .faculty-sheet,
         .print-preview .teaching-load-sheet,
         .print-preview .print-sheet,
         .print-preview .empty-report {
-            border:1px solid rgba(255,255,255,.72);
+            background-color:rgba(255,255,255,.94);
+            border:1px solid rgba(69,6,147,.18);
             border-radius:18px;
-            box-shadow:0 24px 65px rgba(31,5,54,.18);
+            box-shadow:0 24px 65px rgba(45,4,95,.14);
             overflow:hidden;
+            backdrop-filter:blur(10px);
+            -webkit-backdrop-filter:blur(10px);
         }
 
         .print-preview .print-sheet {
@@ -125,6 +146,7 @@
 
     @media print {
         body.print-preview { padding:0 !important; background:#fff !important; }
+        body.print-preview::before { display:none !important; }
         .print-preview .print-sheet { width:100%; margin:0; padding:0; background:#fff; border:0; border-radius:0; box-shadow:none; overflow:visible; }
     }
 </style>

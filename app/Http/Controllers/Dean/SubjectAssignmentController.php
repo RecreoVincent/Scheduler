@@ -22,7 +22,7 @@ class SubjectAssignmentController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = Subject::with('instructors')->where('course', $course);
+        $query = Subject::with('instructors')->forDepartment($course);
 
         foreach (['year_level', 'semester', 'curriculum'] as $filter) {
             if ($request->filled($filter)) {
@@ -69,7 +69,7 @@ class SubjectAssignmentController extends DeanController
     private function assignmentFormData(Request $request, string $course): array
     {
         $subjectOptions = Subject::with('instructors')
-            ->where('course', $course)
+            ->forDepartment($course)
             ->orderBy('year_level')
             ->orderBy('code')
             ->get();
@@ -77,7 +77,7 @@ class SubjectAssignmentController extends DeanController
 
         if ($request->filled('subject_id')) {
             $selectedSubject = Subject::with('instructors')
-                ->where('course', $course)
+                ->forDepartment($course)
                 ->findOrFail((int) $request->input('subject_id'));
         }
 
@@ -92,7 +92,7 @@ class SubjectAssignmentController extends DeanController
             ->get();
         $instructorIds = $instructors->modelKeys();
         $activeAcademicYear = AcademicSection::query()
-            ->where('course', $course)
+            ->forDepartment($course)
             ->max('academic_year');
         $scheduledInstructorLoads = $activeAcademicYear
             ? DB::table('class_schedules')
@@ -201,7 +201,7 @@ class SubjectAssignmentController extends DeanController
             ]);
         }
         $subjectQuery = Subject::query()
-            ->where('course', $this->course($request))
+            ->forDepartment($this->course($request))
             ->where('semester', $validated['semester']);
 
         if (filled($validated['year_level'] ?? null)) {
@@ -212,7 +212,7 @@ class SubjectAssignmentController extends DeanController
 
         $instructorsById = User::query()
             ->whereIn('id', $priorityInstructorIds)
-            ->where('course', $validated['instructor_department'])
+            ->forDepartment($validated['instructor_department'])
             ->where('role', 'instructor')
             ->where('account_status', 'active')
             ->get()
@@ -228,7 +228,7 @@ class SubjectAssignmentController extends DeanController
             ->pluck('users.id')
             ->map(fn ($id): int => (int) $id);
         $activeAcademicYear = AcademicSection::query()
-            ->where('course', $this->course($request))
+            ->forDepartment($this->course($request))
             ->max('academic_year');
         $scheduledLoads = $activeAcademicYear
             ? DB::table('class_schedules')
@@ -307,7 +307,7 @@ class SubjectAssignmentController extends DeanController
     {
         $course = $this->course($request);
         $subjectIds = Subject::query()
-            ->where('course', $course)
+            ->forDepartment($course)
             ->pluck('id');
 
         $removedCount = DB::table('subject_instructor')

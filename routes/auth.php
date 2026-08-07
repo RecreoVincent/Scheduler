@@ -16,6 +16,9 @@ Route::middleware('guest')->group(function () {
         ->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::get('register/verify-ms365', [RegisteredUserController::class, 'otp'])->name('register.otp');
+    Route::post('register/verify-ms365', [RegisteredUserController::class, 'verifyOtp'])->name('register.otp.verify')->middleware('throttle:10,1');
+    Route::post('register/verify-ms365/resend', [RegisteredUserController::class, 'resendOtp'])->name('register.otp.resend')->middleware('throttle:3,1');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');

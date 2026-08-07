@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\Ms365StudentAccountController;
 use App\Http\Controllers\Dean\DashboardController as DeanDashboardController;
 use App\Http\Controllers\Dean\InstructorController as DeanInstructorController;
 use App\Http\Controllers\Dean\InstructorUnitController as DeanInstructorUnitController;
@@ -70,6 +71,19 @@ Route::middleware('admin')
     ->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
+
+        Route::patch('/profile', [ProfileController::class, 'update'])
+            ->name('profile.update');
+
+        Route::get('/ms365-accounts', [Ms365StudentAccountController::class, 'index'])->name('ms365-accounts.index');
+        Route::post('/ms365-accounts/import', [Ms365StudentAccountController::class, 'import'])->name('ms365-accounts.import');
+
+        Route::get('/deleted-accounts', [UserController::class, 'deleted'])
+            ->name('users.deleted');
+
+        Route::patch('/users/{user}/restore', [UserController::class, 'restore'])
+            ->whereNumber('user')
+            ->name('users.restore');
 
         Route::resource('users', UserController::class)
             ->except(['show']);

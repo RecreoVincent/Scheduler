@@ -15,7 +15,7 @@ class SubjectController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = Subject::with('instructors')->where('course', $course);
+        $query = Subject::with('instructors')->forDepartment($course);
         foreach (['year_level', 'semester', 'subject_type', 'curriculum'] as $filter) {
             if ($request->filled($filter)) {
                 $query->where($filter, $request->input($filter));
@@ -93,7 +93,7 @@ class SubjectController extends DeanController
         ]);
 
         $codeAlreadyExists = Subject::query()
-            ->where('course', $course)
+            ->forDepartment($course)
             ->where('curriculum', $validated['curriculum'])
             ->where('code', $validated['code'])
             ->when($subject?->exists, fn ($query) => $query->whereKeyNot($subject->id))

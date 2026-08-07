@@ -48,21 +48,21 @@ class ClassScheduleGenerator
     ];
 
     private const MINOR_TIME_SLOTS = [
-        ['07:30', '09:00'],
-        ['09:00', '10:30'],
+        ['07:00', '08:30'],
+        ['08:30', '10:00'],
         ['10:30', '12:00'],
         ['13:00', '14:30'],
         ['14:30', '16:00'],
         ['16:00', '17:30'],
-        ['18:00', '19:30'],
+        ['17:30', '19:00'],
     ];
 
     private const MAJOR_TIME_SLOTS = [
-        ['07:30', '10:00'],
+        ['07:00', '09:30'],
         ['09:30', '12:00'],
         ['13:00', '15:30'],
         ['15:30', '18:00'],
-        ['17:00', '19:30'],
+        ['16:30', '19:00'],
     ];
 
     /**
@@ -93,22 +93,32 @@ class ClassScheduleGenerator
         Collection $rooms,
         Collection $fallbackInstructors,
         array $period,
+        ?int $seed = null,
     ): int {
-        return DB::transaction(function () use ($course, $sections, $subjects, $rooms, $fallbackInstructors, $period): int {
+        // Keep one seed for the whole transaction so every retry produces the
+        // same internally consistent plan, while a new generation request gets
+        // a fresh section/subject arrangement.
+        $seed ??= random_int(1, 2_147_483_647);
+
+        return DB::transaction(function () use ($course, $sections, $subjects, $rooms, $fallbackInstructors, $period, $seed): int {
             $sections = $sections
-                ->sortBy(fn (AcademicSection $section): string => sprintf('%02d-%s', (int) $section->year_level, $section->name), SORT_NATURAL | SORT_FLAG_CASE)
+                // Lower years still receive priority. Only sections within the
+                // same year are randomized.
+                ->sortBy(fn (AcademicSection $section): string => sprintf(
+                    '%02d-%s',
+                    (int) $section->year_level,
+                    $this->randomRank($seed, 'section', $section->id),
+                ))
                 ->values();
 
-            ClassSchedule::where('course', $course)
+            ClassSchedule::forDepartment($course)
                 ->whereIn('section_id', $sections->pluck('id'))
-                ->where('academic_year', $period['academic_year'])
-                ->where('semester', $period['semester'])
+                ->forAcademicPeriod($period['academic_year'], $period['semester'])
                 ->delete();
 
             // Serialize competing generators against the existing schedules in this period.
             $periodSchedules = ClassSchedule::with('subject:id,code,units')
-                ->where('academic_year', $period['academic_year'])
-                ->where('semester', $period['semester'])
+                ->forAcademicPeriod($period['academic_year'], $period['semester'])
                 ->lockForUpdate()
                 ->get();
 
@@ -126,11 +136,15 @@ class ClassScheduleGenerator
                 $yearSubjects = $subjects
                     ->where('year_level', $section->year_level)
                     ->values();
-                $sectionSubjects = $this->rotateSubjects(
+                $sectionSubjects = $this->randomizeSubjects(
                     $yearSubjects->reject(fn (Subject $subject): bool => $subject->classification === 'Minor')->values(),
+                    $seed,
+                    $section->id,
                     $sectionIndex,
-                )->concat($this->rotateSubjects(
+                )->concat($this->randomizeSubjects(
                     $yearSubjects->filter(fn (Subject $subject): bool => $subject->classification === 'Minor')->values(),
+                    $seed,
+                    $section->id,
                     $sectionIndex,
                 ))->values();
 
@@ -348,24 +362,23 @@ class ClassScheduleGenerator
         return preg_replace('/\s+/', ' ', strtoupper(trim((string) $subject->code))) ?? '';
     }
 
-    /**
-     * Stagger the subject order between sections so sections do not all request
-     * the same instructor and time slot for the same subject.
-     *
-     * @param  Collection<int, Subject>  $subjects
-     * @return Collection<int, Subject>
-     */
-    private function rotateSubjects(Collection $subjects, int $offset): Collection
+    /** @param Collection<int, Subject> $subjects */
+    private function randomizeSubjects(Collection $subjects, int $seed, int $sectionId, int $sectionIndex): Collection
     {
-        if ($subjects->isEmpty()) {
-            return $subjects;
-        }
-
-        $offset %= $subjects->count();
-
-        return $subjects->slice($offset)
-            ->concat($subjects->take($offset))
+        return $subjects
+            ->sortBy(fn (Subject $subject): string => $this->randomRank(
+                $seed,
+                'subject',
+                $sectionId,
+                $sectionIndex,
+                $subject->id,
+            ))
             ->values();
+    }
+
+    private function randomRank(int $seed, string $type, int ...$identifiers): string
+    {
+        return hash('sha256', implode(':', [$seed, $type, ...$identifiers]));
     }
 
     public function assignmentRuleViolation(ClassSchedule $schedule, User $instructor, ?Room $room, string $day, string $start, string $end): ?string
@@ -373,8 +386,8 @@ class ClassScheduleGenerator
         $start = substr($start, 0, 5);
         $end = substr($end, 0, 5);
 
-        if ($start < '07:30' || $end > '19:30') {
-            return 'Classes must be scheduled between 7:30 AM and 7:30 PM.';
+        if ($start < '07:00' || $end > '19:00') {
+            return 'Classes must be scheduled between 7:00 AM and 7:00 PM.';
         }
 
         if ($start < '13:00' && $end > '12:00') {
@@ -407,8 +420,7 @@ class ClassScheduleGenerator
         }
 
         $existingDayPatternLoad = ClassSchedule::query()
-            ->where('academic_year', $schedule->academic_year)
-            ->where('semester', $schedule->semester)
+            ->forAcademicPeriod($schedule->academic_year, $schedule->semester)
             ->where('instructor_id', $instructor->id)
             ->whereKeyNot($schedule->id)
             ->whereIn('day', ClassSchedule::conflictingDayPatterns($day))
@@ -419,8 +431,7 @@ class ClassScheduleGenerator
         }
 
         $existingUnits = ClassSchedule::with('subject')
-            ->where('academic_year', $schedule->academic_year)
-            ->where('semester', $schedule->semester)
+            ->forAcademicPeriod($schedule->academic_year, $schedule->semester)
             ->where('instructor_id', $instructor->id)
             ->whereKeyNot($schedule->id)
             ->get()

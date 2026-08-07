@@ -16,7 +16,7 @@ class DeanMiddleware
         } elseif (Auth::guard('web')->check()) {
             Auth::shouldUse('web');
         } else {
-            return redirect()->route('login', ['role' => 'dean']);
+            return redirect()->route('home')->withFragment('portals');
         }
 
         $user = $request->user();

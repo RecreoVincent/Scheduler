@@ -12,7 +12,7 @@ class AuthenticationTest extends TestCase
 
     public function test_login_screen_can_be_rendered(): void
     {
-        $response = $this->get('/login');
+        $response = $this->get(route('login', ['role' => 'admin']));
 
         $response->assertStatus(200)
             ->assertSee('height:100dvh', false)
@@ -82,12 +82,16 @@ class AuthenticationTest extends TestCase
         }
     }
 
-    public function test_unselected_login_keeps_the_fallback_design(): void
+    public function test_unselected_login_returns_to_portal_selection(): void
     {
         $this->get(route('login'))
-            ->assertOk()
-            ->assertDontSee('class="branded-portal-login"', false)
-            ->assertSee('Welcome back');
+            ->assertRedirect(route('home'));
+    }
+
+    public function test_dean_login_without_a_department_returns_to_portal_selection(): void
+    {
+        $this->get(route('login', ['role' => 'dean']))
+            ->assertRedirect(route('home').'#portals');
     }
 
     public function test_users_can_authenticate_using_the_login_screen(): void

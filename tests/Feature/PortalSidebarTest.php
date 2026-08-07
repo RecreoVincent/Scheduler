@@ -50,11 +50,11 @@ class PortalSidebarTest extends TestCase
     public function test_portals_render_the_correct_sidebar_brand_logo(): void
     {
         foreach ([
-            ['admin', 'admin.dashboard', 'images/mcc-college-logo.png'],
-            ['dean', 'dean.dashboard', 'images/bsit-department-logo.jpg'],
-            ['instructor', 'instructor.dashboard', 'images/bsit-department-logo.jpg'],
-            ['student', 'student.dashboard', 'images/bsit-department-logo.jpg'],
-        ] as [$role, $route, $logo]) {
+            ['admin', 'admin.dashboard'],
+            ['dean', 'dean.dashboard'],
+            ['instructor', 'instructor.dashboard'],
+            ['student', 'student.dashboard'],
+        ] as [$role, $route]) {
             $user = User::factory()->create([
                 'role' => $role,
                 'course' => 'BSIT',
@@ -64,21 +64,16 @@ class PortalSidebarTest extends TestCase
             $this->actingAs($user)
                 ->get(route($route))
                 ->assertOk()
-                ->assertSee($logo);
+                ->assertSee('images/mcc-scheduler-logo.png')
+                ->assertSee('MCC Scheduler logo');
         }
     }
 
-    public function test_department_portal_members_render_their_assigned_department_logo(): void
+    public function test_department_portal_members_render_the_shared_scheduler_logo(): void
     {
-        $departments = [
-            'BSIT' => 'images/bsit-department-logo.jpg',
-            'BSBA' => 'images/bsba-department-logo.jpg',
-            'BSHM' => 'images/bshm-department-logo.jpg',
-            'BSED' => 'images/education-department-logo.jpg',
-            'BEED' => 'images/education-department-logo.jpg',
-        ];
+        $departments = ['BSIT', 'BSBA', 'BSHM', 'BSED', 'BEED'];
 
-        foreach ($departments as $course => $logo) {
+        foreach ($departments as $course) {
             foreach ([
                 ['dean', 'dean.dashboard'],
                 ['instructor', 'instructor.dashboard'],
@@ -93,8 +88,8 @@ class PortalSidebarTest extends TestCase
                 $this->actingAs($user)
                     ->get(route($route))
                     ->assertOk()
-                    ->assertSee($logo)
-                    ->assertSee($course.' department logo');
+                    ->assertSee('images/mcc-scheduler-logo.png')
+                    ->assertSee('MCC Scheduler logo');
             }
         }
     }

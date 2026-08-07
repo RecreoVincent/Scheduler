@@ -25,7 +25,7 @@
 @section('content')
 <div class="page-header">
     <div><h2>{{ $course }} Sections</h2><p>Organize sections by year level and academic period.</p></div>
-    <a class="button" href="{{ route('dean.sections.create') }}">Add Section</a>
+    <button id="openSectionCreate" class="button" type="button">Add Section</button>
 </div>
 
 <div class="card">
@@ -64,6 +64,51 @@
     <x-pagination :paginator="$sections" label="Section pages" />
 </div>
 
+@push('portal-profile-overlay')
+<div id="sectionCreateModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="sectionCreateTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="sectionCreateTitle">Add Section</h2>
+                <p>Create a new {{ $course }} section for the selected year level and academic year.</p>
+            </div>
+            <button class="admin-profile-close" type="button" data-close-section-create aria-label="Close section form">&times;</button>
+        </header>
+
+        <form id="sectionCreateForm" method="POST" action="{{ route('dean.sections.store') }}">
+            @csrf
+            <input type="hidden" name="section_modal" value="1">
+            <div class="admin-profile-form-grid">
+                <div class="admin-profile-field">
+                    <label for="section_name">Section name</label>
+                    <input id="section_name" class="input" name="name" value="{{ old('name') }}" placeholder="Year 1-A" required>
+                    @error('name')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="section_year_level">Year level</label>
+                    <select id="section_year_level" class="input" name="year_level" required>
+                        @for($i=1;$i<=4;$i++)
+                            <option value="{{ $i }}" @selected((int) old('year_level', 1) === $i)>Year {{ $i }}</option>
+                        @endfor
+                    </select>
+                    @error('year_level')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field full">
+                    <label for="section_academic_year">Academic year</label>
+                    <input id="section_academic_year" class="input" name="academic_year" value="{{ old('academic_year') }}" placeholder="2026-2027" inputmode="numeric" required>
+                    @error('academic_year')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+            </div>
+
+            <footer class="admin-profile-actions">
+                <button class="button button-secondary" type="button" data-close-section-create>Cancel</button>
+                <button class="button" type="submit">Add Section</button>
+            </footer>
+        </form>
+    </section>
+</div>
+@endpush
+
 <div id="sectionDeleteModal" class="section-delete-modal" hidden>
     <section class="section-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="sectionDeleteTitle" aria-describedby="sectionDeleteMessage">
         <div class="section-delete-icon" aria-hidden="true">!</div>
@@ -84,6 +129,34 @@
 
 @push('scripts')
 <script>
+    (() => {
+        const modal = document.getElementById('sectionCreateModal');
+        const openButton = document.getElementById('openSectionCreate');
+        const closeButtons = [...modal.querySelectorAll('[data-close-section-create]')];
+        const firstInput = document.getElementById('section_name');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => firstInput.focus(), 0);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            openButton.focus();
+        }
+
+        openButton.addEventListener('click', openModal);
+        closeButtons.forEach(button => button.addEventListener('click', closeModal));
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        @if($errors->hasAny(['name', 'year_level', 'academic_year']))
+            openModal();
+        @endif
+    })();
+
     (() => {
         const modal = document.getElementById('sectionDeleteModal');
         const form = document.getElementById('sectionDeleteForm');

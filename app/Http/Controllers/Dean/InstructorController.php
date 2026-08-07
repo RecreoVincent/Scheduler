@@ -15,7 +15,7 @@ class InstructorController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = User::where('course', $course)->where('role', 'instructor');
+        $query = User::forDepartment($course)->where('role', 'instructor');
 
         $pendingInstructors = (clone $query)
             ->where('account_status', 'pending')
@@ -62,7 +62,6 @@ class InstructorController extends DeanController
         $this->ensureInstructor($request, $instructor);
         $wasPending = $instructor->account_status === 'pending';
 
-        Subject::where('instructor_id', $instructor->id)->update(['instructor_id' => null]);
         DB::table('subject_instructor')->where('instructor_id', $instructor->id)->delete();
         ClassSchedule::withTrashed()->where('instructor_id', $instructor->id)->forceDelete();
         $instructor->delete();
@@ -74,6 +73,6 @@ class InstructorController extends DeanController
 
     private function ensureInstructor(Request $request, User $instructor): void
     {
-        abort_unless($instructor->role === 'instructor' && strtoupper((string) $instructor->course) === $this->course($request), 404);
+        abort_unless($instructor->role === 'instructor' && (int) $instructor->department_id === (int) $request->user()->department_id, 404);
     }
 }

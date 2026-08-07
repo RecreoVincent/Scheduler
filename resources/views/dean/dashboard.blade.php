@@ -4,21 +4,17 @@
 @section('page-title', $course.' Dean Dashboard')
 
 @push('styles')
+@include('layouts.partials.dashboard-analytics-card-styles')
 <style>
     .welcome { margin-bottom:22px; padding:28px; background:linear-gradient(120deg,#f0e2fa,#fff9e8); border:1px solid #ddc7ec; border-radius:16px; }
     .welcome h2 { margin-bottom:7px; color:var(--navy); }
-    .stats { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:15px; margin-bottom:22px; }
-    .stat { width:100%; padding:20px; font:inherit; text-align:left; cursor:pointer; background:white; border:1px solid var(--border); border-radius:14px; transition:.2s; }
-    .stat:hover,.stat:focus-visible,.stat.active { transform:translateY(-3px); border-color:#3b82f6; box-shadow:0 12px 25px rgba(37,99,235,.12); outline:none; }
-    .stat span { font-size:12px; color:#64748b; }
-    .stat strong { display:block; margin-top:8px; font-size:28px; color:var(--navy); }
     .schedule-row { display:grid; grid-template-columns:1fr 1.4fr 1fr 1fr; gap:10px; padding:12px 0; border-bottom:1px solid #e2e8f0; font-size:13px; }
     .analytics-modal[hidden] { display:none; }
-    .analytics-modal { position:fixed; z-index:1500; inset:0; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.58); backdrop-filter:blur(3px); }
-    .analytics-dialog { width:min(900px,100%); max-height:calc(100vh - 48px); padding:26px; overflow-y:auto; background:white; border-radius:18px; box-shadow:0 25px 65px rgba(15,23,42,.28); }
+    .analytics-modal { position:fixed; z-index:1000; top:68px; right:0; bottom:0; left:220px; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.58); backdrop-filter:blur(3px); }
+    .analytics-dialog { width:min(1100px,100%); max-height:calc(100vh - 132px); padding:26px; overflow-y:auto; color:#24152f; background:rgba(239,226,248,.68); border:1px solid rgba(69,6,147,.32); border-radius:18px; box-shadow:0 24px 65px rgba(15,23,42,.25); backdrop-filter:blur(8px); }
     .chart-header,.chart-actions,.chart-layout,.legend-item { display:flex; align-items:center; }
     .chart-header { justify-content:space-between; gap:18px; margin-bottom:24px; }
-    .chart-header h2 { margin-bottom:5px; color:var(--navy); } .chart-header p { color:var(--muted); }
+    .chart-header h2 { margin-bottom:5px; color:#2d045f !important; } .chart-header p { color:#4b3d55 !important; }
     .chart-actions { gap:12px; } .chart-toolbar { display:flex; gap:6px; padding:5px; background:#f3e9fa; border-radius:10px; }
     .chart-type { padding:8px 12px; font-size:12px; font-weight:700; color:#475569; cursor:pointer; background:transparent; border:0; border-radius:7px; }
     .chart-type.active { color:white; background:var(--primary); }
@@ -33,8 +29,9 @@
     .legend { min-width:220px; display:grid; gap:10px; } .legend-item { justify-content:space-between; gap:20px; font-size:13px; }
     .legend-label { display:flex; align-items:center; gap:8px; } .legend-color { width:11px; height:11px; border-radius:3px; }
     .chart-empty { color:#64748b; }
-    @media(max-width:850px){ .stats{grid-template-columns:repeat(2,1fr)} .chart-header,.chart-layout{align-items:stretch;flex-direction:column}.chart-circle{margin:auto}.schedule-row{grid-template-columns:1fr 1fr} }
-    @media(max-width:520px){ .stats{grid-template-columns:1fr}.chart-actions{align-items:stretch;flex-direction:column}.chart-toolbar{flex-wrap:wrap}.bar-chart{overflow-x:auto}.analytics-modal{padding:12px} }
+    @media(max-width:950px){ .analytics-modal{left:0} }
+    @media(max-width:850px){ .chart-header,.chart-layout{align-items:stretch;flex-direction:column}.chart-circle{margin:auto}.schedule-row{grid-template-columns:1fr 1fr} }
+    @media(max-width:520px){ .chart-actions{align-items:stretch;flex-direction:column}.chart-toolbar{flex-wrap:wrap}.bar-chart{overflow-x:auto}.analytics-modal{padding:12px} }
 </style>
 @endpush
 
@@ -44,11 +41,21 @@
     <p>Manage the {{ $course }} department's people, academic data, rooms, and class schedules.</p>
 </div>
 
-<div class="stats">
-    @foreach (['Instructors' => 'instructors', 'Students' => 'students', 'Subjects' => 'subjects', 'Sections' => 'sections', 'Rooms' => 'rooms'] as $label => $key)
-        <button type="button" class="stat" data-stat="{{ $key }}" data-label="{{ $label }}">
-            <span>{{ $label }}</span>
-            <strong>{{ $statistics[$key] }}</strong>
+@php
+    $deanCards = [
+        ['label'=>'Instructors','key'=>'instructors','color'=>'#3b82f6'], ['label'=>'Students','key'=>'students','color'=>'#8b5cf6'],
+        ['label'=>'Subjects','key'=>'subjects','color'=>'#14b8a6'], ['label'=>'Sections','key'=>'sections','color'=>'#f59e0b'], ['label'=>'Rooms','key'=>'rooms','color'=>'#ef4444'],
+    ];
+    $deanMaximum = max(1, ...array_values($statistics));
+@endphp
+<div class="stats portal-analytics-grid">
+    @foreach ($deanCards as $card)
+        @php($percentage = (int) round(($statistics[$card['key']] / $deanMaximum) * 100))
+        <button type="button" class="stat portal-analytics-card" data-stat="{{ $card['key'] }}" data-label="{{ $card['label'] }}" style="--analytics-accent:{{ $card['color'] }};--analytics-progress:{{ $percentage }}%">
+            <span class="portal-analytics-header"><span class="portal-analytics-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V8M10 19V4M16 19v-7M22 19H2"/></svg></span><span class="portal-analytics-title">{{ $card['label'] }}</span></span>
+            <span class="portal-analytics-metric"><span class="portal-analytics-label">Department total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
+            <span class="portal-analytics-progress"><span class="portal-analytics-progress-fill"></span></span>
+            <span class="portal-analytics-footer">{{ $percentage }}% relative to highest metric</span>
         </button>
     @endforeach
 </div>

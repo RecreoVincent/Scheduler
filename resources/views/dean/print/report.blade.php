@@ -8,6 +8,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    @include('layouts.partials.favicon')
     <meta charset="UTF-8">
     <title>{{ str($type)->replace('-', ' ')->title() }} - {{ $course }}</title>
     <style>

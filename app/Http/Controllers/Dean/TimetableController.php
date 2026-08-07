@@ -23,7 +23,7 @@ class TimetableController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = ClassSchedule::query()->where('course', $course);
+        $query = ClassSchedule::query()->forDepartment($course);
 
         foreach (['section_id', 'academic_year', 'semester', 'day'] as $filter) {
             if ($request->filled($filter)) {
@@ -39,7 +39,7 @@ class TimetableController extends DeanController
 
         $scheduledSectionIds = (clone $query)->distinct()->pluck('section_id');
         $sectionPages = AcademicSection::query()
-            ->where('course', $course)
+            ->forDepartment($course)
             ->whereIn('id', $scheduledSectionIds)
             ->orderBy('year_level')
             ->orderBy('name')
@@ -54,7 +54,7 @@ class TimetableController extends DeanController
             ->get()
             ->groupBy('section_id');
 
-        $sections = AcademicSection::where('course', $course)->orderBy('year_level')->orderBy('name')->get();
+        $sections = AcademicSection::forDepartment($course)->orderBy('year_level')->orderBy('name')->get();
 
         return view('dean.timetable.index', compact('course', 'sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount'));
     }
@@ -63,7 +63,7 @@ class TimetableController extends DeanController
     {
         $this->ensureCourse($request, $timetable);
         $course = $this->course($request);
-        $rooms = Room::where('course', $course)->orderBy('name')->get();
+        $rooms = Room::forDepartment($course)->orderBy('name')->get();
         $instructors = User::where('role', 'instructor')->where('account_status', 'active')->orderBy('course')->orderBy('first_name')->get();
 
         return view('dean.timetable.edit', compact('course', 'timetable', 'rooms', 'instructors'));
@@ -78,7 +78,7 @@ class TimetableController extends DeanController
             'start_time' => ['required', 'date_format:H:i'], 'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
         ]);
         $course = $this->course($request);
-        abort_unless(Room::whereKey($validated['room_id'])->where('course', $course)->exists(), 422);
+        abort_unless(Room::whereKey($validated['room_id'])->forDepartment($course)->exists(), 422);
         abort_unless(User::whereKey($validated['instructor_id'])->where('role', 'instructor')->where('account_status', 'active')->exists(), 422);
 
         $room = Room::findOrFail($validated['room_id']);
@@ -128,7 +128,7 @@ class TimetableController extends DeanController
     {
         $this->ensureCourse($request, $section);
 
-        $schedules = ClassSchedule::where('course', $this->course($request))
+        $schedules = ClassSchedule::forDepartment($this->course($request))
             ->where('section_id', $section->id)
             ->get();
         $deleted = $schedules->isEmpty()
@@ -153,7 +153,7 @@ class TimetableController extends DeanController
         ]);
 
         $course = $this->course($request);
-        $query = ClassSchedule::query()->where('course', $course);
+        $query = ClassSchedule::query()->forDepartment($course);
 
         foreach (['section_id', 'academic_year', 'semester', 'day'] as $filter) {
             if (filled($validated[$filter] ?? null)) {

@@ -15,7 +15,7 @@ class RoomController extends DeanController
     {
         $course = $this->course($request);
         $rooms = Room::with(['schedules' => fn ($query) => $query->with(['section', 'subject'])->orderByRaw(ClassSchedule::dayOrderSql())->orderBy('start_time')])
-            ->where('course', $course)->orderBy('name')->paginate(10);
+            ->forDepartment($course)->orderBy('name')->paginate(10);
 
         return view('dean.rooms.index', compact('course', 'rooms'));
     }
@@ -59,7 +59,7 @@ class RoomController extends DeanController
     private function validated(Request $request, ?Room $room = null): array
     {
         return $request->validate([
-            'name' => ['required', 'string', 'max:80', Rule::unique('rooms')->where(fn ($q) => $q->where('course', $this->course($request)))->ignore($room?->id)],
+            'name' => ['required', 'string', 'max:80', Rule::unique('rooms')->where(fn ($q) => $q->where('department_id', $request->user()->department_id))->ignore($room?->id)],
             'room_type' => ['required', Rule::in(['Lecture', 'Laboratory', 'Kitchen Laboratory'])],
         ]);
     }

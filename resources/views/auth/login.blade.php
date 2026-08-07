@@ -68,6 +68,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('layouts.partials.favicon')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -203,15 +204,15 @@
         }
     </style>
 </head>
-<body @class(['branded-portal-login'=>$isBrandedPortal])>
+<body class="branded-portal-login">
 
 <main class="auth-layout">
     <section class="form-side">
         <div class="form-content">
-            <a class="brand" href="{{ route('home') }}"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M13 14h3M8 18h3"/></svg></span><span>{{ $isBrandedPortal ? 'MCC | Scheduler' : 'Scheduler' }}</span></a>
-            <header class="heading"><span class="heading-kicker">Secure portal access</span><h1>{{ $isBrandedPortal ? $portalBrand['welcome'] : 'Welcome back' }}</h1><p>{{ $isBrandedPortal ? $portalBrand['description'] : 'Enter your account credentials to continue.' }}</p></header>
+            <a class="brand" href="{{ route('home') }}"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M13 14h3M8 18h3"/></svg></span><span>MCC | Scheduler</span></a>
+            <header class="heading"><span class="heading-kicker">Secure portal access</span><h1>{{ $portalBrand['welcome'] }}</h1><p>{{ $portalBrand['description'] }}</p></header>
 
-            <div class="portal-card"><span @class(['portal-symbol','mcc-portal-symbol'=>$usesMccLogo,'department-portal-symbol'=>$usesDepartmentLogo,'bsit-portal-symbol'=>$usesBsitLogo,$departmentLogoClass=>$usesDepartmentLogo])>@if($isBrandedPortal)<img src="{{ asset($portalBrand['logo']) }}" alt="{{ $portalBrand['logoAlt'] }}">@else{{ $roleSymbols[$selectedRole] }}@endif</span><div class="portal-copy"><span>Selected portal</span><strong>{{ ucfirst($selectedRole) }} Portal @if($selectedRole==='dean'&&$selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}">Change</a></div>
+            <div class="portal-card"><span @class(['portal-symbol','mcc-portal-symbol'=>$usesMccLogo,'department-portal-symbol'=>$usesDepartmentLogo,'bsit-portal-symbol'=>$usesBsitLogo,$departmentLogoClass=>$usesDepartmentLogo])><img src="{{ asset($portalBrand['logo']) }}" alt="{{ $portalBrand['logoAlt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ ucfirst($selectedRole) }} Portal @if($selectedRole==='dean'&&$selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}">Change</a></div>
             @if($errors->any())<div class="alert alert-error" role="alert">Please check your login information and try again.</div>@endif
             @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
 
@@ -228,7 +229,6 @@
     </section>
 
     <section class="visual-side" aria-label="Scheduler platform overview">
-        @if($isBrandedPortal)
         <div class="portal-identity">
             <div @class(['portal-logo-wrap','mcc-logo-wrap'=>$usesMccLogo,'department-logo-wrap'=>$usesDepartmentLogo,'bsit-logo-wrap'=>$usesBsitLogo,$departmentLogoClass=>$usesDepartmentLogo])><img src="{{ asset($portalBrand['logo']) }}" alt="{{ $portalBrand['logoAlt'] }}"></div>
             <span class="visual-label">{{ $portalBrand['label'] }}</span>
@@ -240,18 +240,6 @@
                 @endforeach
             </div>
         </div>
-        @else
-        <div class="visual-content"><span class="visual-label">Academic scheduling platform</span><h2>Everything in its right place.</h2><p>Connected schedules, clear workloads, and real-time room visibility for every academic role.</p>
-            <div class="schedule-preview"><div class="preview-window"><div class="preview-head"><strong>Weekly Schedule</strong><span class="preview-status">Conflict free</span></div><div class="preview-body"><div class="preview-days">
-                <div class="preview-day"><span>Mon</span><div class="preview-slot purple"><small>08:00</small><b>IT 101</b></div><div class="preview-slot"></div><div class="preview-slot light"><small>13:00</small><b>Lab 2</b></div></div>
-                <div class="preview-day"><span>Tue</span><div class="preview-slot"></div><div class="preview-slot gold"><small>10:00</small><b>Room 4</b></div><div class="preview-slot"></div></div>
-                <div class="preview-day"><span>Wed</span><div class="preview-slot light"><small>08:30</small><b>IT 203</b></div><div class="preview-slot"></div><div class="preview-slot purple"><small>14:00</small><b>Lab 1</b></div></div>
-                <div class="preview-day"><span>Thu</span><div class="preview-slot"></div><div class="preview-slot purple"><small>10:30</small><b>IT 304</b></div><div class="preview-slot"></div></div>
-                <div class="preview-day"><span>Fri</span><div class="preview-slot gold"><small>09:00</small><b>Lab 5</b></div><div class="preview-slot"></div><div class="preview-slot light"><small>15:00</small><b>IT 401</b></div></div>
-            </div></div></div></div>
-            <div class="visual-points"><div class="visual-point"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>Role-based access</div><div class="visual-point"><span class="check"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></span>Real-time information</div></div>
-        </div>
-        @endif
     </section>
 </main>
 

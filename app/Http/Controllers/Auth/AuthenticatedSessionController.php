@@ -19,13 +19,20 @@ class AuthenticatedSessionController extends Controller
     {
         $selectedRole = strtolower($request->string('role')->toString());
 
-        if (in_array($selectedRole, ['admin', 'dean', 'instructor', 'student'], true)
-            && Auth::guard($selectedRole)->check()) {
-            return redirect()->route("{$selectedRole}.dashboard");
+        if (! in_array($selectedRole, ['admin', 'dean', 'instructor', 'student'], true)) {
+            return redirect()->route('home');
         }
 
-        if ($selectedRole === '' && Auth::guard('web')->check()) {
-            return redirect()->intended(route('dashboard'));
+        if ($selectedRole === 'dean') {
+            $selectedCourse = strtoupper($request->string('course')->toString());
+
+            if (! in_array($selectedCourse, ['BSIT', 'BSBA', 'BSHM', 'BSED', 'BEED'], true)) {
+                return redirect()->route('home')->withFragment('portals');
+            }
+        }
+
+        if (Auth::guard($selectedRole)->check()) {
+            return redirect()->route("{$selectedRole}.dashboard");
         }
 
         return view('auth.login');

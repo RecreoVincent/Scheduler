@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('layouts.partials.favicon')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -43,6 +44,7 @@
     @stack('styles')
     @include('layouts.partials.portal-unified-theme')
     @include('layouts.partials.schedule-notification-styles')
+    @include('layouts.partials.scrollbar-styles')
 </head>
 @php
     $instructorDepartmentLogos=[
@@ -54,19 +56,17 @@
     ];
     $instructorDepartmentLogo=$instructorDepartmentLogos[strtoupper((string)auth()->user()->course)]??'images/mcc-college-logo.png';
 @endphp
-<body>
+<body class="instructor-department-portal" style="--user-department-logo:url('{{ asset($instructorDepartmentLogo) }}')">
 <div class="app">
     <aside id="portalSidebar" class="sidebar">
-        <a href="{{ route('instructor.dashboard') }}" class="brand"><span class="brand-icon brand-icon--department"><img src="{{ asset($instructorDepartmentLogo) }}" alt="{{ auth()->user()->course }} department logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Instructor Portal</small></span></a>
-        <div class="department-chip">{{ auth()->user()->course }} Department</div>
+        <a href="{{ route('instructor.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Instructor Portal</small></span></a>
+        <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} Department</div>
         <p class="menu-label">Overview</p>
         <a class="menu-link {{ request()->routeIs('instructor.dashboard') ? 'active' : '' }}" href="{{ route('instructor.dashboard') }}"><span class="menu-icon" aria-hidden="true">⌂</span>Dashboard</a>
         <a class="menu-link {{ request()->routeIs('instructor.workload.*') ? 'active' : '' }}" href="{{ route('instructor.workload.index') }}"><span class="menu-icon" aria-hidden="true">▤</span>Workload</a>
         <a class="menu-link {{ request()->routeIs('instructor.scanner.*') ? 'active' : '' }}" href="{{ route('instructor.scanner.index') }}"><span class="menu-icon" aria-hidden="true">▣</span>QR Scanner</a>
         <p class="menu-label">Account</p>
-        <a class="menu-link {{ request()->routeIs('instructor.profile.*') ? 'active' : '' }}" href="{{ route('instructor.profile.edit') }}"><span class="menu-icon" aria-hidden="true">♙</span>Edit Profile</a>
         <a class="menu-link {{ request()->routeIs('instructor.print.*') ? 'active' : '' }}" target="_blank" href="{{ route('instructor.print.workload') }}"><span class="menu-icon" aria-hidden="true">🖨</span>Print Workload</a>
-        <form method="POST" action="{{ route('logout') }}">@csrf<input type="hidden" name="role" value="instructor"><button class="menu-link" type="submit"><span class="menu-icon" aria-hidden="true">↪</span>Sign Out</button></form>
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
     <main class="main">
@@ -74,13 +74,14 @@
             <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Instructor workspace</span><h1>@yield('page-title','Instructor Portal')</h1></div></div>
             <div class="topbar-actions">
                 @include('layouts.partials.schedule-notifications')
-                <div class="profile"><span class="profile-avatar">{{ strtoupper(substr(auth()->user()->first_name ?: 'I',0,1)) }}</span><span class="profile-copy"><strong>{{ auth()->user()->name }}</strong><span>Instructor · {{ auth()->user()->course }}</span></span></div>
+                @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Instructor'])
             </div>
         </header>
         <section class="content">@yield('content')</section>
     </main>
 </div>
-@php $hasNotice=session()->has('success')||session()->has('error')||$errors->any(); @endphp
+@stack('portal-profile-overlay')
+@php $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')); @endphp
 @if($hasNotice)
 <div id="instructorNotice" class="notice-modal"><section class="notice-dialog" role="dialog" aria-modal="true" aria-labelledby="instructorNoticeTitle">
     <h2 id="instructorNoticeTitle">{{ session()->has('success') ? 'Success' : 'Action unsuccessful' }}</h2>

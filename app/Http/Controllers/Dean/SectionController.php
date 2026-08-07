@@ -14,7 +14,7 @@ class SectionController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = AcademicSection::where('course', $course);
+        $query = AcademicSection::forDepartment($course);
         foreach (['year_level', 'academic_year'] as $filter) {
             if ($request->filled($filter)) {
                 $query->where($filter, $request->input($filter));
@@ -26,9 +26,9 @@ class SectionController extends DeanController
         return view('dean.sections.index', compact('course', 'sections'));
     }
 
-    public function create(Request $request): View
+    public function create(Request $request): RedirectResponse
     {
-        return view('dean.sections.form', ['section' => new AcademicSection, 'course' => $this->course($request)]);
+        return redirect()->route('dean.sections.index');
     }
 
     public function store(Request $request): RedirectResponse
@@ -69,7 +69,7 @@ class SectionController extends DeanController
     private function validated(Request $request, ?AcademicSection $section = null): array
     {
         return $request->validate([
-            'name' => ['required', 'string', 'max:80', Rule::unique('academic_sections')->where(fn ($q) => $q->where('course', $this->course($request))->where('academic_year', $request->academic_year))->ignore($section?->id)],
+            'name' => ['required', 'string', 'max:80', Rule::unique('academic_sections')->where(fn ($q) => $q->where('department_id', $request->user()->department_id)->where('academic_year', $request->academic_year))->ignore($section?->id)],
             'year_level' => ['required', 'integer', 'between:1,4'],
             'academic_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
         ]);

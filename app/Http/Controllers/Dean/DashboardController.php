@@ -16,14 +16,14 @@ class DashboardController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $instructorQuery = User::where('course', $course)->where('role', 'instructor')->where('account_status', 'active');
-        $studentQuery = User::where('course', $course)->where('role', 'student');
+        $instructorQuery = User::forDepartment($course)->where('role', 'instructor')->where('account_status', 'active');
+        $studentQuery = User::forDepartment($course)->where('role', 'student');
         $statistics = [
             'instructors' => (clone $instructorQuery)->count(),
             'students' => (clone $studentQuery)->count(),
-            'subjects' => Subject::where('course', $course)->count(),
-            'sections' => AcademicSection::where('course', $course)->count(),
-            'rooms' => Room::where('course', $course)->count(),
+            'subjects' => Subject::forDepartment($course)->count(),
+            'sections' => AcademicSection::forDepartment($course)->count(),
+            'rooms' => Room::forDepartment($course)->count(),
         ];
 
         $analytics = [
@@ -34,10 +34,10 @@ class DashboardController extends DeanController
                 'Unspecified' => (clone $instructorQuery)->whereNull('employment_type')->count(),
             ],
             'students' => $this->yearLevelCounts(clone $studentQuery),
-            'subjects' => $this->yearLevelCounts(Subject::where('course', $course)),
-            'sections' => $this->yearLevelCounts(AcademicSection::where('course', $course)),
+            'subjects' => $this->yearLevelCounts(Subject::forDepartment($course)),
+            'sections' => $this->yearLevelCounts(AcademicSection::forDepartment($course)),
             'rooms' => Room::withCount('schedules')
-                ->where('course', $course)
+                ->forDepartment($course)
                 ->orderBy('name')
                 ->get()
                 ->mapWithKeys(fn (Room $room): array => [$room->name => (int) $room->getAttribute('schedules_count')])
@@ -45,7 +45,7 @@ class DashboardController extends DeanController
         ];
 
         $recentSchedules = ClassSchedule::with(['section', 'subject', 'room'])
-            ->where('course', $course)
+            ->forDepartment($course)
             ->latest()
             ->take(6)
             ->get();

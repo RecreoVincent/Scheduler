@@ -21,7 +21,7 @@ class InstructorUnitController extends DeanController
         ]);
         $course = $this->course($request);
         $academicYears = ClassSchedule::query()
-            ->where('course', $course)
+            ->forDepartment($course)
             ->distinct()
             ->orderByDesc('academic_year')
             ->pluck('academic_year');
@@ -30,7 +30,7 @@ class InstructorUnitController extends DeanController
 
         $query = User::query()
             ->where('role', 'instructor')
-            ->where('course', $course)
+            ->forDepartment($course)
             ->where('account_status', 'active');
 
         if (filled($validated['search'] ?? null)) {

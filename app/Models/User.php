@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,15 +11,16 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'password', 'role', 'course', 'year_level', 'academic_section_id', 'employment_type', 'outside_work_end_time', 'teaching_unit_limit', 'unit_limit_note', 'unit_limit_updated_at', 'account_status'])]
+#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'profile_photo_path', 'password', 'role', 'course', 'department_id', 'year_level', 'academic_section_id', 'employment_type', 'outside_work_end_time', 'teaching_unit_limit', 'unit_limit_note', 'unit_limit_updated_at', 'account_status'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use BelongsToDepartment, HasFactory, Notifiable, SoftDeletes;
 
     public function classSchedules(): HasMany
     {

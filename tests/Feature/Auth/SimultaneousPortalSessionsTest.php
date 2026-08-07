@@ -44,7 +44,7 @@ class SimultaneousPortalSessionsTest extends TestCase
         $this->assertTrue(Auth::guard('admin')->check());
         $this->assertTrue(Auth::guard('instructor')->check());
         $this->assertTrue(Auth::guard('student')->check());
-        $this->get(route('dean.dashboard'))->assertRedirect(route('login', ['role' => 'dean']));
+        $this->get(route('dean.dashboard'))->assertRedirect(route('home').'#portals');
         $this->get(route('admin.dashboard'))->assertOk();
         $this->get(route('instructor.dashboard'))->assertOk();
         $this->get(route('student.dashboard'))->assertOk();

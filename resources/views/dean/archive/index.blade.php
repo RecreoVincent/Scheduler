@@ -39,7 +39,8 @@
     .archive-section[data-mode] .mode-button { display:none; }
     .selection-notice { display:none; align-items:center; justify-content:space-between; gap:14px; padding:11px 22px; color:#4b3264; font-size:11px; font-weight:700; background:#f6efff; border-bottom:1px solid #e8daf8; }
     .archive-section[data-mode=restore] .selection-notice { display:flex; }
-    .archive-table { min-width:1120px; table-layout:fixed; }
+    .archive-table { width:100%; min-width:0; table-layout:fixed; }
+    .archive-section .table-wrap { overflow-x:hidden; }
     .archive-table th,.archive-table td { overflow-wrap:anywhere; vertical-align:middle; }
     .archive-table tbody tr:last-child td { border-bottom:0; }
     .archive-date { white-space:nowrap; color:var(--muted); font-size:10px; }

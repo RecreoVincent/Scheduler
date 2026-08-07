@@ -117,8 +117,7 @@ class ScheduleNotificationService
         $sectionIds = $sections->pluck('id')->filter()->values();
         $schedules = ClassSchedule::query()
             ->whereIn('section_id', $sectionIds)
-            ->where('academic_year', $period['academic_year'])
-            ->where('semester', $period['semester'])
+            ->forAcademicPeriod($period['academic_year'], $period['semester'])
             ->get();
 
         if ($schedules->isEmpty()) {

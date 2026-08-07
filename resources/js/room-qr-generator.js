@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 const modal = document.getElementById('roomQrModal');
 
 if (modal) {
-    const dialog = modal.querySelector('.room-qr-dialog');
+    const dialog = modal.querySelector('.admin-profile-dialog');
     const closeButton = document.getElementById('closeRoomQr');
     const image = document.getElementById('roomQrImage');
     const title = document.getElementById('roomQrTitle');

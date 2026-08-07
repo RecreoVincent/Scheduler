@@ -3,7 +3,10 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\AcademicSection;
+use App\Models\Ms365StudentAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
@@ -21,6 +24,8 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
+        Mail::fake();
+        Ms365StudentAccount::create(['email'=>'test@example.com','display_name'=>'Test User']);
         $section = AcademicSection::create([
             'course' => 'BSIT', 'name' => '1 - East', 'year_level' => 1,
             'academic_year' => '2026-2027', 'semester' => 'All',
@@ -39,7 +44,12 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertGuest();
-        $response->assertRedirect(route('login', ['role' => 'student', 'course' => 'BSIT']));
+        $response->assertRedirect(route('register.otp'));
+        $this->assertDatabaseMissing('users', ['email'=>'test@example.com']);
+        $pending = session('student_registration_otp');
+        $pending['otp_hash'] = Hash::make('123456');
+        $this->withSession(['student_registration_otp'=>$pending])->post(route('register.otp.verify'), ['otp'=>'123456'])
+            ->assertRedirect(route('login', ['role'=>'student','course'=>'BSIT']));
         $this->assertDatabaseHas('users', [
             'email' => 'test@example.com',
             'role' => 'student',
@@ -55,6 +65,14 @@ class RegistrationTest extends TestCase
             'role' => 'student',
             'course' => 'BSIT',
         ])->assertRedirect(route('student.dashboard'));
+    }
+
+    public function test_student_without_an_eligible_ms365_account_cannot_register(): void
+    {
+        $section = AcademicSection::create(['course'=>'BSIT','name'=>'1 - East','year_level'=>1,'academic_year'=>'2026-2027','semester'=>'All']);
+        $this->post('/register', ['first_name'=>'No','last_name'=>'Account','email'=>'outside@example.com','password'=>'password','password_confirmation'=>'password','role'=>'student','course'=>'BSIT','year_level'=>1,'academic_section_id'=>$section->id])
+            ->assertSessionHasErrors('email');
+        $this->assertDatabaseMissing('users',['email'=>'outside@example.com']);
     }
 
     public function test_student_cannot_register_with_a_section_from_another_department_or_year(): void

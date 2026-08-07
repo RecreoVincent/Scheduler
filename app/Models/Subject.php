@@ -2,18 +2,29 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['course', 'code', 'name', 'subject_type', 'classification', 'year_level', 'semester', 'curriculum', 'units', 'instructor_id'])]
+#[Fillable(['course', 'department_id', 'code', 'name', 'subject_type', 'classification', 'year_level', 'semester', 'academic_term_id', 'curriculum', 'units'])]
 class Subject extends Model
 {
-    public function instructor(): BelongsTo
+    use BelongsToDepartment;
+
+    protected static function booted(): void
     {
-        return $this->belongsTo(User::class, 'instructor_id');
+        static::saving(function (Subject $subject): void {
+            if ($subject->isDirty('semester') && filled($subject->semester)) {
+                $subject->academic_term_id = AcademicTerm::query()->where('code', $subject->semester)->value('id');
+            }
+        });
+    }
+
+    public function academicTerm(): BelongsTo
+    {
+        return $this->belongsTo(AcademicTerm::class);
     }
 
     public function instructors(): BelongsToMany
