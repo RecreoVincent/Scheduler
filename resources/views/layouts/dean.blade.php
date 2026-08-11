@@ -154,20 +154,8 @@
         }
 
         body.dean-department-portal .main::after {
-            content:'';
-            position:fixed;
-            z-index:1;
-            top:82px;
-            right:0;
-            bottom:0;
-            left:220px;
-            background-image:var(--dean-department-logo);
-            background-repeat:no-repeat;
-            background-position:50% 50%;
-            background-size:min(66vmin,720px) min(66vmin,720px);
-            opacity:.5;
-            mix-blend-mode:multiply;
-            pointer-events:none;
+            content:none;
+            display:none;
         }
 
         body.dean-department-portal .topbar,

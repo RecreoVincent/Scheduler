@@ -587,7 +587,7 @@
     body.instructor-department-portal .content .card .portal-page-button.is-active,
     body.student-department-portal .content .card .portal-page-button.is-active { color:#fff !important; }
 
-    /* Instructor and Student portals use the Dean portal's white canvas and department watermark. */
+    /* Instructor and Student portals use the Dean portal's white canvas. */
     body:is(.instructor-department-portal,.student-department-portal) .main {
         position:relative;
         isolation:isolate;
@@ -608,20 +608,8 @@
     }
 
     body:is(.instructor-department-portal,.student-department-portal) .main::after {
-        content:'';
-        position:fixed;
-        z-index:1;
-        top:68px;
-        right:0;
-        bottom:0;
-        left:220px;
-        background-image:var(--user-department-logo);
-        background-repeat:no-repeat;
-        background-position:50% 50%;
-        background-size:min(66vmin,720px) min(66vmin,720px);
-        opacity:.5;
-        mix-blend-mode:multiply;
-        pointer-events:none;
+        content:none;
+        display:none;
     }
 
     body:is(.instructor-department-portal,.student-department-portal) :is(.topbar,.content) {

@@ -393,19 +393,8 @@
         }
 
         body.admin-institution-portal .main::after {
-            content:'';
-            position:fixed;
-            z-index:1;
-            top:82px;
-            right:0;
-            bottom:0;
-            left:220px;
-            background-image:var(--admin-institution-logo);
-            background-repeat:no-repeat;
-            background-position:50% 50%;
-            background-size:min(70vmin,760px) min(70vmin,760px);
-            opacity:.3;
-            pointer-events:none;
+            content:none;
+            display:none;
         }
 
         body.admin-institution-portal .topbar,

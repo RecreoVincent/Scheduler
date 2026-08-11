@@ -1,0 +1,39 @@
+{
+  "_rolldown-runtime-Bh1tDfsg.js": {
+    "file": "assets/rolldown-runtime-Bh1tDfsg.js",
+    "name": "rolldown-runtime"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-DAvyCJWW.css",
+    "name": "app",
+    "names": [
+      "app.css"
+    ],
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-B9qO1Jfl.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/room-qr-generator.js": {
+    "file": "assets/room-qr-generator-B0zEZjWo.js",
+    "name": "room-qr-generator",
+    "src": "resources/js/room-qr-generator.js",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js"
+    ]
+  },
+  "resources/js/room-scanner.js": {
+    "file": "assets/room-scanner-DRnkn946.js",
+    "name": "room-scanner",
+    "src": "resources/js/room-scanner.js",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-Bh1tDfsg.js"
+    ]
+  }
+}

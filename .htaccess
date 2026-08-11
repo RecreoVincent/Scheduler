@@ -1,0 +1,16 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Hostinger Git deployments commonly place the repository directly in
+    # public_html. Keep Laravel internals outside the public URL space by
+    # routing every request through the real public directory.
+    RewriteRule ^$ public/ [L]
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<FilesMatch "^\.(env|git|htaccess|user\.ini)">
+    Require all denied
+</FilesMatch>

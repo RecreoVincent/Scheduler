@@ -8,30 +8,37 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('employment_type')->nullable()->after('course');
-            $table->string('account_status')->default('active')->after('employment_type');
-        });
+        if (! Schema::hasColumn('users', 'employment_type')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('employment_type')->nullable()->after('course');
+            });
+        }
+
+        if (! Schema::hasColumn('users', 'account_status')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('account_status')->default('active')->after('employment_type');
+            });
+        }
 
         Schema::create('academic_sections', function (Blueprint $table) {
             $table->id();
-            $table->string('course')->index();
-            $table->string('name');
+            $table->string('course', 20)->index();
+            $table->string('name', 100);
             $table->unsignedTinyInteger('year_level');
-            $table->string('academic_year');
-            $table->string('semester');
+            $table->string('academic_year', 20);
+            $table->string('semester', 20);
             $table->timestamps();
             $table->unique(['course', 'name', 'academic_year', 'semester'], 'sections_scope_unique');
         });
 
         Schema::create('subjects', function (Blueprint $table) {
             $table->id();
-            $table->string('course')->index();
-            $table->string('code');
+            $table->string('course', 20)->index();
+            $table->string('code', 50);
             $table->string('name');
             $table->string('subject_type');
             $table->unsignedTinyInteger('year_level');
-            $table->string('semester');
+            $table->string('semester', 20);
             $table->decimal('units', 4, 1);
             $table->unsignedBigInteger('instructor_id')->nullable()->index();
             $table->timestamps();
@@ -40,8 +47,8 @@ return new class extends Migration
 
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
-            $table->string('course')->index();
-            $table->string('name');
+            $table->string('course', 20)->index();
+            $table->string('name', 100);
             $table->unsignedInteger('capacity')->nullable();
             $table->timestamps();
             $table->unique(['course', 'name']);
@@ -49,14 +56,14 @@ return new class extends Migration
 
         Schema::create('class_schedules', function (Blueprint $table) {
             $table->id();
-            $table->string('course')->index();
+            $table->string('course', 20)->index();
             $table->unsignedBigInteger('section_id')->index();
             $table->unsignedBigInteger('subject_id')->index();
             $table->unsignedBigInteger('instructor_id')->index();
             $table->unsignedBigInteger('room_id')->index();
-            $table->string('academic_year');
-            $table->string('semester');
-            $table->string('day');
+            $table->string('academic_year', 20);
+            $table->string('semester', 20);
+            $table->string('day', 20);
             $table->time('start_time');
             $table->time('end_time');
             $table->timestamps();

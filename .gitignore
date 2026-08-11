@@ -14,7 +14,8 @@
 /.zed
 /auth.json
 /node_modules
-/public/build
+# Production Vite assets are committed so Hostinger deployments do not need
+# Node.js or npm on the web server.
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage
