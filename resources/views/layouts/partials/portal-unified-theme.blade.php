@@ -297,6 +297,14 @@
     .admin-profile-field .input:focus{border-color:var(--primary);box-shadow:0 0 0 4px rgba(69,6,147,.22);background:#fff}
     .admin-profile-field .input[readonly]{color:#675b70;background:rgba(243,238,246,.75);cursor:not-allowed}
     .admin-profile-error{display:block;margin-top:5px;color:#b42318;font-size:11px}
+    .admin-profile-divider{padding-top:14px;border-top:1px solid rgba(69,6,147,.12)}
+    .admin-profile-divider strong{display:block;margin-bottom:4px;color:#302638;font-size:13px}
+    .admin-profile-divider p{margin:0;color:#675b70;font-size:11px;line-height:1.4}
+    .admin-profile-password-wrap{position:relative}
+    .admin-profile-password-wrap .input{padding-right:42px}
+    .admin-profile-password-toggle{position:absolute;top:50%;right:6px;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;color:#675b70;background:transparent;border:0;border-radius:8px;cursor:pointer}
+    .admin-profile-password-toggle:hover{color:var(--primary);background:rgba(69,6,147,.08)}
+    .admin-profile-password-toggle svg{width:18px;height:18px}
     .admin-profile-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:18px;border-top:1px solid rgba(69,6,147,.12)}
     @media(max-width:600px){.admin-profile-modal{padding:12px}.admin-profile-dialog{padding:20px}.admin-profile-form-grid{grid-template-columns:1fr}.admin-profile-field.full{grid-column:auto}.admin-profile-actions{align-items:stretch;flex-direction:column-reverse}.admin-profile-actions .button{width:100%}}
 

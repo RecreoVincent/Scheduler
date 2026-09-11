@@ -47,8 +47,18 @@ class SubjectController extends DeanController
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
+        $course = $this->course($request);
+        $semesters = $this->enabledSemesters($request);
 
-        Subject::create(['course' => $this->course($request), ...$validated]);
+        if ($semesters === []) {
+            throw ValidationException::withMessages([
+                'code' => 'Enable at least one semester for this department in Settings before adding subjects.',
+            ]);
+        }
+
+        foreach ($semesters as $semester) {
+            Subject::create(['course' => $course, 'semester' => $semester, ...$validated]);
+        }
 
         return redirect()->route('dean.subjects.index')->with('success', 'Subject added successfully.');
     }
@@ -139,7 +149,6 @@ class SubjectController extends DeanController
             'subject_type' => ['required', Rule::in(['Lecture', 'Laboratory'])],
             'classification' => ['nullable', Rule::in(['Major', 'Minor'])],
             'year_level' => ['required', 'integer', 'between:1,4'],
-            'semester' => ['required', Rule::in(['1st', '2nd', 'Summer'])],
             'curriculum' => ['required', Rule::in(['New', 'Old'])],
             'units' => ['required', 'numeric', 'between:0.5,12'],
         ]);

@@ -29,12 +29,17 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $validated = $request->validated();
-        unset($validated['profile_photo']);
+        $newPassword = $validated['password'] ?? null;
+        unset($validated['profile_photo'], $validated['current_password'], $validated['password'], $validated['password_confirmation']);
 
         $user->fill($validated);
 
         if ($user->isDirty('email')) {
             $user->email_verified_at = null;
+        }
+
+        if (filled($newPassword)) {
+            $user->password = $newPassword;
         }
 
         $oldPhotoPath = $user->profile_photo_path;

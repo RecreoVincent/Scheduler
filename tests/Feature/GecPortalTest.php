@@ -250,6 +250,37 @@ class GecPortalTest extends TestCase
         $this->assertNotSame($gecDepartment->id, $bsitInstructor->department_id);
     }
 
+    public function test_gec_can_delete_all_instructor_accounts_in_its_department(): void
+    {
+        $gec = $this->gecUser();
+        $gecInstructorOne = User::factory()->create(['role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active']);
+        $gecInstructorTwo = User::factory()->create(['role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active']);
+        $bsitInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $subject = Subject::create([
+            'course' => 'BEED', 'code' => 'GE 107', 'name' => 'Test Subject',
+            'subject_type' => 'Lecture', 'classification' => 'Minor',
+            'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $subject->instructors()->attach($gecInstructorOne->id, ['priority' => 1]);
+
+        $this->actingAs($gec)->delete(route('gec.instructors.destroy-all'))->assertRedirect();
+
+        $this->assertSoftDeleted('users', ['id' => $gecInstructorOne->id]);
+        $this->assertSoftDeleted('users', ['id' => $gecInstructorTwo->id]);
+        $this->assertDatabaseMissing('subject_instructor', ['subject_id' => $subject->id, 'instructor_id' => $gecInstructorOne->id]);
+        // Instructors outside the GEC department must be untouched.
+        $this->assertDatabaseHas('users', ['id' => $bsitInstructor->id, 'deleted_at' => null]);
+    }
+
+    public function test_deleting_all_instructor_accounts_with_none_present_shows_an_error(): void
+    {
+        $gec = $this->gecUser();
+
+        $this->actingAs($gec)->delete(route('gec.instructors.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+    }
+
     public function test_gec_can_toggle_semester_availability(): void
     {
         $gec = $this->gecUser();

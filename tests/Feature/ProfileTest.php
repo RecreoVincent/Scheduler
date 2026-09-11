@@ -61,6 +61,84 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
+    public function test_password_can_be_changed_from_the_profile_form(): void
+    {
+        $user = User::factory()->create(['password' => 'old-password']);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'current_password' => 'old-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertRedirect('/profile');
+
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('new-password', $user->refresh()->password));
+    }
+
+    public function test_password_is_unchanged_when_password_fields_are_left_blank(): void
+    {
+        $user = User::factory()->create(['password' => 'old-password']);
+        $originalHash = $user->password;
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertRedirect('/profile');
+
+        $this->assertSame($originalHash, $user->refresh()->password);
+    }
+
+    public function test_password_change_requires_the_correct_current_password(): void
+    {
+        $user = User::factory()->create(['password' => 'old-password']);
+        $originalHash = $user->password;
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'current_password' => 'wrong-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'new-password',
+            ]);
+
+        $response->assertSessionHasErrors('current_password')->assertRedirect('/profile');
+
+        $this->assertSame($originalHash, $user->refresh()->password);
+    }
+
+    public function test_new_password_must_be_confirmed(): void
+    {
+        $user = User::factory()->create(['password' => 'old-password']);
+        $originalHash = $user->password;
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => $user->email,
+                'current_password' => 'old-password',
+                'password' => 'new-password',
+                'password_confirmation' => 'does-not-match',
+            ]);
+
+        $response->assertSessionHasErrors('password')->assertRedirect('/profile');
+
+        $this->assertSame($originalHash, $user->refresh()->password);
+    }
+
     public function test_user_can_delete_their_account(): void
     {
         $user = User::factory()->create();

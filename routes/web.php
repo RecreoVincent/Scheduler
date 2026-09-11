@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\Ms365StudentAccountController;
+use App\Http\Controllers\Admin\StudentRosterController;
 use App\Http\Controllers\Dean\DashboardController as DeanDashboardController;
 use App\Http\Controllers\Dean\InstructorController as DeanInstructorController;
 use App\Http\Controllers\Dean\InstructorUnitController as DeanInstructorUnitController;
@@ -94,6 +95,9 @@ Route::middleware('admin')
         Route::get('/ms365-accounts', [Ms365StudentAccountController::class, 'index'])->name('ms365-accounts.index');
         Route::post('/ms365-accounts/import', [Ms365StudentAccountController::class, 'import'])->name('ms365-accounts.import');
 
+        Route::get('/student-roster', [StudentRosterController::class, 'index'])->name('student-roster.index');
+        Route::post('/student-roster/import', [StudentRosterController::class, 'import'])->name('student-roster.import');
+
         Route::get('/deleted-accounts', [UserController::class, 'deleted'])
             ->name('users.deleted');
 
@@ -125,6 +129,7 @@ Route::middleware('gec')
         Route::get('/instructors/{instructor}/edit', [GecInstructorController::class, 'edit'])->name('instructors.edit');
         Route::patch('/instructors/{instructor}', [GecInstructorController::class, 'update'])->name('instructors.update');
         Route::patch('/instructors/{instructor}/approve', [GecInstructorController::class, 'approve'])->name('instructors.approve');
+        Route::delete('/instructors/destroy-all', [GecInstructorController::class, 'destroyAll'])->name('instructors.destroy-all');
         Route::delete('/instructors/{instructor}', [GecInstructorController::class, 'destroy'])->name('instructors.destroy');
         Route::get('/instructor-units', [GecInstructorUnitController::class, 'index'])->name('instructor-units.index');
         Route::patch('/instructor-units/defaults', [GecInstructorUnitController::class, 'updateDefaults'])->name('instructor-units.defaults');

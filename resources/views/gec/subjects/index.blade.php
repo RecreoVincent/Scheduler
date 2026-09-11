@@ -99,7 +99,7 @@
         <header class="admin-profile-header">
             <div>
                 <h2 id="subjectCreateTitle">{{ $editingSubject ? 'Edit Minor Subject' : 'Add Minor Subject' }}</h2>
-                <p>{{ $editingSubject ? 'Update this General Education subject.' : 'Add a General Education subject to a department\'s curriculum.' }}</p>
+                <p>{{ $editingSubject ? 'Update this General Education subject.' : 'Add a General Education subject to a department\'s curriculum. It will be added to every semester enabled in Settings.' }}</p>
             </div>
             <button class="admin-profile-close" type="button" data-close-subject-create aria-label="Close subject form">&times;</button>
         </header>
@@ -142,13 +142,6 @@
                         @for($i=1;$i<=4;$i++)<option value="{{ $i }}" @selected((int) old('year_level', $editingSubject?->year_level ?? 1) === $i)>Year {{ $i }}</option>@endfor
                     </select>
                     @error('year_level')<span class="admin-profile-error">{{ $message }}</span>@enderror
-                </div>
-                <div class="admin-profile-field">
-                    <label for="subject_semester">Semester</label>
-                    <select id="subject_semester" class="input" name="semester" required>
-                        @foreach(['1st','2nd','Summer'] as $semester)<option @selected(old('semester', $editingSubject?->semester ?? '1st') === $semester)>{{ $semester }}</option>@endforeach
-                    </select>
-                    @error('semester')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field full">
                     <label for="subject_units">Units</label>
@@ -195,7 +188,7 @@
         modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
 
-        @if($errors->hasAny(['course', 'code', 'name', 'subject_type', 'year_level', 'semester', 'curriculum', 'units']) || $editingSubject)
+        @if($errors->hasAny(['course', 'code', 'name', 'subject_type', 'year_level', 'curriculum', 'units']) || $editingSubject)
             openModal();
         @endif
     })();

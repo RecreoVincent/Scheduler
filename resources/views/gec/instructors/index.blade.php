@@ -61,6 +61,17 @@
     </div>
 </form>
 
+<div style="display:flex;justify-content:flex-end;margin:14px 0">
+    <button
+        type="button"
+        class="button button-danger account-action"
+        data-action="deleteAll"
+        data-url="{{ route('gec.instructors.destroy-all') }}"
+        data-name="{{ $instructorAccountCount }} {{ str('instructor account')->plural($instructorAccountCount) }} in {{ $course }}"
+        @disabled($instructorAccountCount === 0)
+    >Delete All Accounts</button>
+</div>
+
 <div class="card active-card">
     <div class="table-wrap">
         <table>
@@ -325,6 +336,7 @@
             approve: { title:'Approve Instructor Account?', message:'This instructor will be activated and allowed to sign in.', label:'Approve Account', method:'PATCH', icon:'check' },
             decline: { title:'Decline Registration?', message:'This pending registration will be permanently removed.', label:'Decline Account', method:'DELETE', icon:'warning' },
             delete: { title:'Delete Instructor Account?', message:'This account and its assigned schedules will be permanently removed.', label:'Delete Account', method:'DELETE', icon:'warning' },
+            deleteAll: { title:'Delete All Instructor Accounts?', message:'This permanently removes every instructor account below, along with their assigned schedules and subject assignments. This cannot be undone.', label:'Delete All Accounts', method:'DELETE', icon:'warning' },
         };
 
         function openModal(trigger) {

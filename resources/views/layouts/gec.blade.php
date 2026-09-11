@@ -351,6 +351,31 @@
             border-radius: 10px;
         }
 
+        .notification-guidance {
+            max-height: 220px;
+            margin-top: 14px;
+            padding: 12px 16px;
+            overflow-y: auto;
+            text-align: left;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+
+        .notification-guidance strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--navy);
+            font-size: 12px;
+        }
+
+        .notification-guidance p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
         .notification-close {
             min-width: 120px;
             margin-top: 22px;
@@ -612,6 +637,14 @@
         .admin-profile-field .input:focus { border-color:var(--primary);box-shadow:0 0 0 4px rgba(69,6,147,.22); }
         .admin-profile-field .input[readonly] { color:#675b70;background:rgba(243,238,246,.75);cursor:not-allowed; }
         .admin-profile-error { display:block;margin-top:5px;color:#b42318;font-size:11px; }
+        .admin-profile-divider { padding-top:14px;border-top:1px solid rgba(69,6,147,.12); }
+        .admin-profile-divider strong { display:block;margin-bottom:4px;color:#302638;font-size:13px; }
+        .admin-profile-divider p { margin:0;color:#675b70;font-size:11px;line-height:1.4; }
+        .admin-profile-password-wrap { position:relative; }
+        .admin-profile-password-wrap .input { padding-right:42px; }
+        .admin-profile-password-toggle { position:absolute;top:50%;right:6px;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;color:#675b70;background:transparent;border:0;border-radius:8px;cursor:pointer; }
+        .admin-profile-password-toggle:hover { color:var(--primary);background:rgba(69,6,147,.08); }
+        .admin-profile-password-toggle svg { width:18px;height:18px; }
         .admin-profile-actions { display:flex;justify-content:flex-end;gap:10px;margin-top:22px;padding-top:18px;border-top:1px solid rgba(69,6,147,.12); }
         @media(max-width:600px){.admin-profile-modal{padding:12px}.admin-profile-dialog{padding:18px}.admin-profile-form-grid{grid-template-columns:1fr}.admin-profile-field.full{grid-column:auto}.admin-profile-actions{align-items:stretch;flex-direction:column-reverse}.admin-profile-actions .button{width:100%}}
     </style>
@@ -739,6 +772,10 @@
                 <div class="admin-profile-field"><label for="gec_suffix">Suffix</label><input id="gec_suffix" class="input" type="text" name="suffix" value="{{ old('suffix', auth()->user()->suffix) }}" placeholder="e.g. Jr., Sr., III">@error('suffix')<span class="admin-profile-error">{{ $message }}</span>@enderror</div>
                 <div class="admin-profile-field"><label for="gec_email">Email address</label><input id="gec_email" class="input" type="email" name="email" value="{{ old('email', auth()->user()->email) }}" required>@error('email')<span class="admin-profile-error">{{ $message }}</span>@enderror</div>
                 <div class="admin-profile-field"><label for="gec_role">Account role</label><input id="gec_role" class="input" type="text" value="GEC" readonly></div>
+                <div class="admin-profile-field full admin-profile-divider"><strong>Change Password</strong><p>Leave these blank to keep your current password.</p></div>
+                <div class="admin-profile-field full"><label for="gec_current_password">Current password</label><x-password-toggle id="gec_current_password" name="current_password" autocomplete="current-password" />@error('current_password')<span class="admin-profile-error">{{ $message }}</span>@enderror</div>
+                <div class="admin-profile-field"><label for="gec_new_password">New password</label><x-password-toggle id="gec_new_password" name="password" />@error('password')<span class="admin-profile-error">{{ $message }}</span>@enderror</div>
+                <div class="admin-profile-field"><label for="gec_new_password_confirmation">Confirm new password</label><x-password-toggle id="gec_new_password_confirmation" name="password_confirmation" /></div>
             </div>
 
             <div class="admin-profile-actions">
@@ -769,6 +806,13 @@
                 <p>{{ session('success') }}</p>
             @elseif (session('error'))
                 <p>{{ session('error') }}</p>
+            @endif
+
+            @if (session('error_note'))
+                <div class="notification-guidance">
+                    <strong>What you can do</strong>
+                    <p>{{ session('error_note') }}</p>
+                </div>
             @endif
 
             @if ($errors->any())
@@ -831,6 +875,20 @@
                 photoPreview.appendChild(image);
             });
             reader.readAsDataURL(file);
+        });
+
+        modal.querySelectorAll('[data-password-eye-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const input = button.previousElementSibling;
+                const eyeIcon = button.querySelector('[data-eye-icon]');
+                const eyeOffIcon = button.querySelector('[data-eye-off-icon]');
+                if (!input) return;
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                eyeIcon.hidden = !showing;
+                eyeOffIcon.hidden = showing;
+                button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+            });
         });
 
         @if(old('profile_modal'))

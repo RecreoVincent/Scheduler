@@ -7,6 +7,7 @@ use App\Models\AcademicSection;
 use App\Models\Department;
 use App\Models\User;
 use App\Models\Ms365StudentAccount;
+use App\Models\StudentRoster;
 use App\Services\MicrosoftGraphMailService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -66,6 +67,7 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'role' => ['required', Rule::in(['dean', 'instructor', 'student'])],
             'course' => ['required', Rule::exists('departments', 'code')],
+            'student_id' => ['nullable', 'required_if:role,student', 'string', 'max:30', 'unique:'.User::class],
             'year_level' => ['nullable', 'required_if:role,student', 'integer', 'between:1,4'],
             'academic_section_id' => [
                 'nullable',
@@ -86,6 +88,14 @@ class RegisteredUserController extends Controller
             ->exists()) {
             throw ValidationException::withMessages([
                 'email' => 'This email is not an eligible MCC Microsoft 365 student account. Please use the MS365 email issued by the school.',
+            ]);
+        }
+
+        if ($validated['role'] === 'student' && ! StudentRoster::query()
+            ->where('student_id', $validated['student_id'])
+            ->exists()) {
+            throw ValidationException::withMessages([
+                'student_id' => 'This Student ID was not found in the official student roster. Please check the number or contact the registrar.',
             ]);
         }
 
@@ -132,6 +142,10 @@ class RegisteredUserController extends Controller
         if (User::where('email',$validated['email'])->exists()) {
             $request->session()->forget('student_registration_otp');
             return redirect()->route('login',['role'=>'student','course'=>$validated['course']])->with('error','An account with this email already exists.');
+        }
+        if (User::where('student_id',$validated['student_id'])->exists()) {
+            $request->session()->forget('student_registration_otp');
+            return redirect()->route('register',['role'=>'student'])->with('error','This Student ID was already used to register an account.');
         }
 
         $user = $this->createUser($validated);
@@ -193,6 +207,7 @@ class RegisteredUserController extends Controller
             'course' => $validated['course'],
             'year_level' => $validated['role'] === 'student' ? $validated['year_level'] : null,
             'academic_section_id' => $validated['role'] === 'student' ? $validated['academic_section_id'] : null,
+            'student_id' => $validated['role'] === 'student' ? $validated['student_id'] : null,
             'employment_type' => $validated['role'] === 'instructor' ? $validated['employment_type'] : null,
             'outside_work_end_time' => $validated['role'] === 'instructor' && $validated['employment_type'] === 'industry_part_time'
                 ? $validated['outside_work_end_time'] : null,

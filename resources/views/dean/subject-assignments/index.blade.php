@@ -4,20 +4,14 @@
 
 @push('styles')
 <style>
-    .assignment-table { table-layout:fixed; width:100%; }
+    .assignment-table { min-width:820px; width:100%; }
     .assignment-table th, .assignment-table td { padding:16px 24px; }
     .assignment-table td { vertical-align:middle; word-wrap:break-word; }
-    .assignment-table th:nth-child(1), .assignment-table td:nth-child(1) { width:12%; }
-    .assignment-table th:nth-child(2), .assignment-table td:nth-child(2) { width:20%; }
-    .assignment-table th:nth-child(3), .assignment-table td:nth-child(3) { width:10%; }
-    .assignment-table th:nth-child(4), .assignment-table td:nth-child(4) { width:11%; }
-    .assignment-table th:nth-child(5), .assignment-table td:nth-child(5) { width:14%; }
-    .assignment-table th:nth-child(6), .assignment-table td:nth-child(6) { width:19%; }
-    .assignment-table th:nth-child(7), .assignment-table td:nth-child(7) { width:14%; }
+    .assignment-table th:nth-child(6), .assignment-table td:nth-child(6) { min-width:220px; }
     .assignment-instructors { display:flex; flex-wrap:wrap; gap:5px; }
     .assignment-instructors .badge { text-transform:none; }
-    .assignment-actions { width:1%; white-space:nowrap; text-align:right; }
-    .assignment-actions .actions { justify-content:flex-end; flex-wrap:nowrap; }
+    .assignment-actions { white-space:nowrap; text-align:center; }
+    .assignment-actions .actions { justify-content:center; flex-wrap:nowrap; }
     .assignment-actions .button { min-width:100px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }

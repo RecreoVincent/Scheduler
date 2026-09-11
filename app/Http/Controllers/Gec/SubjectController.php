@@ -54,13 +54,22 @@ class SubjectController extends GecController
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
+        $semesters = $this->enabledSemesters($request);
+
+        if ($semesters === []) {
+            throw ValidationException::withMessages([
+                'code' => 'Enable at least one semester in Settings before adding subjects.',
+            ]);
+        }
 
         // Subjects GEC originates itself stay exclusive to the GEC portal —
         // the owning department's own Subjects page must not show or manage
         // them. Subjects already created by a department's own Dean (before
         // GEC existed, or independently of it) are untouched by this flag
         // and keep showing on that Dean's page as before.
-        Subject::create([...$validated, 'managed_by_gec' => true]);
+        foreach ($semesters as $semester) {
+            Subject::create([...$validated, 'semester' => $semester, 'managed_by_gec' => true]);
+        }
 
         return redirect()->route('gec.subjects.index')->with('success', 'Minor subject added successfully.');
     }
@@ -100,7 +109,6 @@ class SubjectController extends GecController
             'name' => ['required', 'string', 'max:150'],
             'subject_type' => ['required', Rule::in(['Lecture', 'Laboratory'])],
             'year_level' => ['required', 'integer', 'between:1,4'],
-            'semester' => ['required', Rule::in(['1st', '2nd', 'Summer'])],
             'curriculum' => ['required', Rule::in(['New', 'Old'])],
             'units' => ['required', 'numeric', 'between:0.5,12'],
         ]);

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules;
 
 class ProfileUpdateRequest extends FormRequest
 {
@@ -31,6 +32,8 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'current_password' => ['nullable', 'required_with:password', 'current_password'],
+            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
         ];
     }
 }
