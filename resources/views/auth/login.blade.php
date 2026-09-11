@@ -1,11 +1,11 @@
 @php
-    $allowedRoles=['admin','dean','instructor','student'];
+    $allowedRoles=['admin','dean','gec','instructor','student'];
     $allowedCourses=['BSIT','BSBA','BSHM','BSED','BEED'];
     $selectedRole=strtolower(request('role',old('role','user')));
     $selectedCourse=strtoupper(request('course',old('course','')));
     if(!in_array($selectedRole,$allowedRoles,true)){$selectedRole='user';}
     if(!in_array($selectedCourse,$allowedCourses,true)){$selectedCourse='';}
-    $roleSymbols=['admin'=>'A','dean'=>'D','instructor'=>'I','student'=>'S','user'=>'U'];
+    $roleSymbols=['admin'=>'A','dean'=>'D','gec'=>'G','instructor'=>'I','student'=>'S','user'=>'U'];
     $departmentLogins=[
         'BSIT'=>['name'=>'Information Technology Department','logo'=>'images/bsit-department-logo.jpg'],
         'BSBA'=>['name'=>'Business Administration Department','logo'=>'images/bsba-department-logo.jpg'],
@@ -23,6 +23,14 @@
             'title'=>'Lead the campus with clarity.',
             'summary'=>'A secure workspace for account administration, institutional oversight, and reliable academic information.',
             'features'=>['Secure administrative access','Centralized account management','Clear institutional analytics'],
+        ],
+        'gec'=>[
+            'welcome'=>'Welcome, GEC',
+            'label'=>'MCC General Education Course Portal',
+            'description'=>'Sign in to access the General Education Course workspace.',
+            'title'=>'Support general education with clarity.',
+            'summary'=>'A secure workspace for the General Education Course team.',
+            'features'=>['Secure GEC access','Dedicated GEC workspace','Reliable institutional information'],
         ],
         'instructor'=>[
             'welcome'=>'Welcome, Instructor',
@@ -59,6 +67,7 @@
             $portalBrand['logoAlt']='Madridejos Community College logo';
         }
     }
+    $selectedRoleLabel=$selectedRole==='gec'?'GEC':ucfirst($selectedRole);
     $isBrandedPortal=$portalBrand!==null;
     $usesMccLogo=$isBrandedPortal&&!$isDepartmentDean;
     $usesDepartmentLogo=$isDepartmentDean;
@@ -135,7 +144,7 @@
         .preview-body{padding:14px}.preview-days{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}.preview-day>span{display:block;margin-bottom:6px;font-size:7px;font-weight:800;color:#968c9d;text-align:center;text-transform:uppercase}.preview-slot{height:34px;margin-bottom:5px;background:#eee8f1;border-radius:4px}.preview-slot.purple{padding:6px;color:white;background:var(--primary)}.preview-slot.gold{padding:6px;color:#372300;background:var(--gold)}.preview-slot.light{padding:6px;color:var(--primary-dark);background:#dfcbed}.preview-slot small,.preview-slot b{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.preview-slot small{font-size:5px;opacity:.72}.preview-slot b{margin-top:2px;font-size:6px}
         .visual-points{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:18px}.visual-point{display:flex;align-items:center;gap:8px;font-size:9px;font-weight:700;color:rgba(255,255,255,.72)}.check{width:21px;height:21px;display:grid;place-items:center;flex:0 0 21px;color:#302000;background:var(--gold);border-radius:6px}.check svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 
-        .branded-portal-login{height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:clamp(12px,2vw,28px);background-image:linear-gradient(rgba(0,0,0,.2),rgba(0,0,0,.2)),url("{{ asset('images/landing-background.png') }}");background-position:center;background-repeat:no-repeat;background-size:cover}
+        .branded-portal-login{height:100vh;height:100dvh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:clamp(12px,2vw,28px);background:linear-gradient(160deg,#1c0330 0%,#2d045f 55%,#3a0a72 100%)}
         .branded-portal-login .auth-layout{width:min(1180px,100%);height:calc(100dvh - clamp(24px,4vw,56px));min-height:0;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);gap:clamp(28px,4vw,62px)}
         .branded-portal-login .form-side{padding:clamp(22px,3vw,38px) clamp(28px,5vw,58px);background:rgba(255,255,255,.96);border:1px solid rgba(255,255,255,.7);border-radius:24px;box-shadow:0 28px 75px rgba(35,4,61,.24);backdrop-filter:blur(14px)}
         .branded-portal-login .form-content{max-width:400px}
@@ -212,7 +221,7 @@
             <a class="brand" href="{{ route('home') }}"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M13 14h3M8 18h3"/></svg></span><span>MCC | Scheduler</span></a>
             <header class="heading"><span class="heading-kicker">Secure portal access</span><h1>{{ $portalBrand['welcome'] }}</h1><p>{{ $portalBrand['description'] }}</p></header>
 
-            <div class="portal-card"><span @class(['portal-symbol','mcc-portal-symbol'=>$usesMccLogo,'department-portal-symbol'=>$usesDepartmentLogo,'bsit-portal-symbol'=>$usesBsitLogo,$departmentLogoClass=>$usesDepartmentLogo])><img src="{{ asset($portalBrand['logo']) }}" alt="{{ $portalBrand['logoAlt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ ucfirst($selectedRole) }} Portal @if($selectedRole==='dean'&&$selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}">Change</a></div>
+            <div class="portal-card"><span @class(['portal-symbol','mcc-portal-symbol'=>$usesMccLogo,'department-portal-symbol'=>$usesDepartmentLogo,'bsit-portal-symbol'=>$usesBsitLogo,$departmentLogoClass=>$usesDepartmentLogo])><img src="{{ asset($portalBrand['logo']) }}" alt="{{ $portalBrand['logoAlt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ $selectedRoleLabel }} Portal @if($selectedRole==='dean'&&$selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}">Change</a></div>
             @if($errors->any())<div class="alert alert-error" role="alert">Please check your login information and try again.</div>@endif
             @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
 
@@ -222,9 +231,9 @@
                 <div class="form-group"><label for="email">Email address</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input id="email" class="form-control" type="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" required autofocus autocomplete="username"></div>@error('email')<p class="field-error">{{ $message }}</p>@enderror</div>
                 <div class="form-group"><label for="password">Password</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></svg><input id="password" class="form-control" type="password" name="password" placeholder="Enter your password" required autocomplete="current-password"><button id="togglePassword" class="toggle-password" type="button">Show</button></div>@error('password')<p class="field-error">{{ $message }}</p>@enderror</div>
                 <div class="form-options"><label class="remember"><input type="checkbox" name="remember" @checked(old('remember'))>Remember me</label>@if(Route::has('password.request'))<a class="forgot" href="{{ route('password.request') }}">Forgot password?</a>@endif</div>
-                <button class="login-button" type="submit">Sign In to {{ ucfirst($selectedRole) }} Portal <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                <button class="login-button" type="submit">Sign In to {{ $selectedRoleLabel }} Portal <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
             </form>
-            @if(in_array($selectedRole,['dean','instructor','student'],true))<p class="register-prompt">Don't have an account? <a href="{{ route('register',['role'=>$selectedRole,'course'=>$selectedCourse]) }}">Register here</a></p>@endif
+            @if(in_array($selectedRole,['student'],true))<p class="register-prompt">Don't have an account? <a href="{{ route('register',['role'=>$selectedRole,'course'=>$selectedCourse]) }}">Register here</a></p>@endif
         </div>
     </section>
 

@@ -22,4 +22,10 @@ abstract class DeanController extends Controller
             404,
         );
     }
+
+    /** @return array<int, string> */
+    protected function enabledSemesters(Request $request): array
+    {
+        return $request->user()->department?->enabledSemesterCodes() ?? ['1st', '2nd', 'Summer'];
+    }
 }

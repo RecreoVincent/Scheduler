@@ -112,7 +112,8 @@
             box-shadow: 0 7px 18px rgba(15, 23, 42, .06);
         }
 
-        .menu-icon { width: 20px; flex: 0 0 20px; color: #64748b; font-size: 18px; line-height: 1; text-align: center; }
+        .menu-icon { width: 20px; flex: 0 0 20px; display:inline-flex; align-items:center; justify-content:center; color: #64748b; font-size: 18px; line-height: 1; text-align: center; }
+        .menu-icon svg { width:18px; height:18px; }
         .menu-link:hover .menu-icon, .menu-link.active .menu-icon { color: var(--primary-dark); }
 
         .main {
@@ -248,7 +249,8 @@
             place-items: center;
             padding: 20px;
             background: rgba(15, 23, 42, .58);
-            backdrop-filter: blur(3px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .notification-dialog {
@@ -266,10 +268,10 @@
             display: grid;
             place-items: center;
             margin: 0 auto 17px;
-            font-size: 28px;
-            font-weight: 700;
             border-radius: 50%;
         }
+
+        .notification-icon svg { width: 28px; height: 28px; }
 
         .notification-icon.success {
             color: var(--success);
@@ -595,7 +597,7 @@
 
         <a href="{{ route('admin.dashboard') }}"
            class="menu-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-            <span class="menu-icon" aria-hidden="true">⌂</span>
+            <span class="menu-icon"><x-icon name="home" /></span>
             Dashboard
         </a>
 
@@ -603,18 +605,18 @@
 
         <a href="{{ route('admin.users.index') }}"
            class="menu-link {{ request()->routeIs('admin.users.index', 'admin.users.create', 'admin.users.edit') ? 'active' : '' }}">
-            <span class="menu-icon" aria-hidden="true">♙</span>
+            <span class="menu-icon"><x-icon name="users" /></span>
             User Accounts
         </a>
 
         <a href="{{ route('admin.users.deleted') }}"
            class="menu-link {{ request()->routeIs('admin.users.deleted') ? 'active' : '' }}">
-            <span class="menu-icon" aria-hidden="true">♻</span>
+            <span class="menu-icon"><x-icon name="trash" /></span>
             Deleted Accounts
         </a>
 
         <a href="{{ route('admin.ms365-accounts.index') }}" class="menu-link {{ request()->routeIs('admin.ms365-accounts.*') ? 'active' : '' }}">
-            <span class="menu-icon" aria-hidden="true">@</span>
+            <span class="menu-icon"><x-icon name="at-sign" /></span>
             MS365 Accounts
         </a>
 
@@ -696,8 +698,8 @@
 @if ($notificationIsSuccess || $notificationIsError)
     <div id="notificationModal" class="notification-modal" role="presentation">
         <section class="notification-dialog" role="dialog" aria-modal="true" aria-labelledby="notificationTitle">
-            <div class="notification-icon {{ $notificationIsSuccess ? 'success' : 'error' }}" aria-hidden="true">
-                {{ $notificationIsSuccess ? '✓' : '!' }}
+            <div class="notification-icon {{ $notificationIsSuccess ? 'success' : 'error' }}">
+                <x-icon :name="$notificationIsSuccess ? 'check' : 'warning'" />
             </div>
 
             <h2 id="notificationTitle">

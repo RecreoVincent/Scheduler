@@ -19,7 +19,6 @@ class ExampleTest extends TestCase
         $response->assertStatus(200)
             ->assertDontSee('Academic scheduling')
             ->assertSee('Choose your portal')
-            ->assertSee('images/landing-background.png')
             ->assertSee('height: 100dvh', false)
             ->assertSee('overflow: hidden', false)
             ->assertSee('images/mcc-college-logo.png')

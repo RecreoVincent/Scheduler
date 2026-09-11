@@ -5,6 +5,9 @@
 
 @push('styles')
 <style>
+    #scheduleForm .form-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    @media(max-width:900px) { #scheduleForm .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:560px) { #scheduleForm .form-grid { grid-template-columns:1fr; } }
     .section-preview { grid-column:1/-1; margin-top:4px; padding:18px; background:#faf8fb; border:1px solid var(--border); border-radius:11px; }
     .section-preview-head { display:flex; justify-content:space-between; align-items:flex-start; gap:18px; margin-bottom:13px; }
     .section-preview-head h3 { margin-bottom:4px; font-size:12px; color:var(--navy); }
@@ -30,6 +33,7 @@
     .year-option:hover { background:#f3e9fa; }
     .year-option:first-child { padding-bottom:11px; border-bottom:1px solid var(--border); border-radius:8px 8px 0 0; }
     .year-option input { width:17px; height:17px; margin:0; accent-color:var(--primary); }
+    @media(max-width:950px) { .section-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media(max-width:700px) { .section-list { grid-template-columns:1fr; } .section-preview-head { flex-direction:column; } }
 </style>
 @endpush
@@ -47,7 +51,7 @@
     <div><h2>Generate {{ $course }} Class Schedules</h2><p>Use the first existing sections for the selected year level and academic year.</p></div>
 </div>
 
-<div class="card" style="max-width:850px">
+<div class="card" style="max-width:920px;margin-left:auto;margin-right:auto">
 
     <form id="scheduleForm" method="POST" action="{{ route('dean.schedules.store') }}">
         @csrf
@@ -60,20 +64,8 @@
                 </select>
                 @error('academic_year')<div class="error">{{ $message }}</div>@enderror
             </div>
-            <div>
-                <label for="semester">Semester</label>
-                <select id="semester" class="input" name="semester">@foreach(['1st','2nd','Summer'] as $semester)<option @selected(old('semester') === $semester)>{{ $semester }}</option>@endforeach</select>
-                @error('semester')<div class="error">{{ $message }}</div>@enderror
-            </div>
-            <div>
-                <label for="curriculum">Curriculum</label>
-                <select id="curriculum" class="input" name="curriculum" required>
-                    @foreach(['New' => 'New Curriculum', 'Old' => 'Old Curriculum'] as $value => $label)
-                        <option value="{{ $value }}" @selected(old('curriculum', 'New') === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-                @error('curriculum')<div class="error">{{ $message }}</div>@enderror
-            </div>
+            <input type="hidden" name="semester" value="{{ old('semester', $enabledSemesters[0] ?? '1st') }}">
+            <input type="hidden" name="curriculum" value="New">
             <div>
                 <label id="yearLevelLabel">Year Level</label>
                 <div id="yearMultiselect" class="year-multiselect">

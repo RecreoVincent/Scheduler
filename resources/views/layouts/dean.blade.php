@@ -49,7 +49,8 @@
         .menu-label { margin:20px 12px 8px; font-size:9px; font-weight:800; letter-spacing:1.3px; color:rgba(255,255,255,.4); text-transform:uppercase; }
         .menu-link { position:relative; width:100%; display:flex; align-items:center; gap:11px; margin-bottom:5px; padding:11px 13px; overflow:hidden; font-size:12px; font-weight:650; color:rgba(255,255,255,.7); background:transparent; border:0; border-radius:9px; cursor:pointer; transition:.2s; }
         .menu-link::after { content:''; position:absolute; width:3px; height:0; right:0; top:50%; background:var(--gold); border-radius:3px 0 0 3px; transform:translateY(-50%); transition:.2s; }
-        .menu-icon { width:20px; flex:0 0 20px; color:rgba(255,255,255,.55); font-size:17px; line-height:1; text-align:center; }
+        .menu-icon { width:20px; flex:0 0 20px; display:inline-flex; align-items:center; justify-content:center; color:rgba(255,255,255,.55); font-size:17px; line-height:1; text-align:center; }
+        .menu-icon svg { width:18px; height:18px; }
         .menu-link:hover,.menu-link.active { color:white; background:rgba(255,255,255,.1); }
         .menu-link.active { font-weight:750; box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
         .menu-link:hover .menu-icon,.menu-link.active .menu-icon { color:var(--gold); }
@@ -62,6 +63,26 @@
         .profile { display:flex; align-items:center; gap:11px; padding:6px 9px 6px 7px; background:#faf8fb; border:1px solid var(--border); border-radius:11px; }
         .profile-avatar { width:36px; height:36px; display:grid; place-items:center; flex:0 0 36px; font-size:13px; font-weight:850; color:#2d1b00; background:var(--gold); border-radius:9px; }
         .profile-copy { text-align:left; } .profile-copy strong { display:block; max-width:190px; overflow:hidden; font-size:12px; white-space:nowrap; text-overflow:ellipsis; color:#302638; } .profile-copy span { display:block; margin-top:2px; font-size:9px; color:var(--muted); }
+
+        .topbar-actions { display:flex; align-items:center; gap:12px; }
+        .topbar-settings-menu { position:relative; }
+        .topbar-settings-menu summary { list-style:none; cursor:pointer; user-select:none; }
+        .topbar-settings-menu summary::-webkit-details-marker { display:none; }
+        .topbar-settings-trigger { width:42px; height:42px; display:grid; place-items:center; color:var(--primary); background:#f6effb; border:1px solid #dbc6eb; border-radius:11px; font-size:18px; transition:.2s; }
+        .topbar-settings-trigger svg { width:19px; height:19px; }
+        .topbar-settings-trigger:hover,.topbar-settings-menu[open] .topbar-settings-trigger { background:var(--primary); color:#fff; }
+        .topbar-settings-dropdown { position:absolute; z-index:1300; top:calc(100% + 10px); right:0; width:280px; padding:18px; background:white; border:1px solid var(--border); border-radius:14px; box-shadow:0 18px 45px rgba(31,5,57,.18); }
+        .topbar-settings-dropdown strong { display:block; margin-bottom:5px; font-size:13px; color:var(--navy); }
+        .topbar-settings-dropdown p { margin:0 0 12px; font-size:11px; line-height:1.5; color:var(--muted); }
+        .switch-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; font-size:12px; font-weight:650; color:#302638; border-top:1px solid #f1ebf5; }
+        .switch-row:first-of-type { border-top:0; }
+        .switch { position:relative; display:inline-block; width:38px; height:22px; flex:0 0 38px; }
+        .switch input { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:1; }
+        .switch-track { position:absolute; inset:0; background:#d8cedf; border-radius:999px; transition:.2s; }
+        .switch-track::before { content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:white; border-radius:50%; transition:.2s; box-shadow:0 1px 3px rgba(0,0,0,.25); }
+        .switch input:checked + .switch-track { background:var(--primary); }
+        .switch input:checked + .switch-track::before { transform:translateX(16px); }
+        .switch input:focus-visible + .switch-track { box-shadow:0 0 0 3px rgba(69,6,147,.25); }
 
         .content { padding:31px 34px 42px; }
         .page-header { display:flex; justify-content:space-between; align-items:center; gap:20px; margin-bottom:24px; }
@@ -92,9 +113,10 @@
         .actions { display:flex; align-items:center; flex-wrap:wrap; gap:7px; }
         .badge { display:inline-block; padding:5px 9px; font-size:9px; font-weight:800; color:var(--primary); background:#f2e7fa; border:1px solid #e4d0f1; border-radius:20px; text-transform:capitalize; }
 
-        .notice-modal { position:fixed; z-index:2000; inset:0; display:grid; place-items:center; padding:20px; background:rgba(31,5,57,.65); backdrop-filter:blur(4px); }
+        .notice-modal { position:fixed; z-index:2000; inset:0; display:grid; place-items:center; padding:20px; background:rgba(31,5,57,.65); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
         .notice-dialog { width:min(430px,100%); padding:30px; text-align:center; background:white; border-top:4px solid var(--gold); border-radius:14px; box-shadow:0 28px 80px rgba(24,3,48,.3); }
-        .notice-icon { width:50px; height:50px; display:grid; place-items:center; margin:0 auto 15px; font-size:20px; font-weight:900; color:#2d1b00; background:var(--gold-soft); border:1px solid #efd486; border-radius:50%; }
+        .notice-icon { width:50px; height:50px; display:grid; place-items:center; margin:0 auto 15px; color:#2d1b00; background:var(--gold-soft); border:1px solid #efd486; border-radius:50%; }
+        .notice-icon svg { width:24px; height:24px; }
         .notice-dialog h2 { margin-bottom:9px; font-size:21px; color:var(--navy); }
         .notice-dialog p { font-size:12px; line-height:1.6; color:var(--muted); }
         .notice-dialog ul { margin:14px 0 0; padding-left:24px; font-size:11px; color:var(--danger); text-align:left; }
@@ -102,7 +124,7 @@
         .notice-guidance strong { display:block; margin-bottom:5px; font-size:11px; color:var(--primary); }
         .notice-guidance p { color:#5d5266; }
 
-        @media(max-width:1000px) {
+        @media(max-width:950px) {
             .sidebar { position:static; width:100%; padding-bottom:18px; }
             .sidebar::before { display:none; }
             .app { display:block; }
@@ -111,7 +133,7 @@
             .department-chip { width:max-content; margin-bottom:15px; }
             .menu-label { margin-top:14px; }
             .topbar,.content { padding-left:20px; padding-right:20px; }
-            .filters,.form-grid { grid-template-columns:1fr; }
+            .filters,.form-grid { grid-template-columns:1fr !important; }
         }
         @media(max-width:600px) {
             .topbar { align-items:flex-start; flex-direction:column; gap:12px; }
@@ -246,21 +268,24 @@
         <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} Department</div>
 
         <p class="menu-label">Overview</p>
-        <a class="menu-link {{ request()->routeIs('dean.dashboard') ? 'active' : '' }}" href="{{ route('dean.dashboard') }}"><span class="menu-icon" aria-hidden="true">⌂</span>Dashboard</a>
+        <a class="menu-link {{ request()->routeIs('dean.dashboard') ? 'active' : '' }}" href="{{ route('dean.dashboard') }}"><span class="menu-icon"><x-icon name="home" /></span>Dashboard</a>
 
         <p class="menu-label">Academic Management</p>
-        <a class="menu-link {{ request()->routeIs('dean.instructors.*') ? 'active' : '' }}" href="{{ route('dean.instructors.index') }}"><span class="menu-icon" aria-hidden="true">♙</span>Instructor List</a>
-        <a class="menu-link {{ request()->routeIs('dean.instructor-units.*') ? 'active' : '' }}" href="{{ route('dean.instructor-units.index') }}"><span class="menu-icon" aria-hidden="true">#</span>Instructor Units</a>
-        <a class="menu-link {{ request()->routeIs('dean.sections.*') ? 'active' : '' }}" href="{{ route('dean.sections.index') }}"><span class="menu-icon" aria-hidden="true">▦</span>Sections</a>
-        <a class="menu-link {{ request()->routeIs('dean.subjects.*') ? 'active' : '' }}" href="{{ route('dean.subjects.index') }}"><span class="menu-icon" aria-hidden="true">▤</span>Subjects</a>
-        <a class="menu-link {{ request()->routeIs('dean.subject-assignments.*') ? 'active' : '' }}" href="{{ route('dean.subject-assignments.index') }}"><span class="menu-icon" aria-hidden="true">⇄</span>Subject Assignment</a>
-        <a class="menu-link {{ request()->routeIs('dean.rooms.*') ? 'active' : '' }}" href="{{ route('dean.rooms.index') }}"><span class="menu-icon" aria-hidden="true">▣</span>Rooms</a>
+        <a class="menu-link {{ request()->routeIs('dean.students.*') ? 'active' : '' }}" href="{{ route('dean.students.index') }}"><span class="menu-icon"><x-icon name="users" /></span>Student List</a>
+        <a class="menu-link {{ request()->routeIs('dean.sections.*') ? 'active' : '' }}" href="{{ route('dean.sections.index') }}"><span class="menu-icon"><x-icon name="grid" /></span>Sections</a>
+        <a class="menu-link {{ request()->routeIs('dean.subjects.*') ? 'active' : '' }}" href="{{ route('dean.subjects.index') }}"><span class="menu-icon"><x-icon name="book" /></span>Subjects</a>
+        <a class="menu-link {{ request()->routeIs('dean.rooms.*') ? 'active' : '' }}" href="{{ route('dean.rooms.index') }}"><span class="menu-icon"><x-icon name="building" /></span>Rooms</a>
+
+        <p class="menu-label">Instructor Management</p>
+        <a class="menu-link {{ request()->routeIs('dean.instructors.*') ? 'active' : '' }}" href="{{ route('dean.instructors.index') }}"><span class="menu-icon"><x-icon name="cap" /></span>Instructor List</a>
+        <a class="menu-link {{ request()->routeIs('dean.instructor-units.*') ? 'active' : '' }}" href="{{ route('dean.instructor-units.index') }}"><span class="menu-icon"><x-icon name="clipboard" /></span>Instructor Units</a>
+        <a class="menu-link {{ request()->routeIs('dean.subject-assignments.*') ? 'active' : '' }}" href="{{ route('dean.subject-assignments.index') }}"><span class="menu-icon"><x-icon name="link" /></span>Subject Assignment</a>
 
         <p class="menu-label">Scheduling</p>
-        <a class="menu-link {{ request()->routeIs('dean.schedules.*') ? 'active' : '' }}" href="{{ route('dean.schedules.create') }}"><span class="menu-icon" aria-hidden="true">＋</span>Create Schedule</a>
-        <a class="menu-link {{ request()->routeIs('dean.timetable.*') ? 'active' : '' }}" href="{{ route('dean.timetable.index') }}"><span class="menu-icon" aria-hidden="true">◫</span>Timetable</a>
-        <a class="menu-link {{ request()->routeIs('dean.archive.*') ? 'active' : '' }}" href="{{ route('dean.archive.index') }}"><span class="menu-icon" aria-hidden="true">♲</span>Archive</a>
-        <a class="menu-link {{ request()->routeIs('dean.print.*') ? 'active' : '' }}" href="{{ route('dean.print.index') }}"><span class="menu-icon" aria-hidden="true">▧</span>Print Reports</a>
+        <a class="menu-link {{ request()->routeIs('dean.schedules.*') ? 'active' : '' }}" href="{{ route('dean.schedules.create') }}"><span class="menu-icon"><x-icon name="calendar-plus" /></span>Create Schedule</a>
+        <a class="menu-link {{ request()->routeIs('dean.timetable.*') ? 'active' : '' }}" href="{{ route('dean.timetable.index') }}"><span class="menu-icon"><x-icon name="calendar-grid" /></span>Timetable</a>
+        <a class="menu-link {{ request()->routeIs('dean.archive.*') ? 'active' : '' }}" href="{{ route('dean.archive.index') }}"><span class="menu-icon"><x-icon name="archive" /></span>Archive</a>
+        <a class="menu-link {{ request()->routeIs('dean.print.*') ? 'active' : '' }}" href="{{ route('dean.print.index') }}"><span class="menu-icon"><x-icon name="printer" /></span>Print Reports</a>
 
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
@@ -268,17 +293,44 @@
     <main class="main">
         <header class="topbar">
             <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Dean workspace</span><h1>@yield('page-title','Dean Portal')</h1></div></div>
-            @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Dean'])
+            <div class="topbar-actions">
+                @php $deanDepartment = auth()->user()->department; @endphp
+                <details class="topbar-settings-menu">
+                    <summary class="topbar-settings-trigger" aria-label="Semester settings" title="Semester settings"><x-icon name="gear" /></summary>
+                    <div class="topbar-settings-dropdown">
+                        <strong>Semester Availability</strong>
+                        <p>Turn a semester off to hide it from dean-portal filters and block new schedule generation for it.</p>
+                        <form method="POST" action="{{ route('dean.settings.semesters') }}">
+                            @csrf
+                            @method('PATCH')
+                            <label class="switch-row">
+                                <span>1st Semester</span>
+                                <span class="switch"><input type="checkbox" name="semester_first_enabled" value="1" @checked($deanDepartment?->semester_first_enabled ?? true)><span class="switch-track"></span></span>
+                            </label>
+                            <label class="switch-row">
+                                <span>2nd Semester</span>
+                                <span class="switch"><input type="checkbox" name="semester_second_enabled" value="1" @checked($deanDepartment?->semester_second_enabled ?? true)><span class="switch-track"></span></span>
+                            </label>
+                            <label class="switch-row">
+                                <span>Summer</span>
+                                <span class="switch"><input type="checkbox" name="semester_summer_enabled" value="1" @checked($deanDepartment?->semester_summer_enabled ?? true)><span class="switch-track"></span></span>
+                            </label>
+                            <button class="button" type="submit" style="width:100%;margin-top:12px">Save</button>
+                        </form>
+                    </div>
+                </details>
+                @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Dean'])
+            </div>
         </header>
         <section class="content">@yield('content')</section>
     </main>
 </div>
 @stack('portal-profile-overlay')
 
-@php $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')&&!old('section_modal')&&!old('subject_modal')&&!old('assignment_modal')&&!old('room_modal')); @endphp
+@php $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')&&!old('section_modal')&&!old('subject_modal')&&!old('assignment_modal')&&!old('room_modal')&&!old('instructor_modal')&&!old('instructor_import_modal')&&!old('student_modal')&&!old('student_import_modal')&&!old('section_import_modal')&&!old('subject_import_modal')&&!old('room_import_modal')); @endphp
 @if($hasNotice)
 <div id="deanNotice" class="notice-modal"><section class="notice-dialog" role="dialog" aria-modal="true" aria-labelledby="deanNoticeTitle">
-    <div class="notice-icon" aria-hidden="true">{{ session()->has('success') ? '✓' : '!' }}</div>
+    <div class="notice-icon"><x-icon :name="session()->has('success') ? 'check' : 'warning'" /></div>
     <h2 id="deanNoticeTitle">{{ session()->has('success') ? 'Success' : 'Action unsuccessful' }}</h2>
     @if(session('success'))<p>{{ session('success') }}</p>@endif
     @if(session('error'))<p>{{ session('error') }}</p>@endif

@@ -16,6 +16,7 @@ class ClassScheduleGenerator
     public const LABORATORY_PRIORITY_SUBJECT_CODES = [
         'ITE 111',
         'ITE 112',
+        'ITE 113',
         'ITE 211',
         'ITE 212',
         'ITE 213',
@@ -47,21 +48,9 @@ class ClassScheduleGenerator
         'mixology',
     ];
 
-    private const MINOR_TIME_SLOTS = [
-        ['07:00', '08:30'],
-        ['08:30', '10:00'],
-        ['10:30', '12:00'],
-        ['13:00', '14:30'],
-        ['14:30', '16:00'],
-        ['16:00', '17:30'],
-        ['17:30', '19:00'],
-    ];
-
-    private const MAJOR_TIME_SLOTS = [
-        ['07:00', '09:30'],
-        ['09:30', '12:00'],
+    private const TIME_SLOTS = [
+        ['08:30', '11:00'],
         ['13:00', '15:30'],
-        ['15:30', '18:00'],
         ['16:30', '19:00'],
     ];
 
@@ -137,16 +126,11 @@ class ClassScheduleGenerator
                     ->where('year_level', $section->year_level)
                     ->values();
                 $sectionSubjects = $this->randomizeSubjects(
-                    $yearSubjects->reject(fn (Subject $subject): bool => $subject->classification === 'Minor')->values(),
+                    $yearSubjects,
                     $seed,
                     $section->id,
                     $sectionIndex,
-                )->concat($this->randomizeSubjects(
-                    $yearSubjects->filter(fn (Subject $subject): bool => $subject->classification === 'Minor')->values(),
-                    $seed,
-                    $section->id,
-                    $sectionIndex,
-                ))->values();
+                );
 
                 $sectionPlans->put($section->id, [
                     'subjects' => $sectionSubjects,
@@ -186,10 +170,6 @@ class ClassScheduleGenerator
                                 ->filter(fn (Room $room): bool => $this->roomIsCompatible($course, $subject, $room))
                                 ->values();
 
-                        if ($matchingRooms->isEmpty() && ! $roomFallbackIsTba) {
-                            throw new \RuntimeException("No {$this->roomRequirementLabel($course, $subject)} is available for {$subject->code}.");
-                        }
-
                         $preferred = $subject->instructors->where('account_status', 'active')->values();
                         $instructorPool = ($preferred->isNotEmpty() ? $preferred : $fallbackInstructors)
                             ->unique('id')
@@ -222,14 +202,29 @@ class ClassScheduleGenerator
                             );
                         }
 
-                        $diagnosticRooms = $matchingRooms;
-                        $assignment = $matchingRooms->isEmpty()
-                            ? null
-                            : $this->findAssignment($section, $subject, $candidates, $matchingRooms, $dayPatternLoads);
+                        $allowTbaFallback = $roomFallbackIsTba && ! $roomMustBeTba;
+                        // First Year sections have a hard requirement to cover
+                        // every meeting pattern, so for them a still-needed
+                        // pattern filled via TBA beats a real room in a
+                        // pattern the section already has. Other year levels
+                        // have no such requirement, so they keep maximizing
+                        // real room usage first and only fall back to TBA
+                        // when nothing else works at all.
+                        $prioritizeSectionPattern = $allowTbaFallback && (int) $section->year_level === 1;
 
-                        if ($assignment === null && $roomFallbackIsTba && ! $roomMustBeTba) {
-                            $diagnosticRooms = collect([null]);
-                            $assignment = $this->findAssignment($section, $subject, $candidates, $diagnosticRooms, $dayPatternLoads);
+                        if ($prioritizeSectionPattern) {
+                            $diagnosticRooms = $matchingRooms->concat([null]);
+                            $assignment = $this->findAssignment($section, $subject, $candidates, $matchingRooms, $dayPatternLoads, true);
+                        } else {
+                            $diagnosticRooms = $matchingRooms;
+                            $assignment = $matchingRooms->isEmpty()
+                                ? null
+                                : $this->findAssignment($section, $subject, $candidates, $matchingRooms, $dayPatternLoads);
+
+                            if ($assignment === null && $allowTbaFallback) {
+                                $diagnosticRooms = collect([null]);
+                                $assignment = $this->findAssignment($section, $subject, $candidates, $diagnosticRooms, $dayPatternLoads);
+                            }
                         }
 
                         if ($assignment === null) {
@@ -297,15 +292,28 @@ class ClassScheduleGenerator
 
     public function subjectCanUseTba(string $course, Subject $subject): bool
     {
-        return strtoupper($course) === 'BSIT';
+        // Year 1 and 2 sections are scheduled first and get first claim on
+        // whatever compatible rooms exist. Once rooms run out — for any
+        // department, not just BSIT — the remaining sections are marked
+        // TBA instead of blocking generation entirely.
+        return true;
     }
 
     public function roomIsCompatible(string $course, Subject $subject, Room $room): bool
     {
+        // Minor subjects never claim a real room, in any department — they
+        // always fall back to TBA so they can't compete with that
+        // department's own Major-subject room bookings (e.g. GEC-generated
+        // schedules for BSBA/BSED/BEED/BSHM must not contend with that
+        // department's Major-subject scheduling for the same rooms).
+        if ($this->isMinor($subject)) {
+            return false;
+        }
+
         return match (strtoupper($course)) {
-            'BSIT' => ! $this->isMinor($subject) && $this->isLaboratoryRoom($room),
+            'BSIT' => $this->isLaboratoryRoom($room),
             'BSBA', 'BSED', 'BEED' => true,
-            'BSHM' => ! $this->isMinor($subject) && $this->isBshmKitchenSubject($subject)
+            'BSHM' => $this->isBshmKitchenSubject($subject)
                 ? $this->isKitchenLaboratoryRoom($room)
                 : $this->isLectureRoom($room),
             default => strcasecmp((string) $room->room_type, (string) $subject->subject_type) === 0,
@@ -516,21 +524,48 @@ class ClassScheduleGenerator
     /**
      * @return array{instructor:User, room:Room|null, day:string, start:string, end:string}|null
      */
-    private function findAssignment(AcademicSection $section, Subject $subject, Collection $candidates, Collection $rooms, array $dayPatternLoads): ?array
+    private function findAssignment(AcademicSection $section, Subject $subject, Collection $candidates, Collection $rooms, array $dayPatternLoads, bool $allowTbaFallback = false): ?array
     {
         $balancedPatterns = $this->balancedDayPatterns($section, $subject, $dayPatternLoads);
 
-        foreach ($candidates as $instructor) {
-            foreach ($balancedPatterns as $day) {
-                foreach ($this->timeSlotsForSubject($subject, $section) as [$start, $end]) {
+        // When a still-needed pattern must win out over an already-covered
+        // one (First Year pattern completion), the pattern has to be the
+        // outermost loop: every candidate instructor needs a chance at the
+        // needed pattern before any instructor is allowed to settle for an
+        // already-covered one. Looping instructor-first would let the first
+        // candidate's exhausted availability in the needed pattern silently
+        // fall back to an already-covered pattern for that same instructor,
+        // even when a later candidate still had room in the needed pattern —
+        // occasionally starving the section of that pattern entirely.
+        [$outer, $inner] = $allowTbaFallback
+            ? [$balancedPatterns, $candidates]
+            : [$candidates, $balancedPatterns];
+
+        foreach ($outer as $outerItem) {
+            foreach ($inner as $innerItem) {
+                [$instructor, $day] = $allowTbaFallback ? [$innerItem, $outerItem] : [$outerItem, $innerItem];
+
+                foreach ($this->timeSlotsFor($section) as [$start, $end]) {
                     if (! $this->instructorIsAvailable($instructor, $day, $start)) {
                         continue;
                     }
 
+                    // Exhaust real rooms for this (instructor, pattern, time)
+                    // combination before moving on, but don't let that search
+                    // spill into a less-needed pattern before TBA is tried
+                    // here first — a First Year section still missing F - S
+                    // must not settle for a real room in an already-covered
+                    // pattern while F - S could still be filled via TBA.
                     foreach ($rooms as $room) {
                         if ($this->slotIsAvailable($section->id, $instructor->id, $room?->id, $day, $start, $end)) {
                             return compact('instructor', 'room', 'day', 'start', 'end');
                         }
+                    }
+
+                    if ($allowTbaFallback && $this->slotIsAvailable($section->id, $instructor->id, null, $day, $start, $end)) {
+                        $room = null;
+
+                        return compact('instructor', 'room', 'day', 'start', 'end');
                     }
                 }
             }
@@ -552,7 +587,7 @@ class ClassScheduleGenerator
         $sectionFreeSlots = collect();
 
         foreach ($patterns as $day) {
-            foreach ($this->timeSlotsForSubject($subject, $section) as [$start, $end]) {
+            foreach ($this->timeSlotsFor($section) as [$start, $end]) {
                 if (! $this->scheduleConflictExists('section_id', $section->id, $day, $start, $end)) {
                     $sectionFreeSlots->push(compact('day', 'start', 'end'));
                 }
@@ -668,7 +703,18 @@ class ClassScheduleGenerator
         $patterns = collect($this->allowedDayPatterns($subject));
 
         if (! $this->isMinor($subject)) {
-            return $patterns->sortBy(fn (string $pattern): int => $dayPatternLoads[$pattern] ?? 0)->values();
+            // sortBy() is stable, so ties (e.g. every pattern still at 0 for a
+            // section's first subject) always resolved in fixed array order,
+            // meaning F - S — always last in MAJOR_DAY_PATTERNS — was
+            // systematically the last pattern offered whenever another
+            // section's assignment fell back onto an already-used pattern.
+            // Rotating the tie-break order per section spreads that risk
+            // evenly across all three patterns instead of always starving
+            // the same one.
+            $rotation = $patterns->count() > 0 ? $section->id % $patterns->count() : 0;
+            $rotatedPatterns = $patterns->slice($rotation)->concat($patterns->slice(0, $rotation))->values();
+
+            return $rotatedPatterns->sortBy(fn (string $pattern): int => $dayPatternLoads[$pattern] ?? 0)->values();
         }
 
         if ((int) $section->year_level === 1 && ($dayPatternLoads['F - S'] ?? 0) === 0) {
@@ -694,16 +740,12 @@ class ClassScheduleGenerator
     }
 
     /** @return array<int, array{0:string, 1:string}> */
-    private function timeSlotsForSubject(Subject $subject, AcademicSection $section): array
+    private function timeSlotsFor(AcademicSection $section): array
     {
-        $slots = $this->isMinor($subject)
-            ? self::MINOR_TIME_SLOTS
-            : self::MAJOR_TIME_SLOTS;
-
         // Lower-year sections claim the earlier room periods first. Higher-year
         // sections search from the end of the day, preserving room availability
         // for Years 1 and 2 even when Years 3 or 4 are generated beforehand.
-        return (int) $section->year_level <= 2 ? $slots : array_reverse($slots);
+        return (int) $section->year_level <= 2 ? self::TIME_SLOTS : array_reverse(self::TIME_SLOTS);
     }
 
     private function instructorIsAvailable(User $instructor, string $day, string $start): bool

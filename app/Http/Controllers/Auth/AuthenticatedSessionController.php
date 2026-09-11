@@ -19,7 +19,7 @@ class AuthenticatedSessionController extends Controller
     {
         $selectedRole = strtolower($request->string('role')->toString());
 
-        if (! in_array($selectedRole, ['admin', 'dean', 'instructor', 'student'], true)) {
+        if (! in_array($selectedRole, ['admin', 'dean', 'gec', 'instructor', 'student'], true)) {
             return redirect()->route('home');
         }
 
@@ -62,7 +62,7 @@ class AuthenticatedSessionController extends Controller
         $selectedCourse = strtoupper((string) $request->input('course'));
         $accountCourse = strtoupper((string) ($user->course ?? ''));
 
-        if (in_array($selectedRole, ['admin', 'dean', 'instructor', 'student'], true)
+        if (in_array($selectedRole, ['admin', 'dean', 'gec', 'instructor', 'student'], true)
             && $selectedRole !== $accountRole) {
             Auth::guard($guard)->logout();
 
@@ -79,7 +79,7 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        return in_array($selectedRole, ['admin', 'dean', 'instructor', 'student'], true)
+        return in_array($selectedRole, ['admin', 'dean', 'gec', 'instructor', 'student'], true)
             ? redirect()->route("{$selectedRole}.dashboard")
             : redirect()->intended(route('dashboard'));
     }
@@ -90,7 +90,7 @@ class AuthenticatedSessionController extends Controller
     public function destroy(Request $request): RedirectResponse
     {
         $role = strtolower($request->string('role')->toString());
-        $guard = in_array($role, ['admin', 'dean', 'instructor', 'student'], true) ? $role : 'web';
+        $guard = in_array($role, ['admin', 'dean', 'gec', 'instructor', 'student'], true) ? $role : 'web';
         Auth::guard($guard)->logout();
 
         return redirect('/');

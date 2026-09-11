@@ -3,29 +3,13 @@
 @section('title', 'Sections')
 @section('page-title', 'Sections')
 
-@push('styles')
-<style>
-    .section-delete-modal[hidden] { display:none; }
-    .section-delete-modal { position:fixed; z-index:1900; inset:0; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.58); backdrop-filter:blur(3px); }
-    .section-delete-dialog { width:min(450px,100%); padding:30px; text-align:center; background:white; border-radius:18px; box-shadow:0 25px 65px rgba(15,23,42,.28); }
-    .section-delete-icon { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 17px; font-size:27px; font-weight:700; color:#dc2626; background:#fee2e2; border-radius:50%; }
-    .section-delete-dialog h2 { margin-bottom:9px; color:var(--navy); }
-    .section-delete-dialog p { color:#64748b; line-height:1.6; }
-    .section-delete-name { margin-top:6px; font-weight:700; color:#334155; }
-    .section-delete-actions { display:flex; justify-content:center; gap:10px; margin-top:23px; }
-    .section-pagination { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:6px; margin-top:20px; }
-    .section-page-link { min-width:38px; height:38px; display:inline-flex; justify-content:center; align-items:center; padding:0 11px; font-size:13px; font-weight:700; color:#475569; background:white; border:1px solid #cbd5e1; border-radius:9px; transition:.2s; }
-    .section-page-link:hover { color:var(--primary); background:#f4ebfa; border-color:#cba9e1; }
-    .section-page-link.active { color:white; background:var(--primary); border-color:var(--primary); }
-    .section-page-link.disabled { color:#94a3b8; background:#f8fafc; cursor:not-allowed; }
-    .section-page-arrow { width:17px; height:17px; display:block; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-</style>
-@endpush
-
 @section('content')
 <div class="page-header">
     <div><h2>{{ $course }} Sections</h2><p>Organize sections by year level and academic period.</p></div>
-    <button id="openSectionCreate" class="button" type="button">Add Section</button>
+    <div class="actions">
+        <button id="openSectionImport" class="button button-secondary" type="button">Import Sections</button>
+        <button id="openSectionCreate" class="button" type="button">Add Section</button>
+    </div>
 </div>
 
 <div class="card">
@@ -50,8 +34,8 @@
                     <td>{{ $section->academic_year }}</td>
                     <td>
                         <div class="actions">
-                            <a class="button button-secondary" href="{{ route('dean.sections.edit', $section) }}">Edit</a>
-                            <button type="button" class="button button-danger section-delete-trigger" data-delete-url="{{ route('dean.sections.destroy', $section) }}" data-section-name="{{ $section->name }}">Delete</button>
+                            <a class="button button-secondary" href="{{ route('dean.sections.index', array_merge(request()->query(), ['edit' => $section->id])) }}#sectionCreateModal">Edit</a>
+                            <button type="button" class="button button-danger delete-confirmation-trigger" data-delete-url="{{ route('dean.sections.destroy', $section) }}" data-delete-name="{{ $section->name }}">Delete</button>
                         </div>
                     </td>
                 </tr>
@@ -69,62 +53,89 @@
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="sectionCreateTitle">
         <header class="admin-profile-header">
             <div>
-                <h2 id="sectionCreateTitle">Add Section</h2>
-                <p>Create a new {{ $course }} section for the selected year level and academic year.</p>
+                <h2 id="sectionCreateTitle">{{ $editingSection ? 'Edit Section' : 'Add Section' }}</h2>
+                <p>{{ $editingSection ? "Update this {$course} section." : "Create a new {$course} section for the selected year level and academic year." }}</p>
             </div>
             <button class="admin-profile-close" type="button" data-close-section-create aria-label="Close section form">&times;</button>
         </header>
 
-        <form id="sectionCreateForm" method="POST" action="{{ route('dean.sections.store') }}">
+        <form id="sectionCreateForm" method="POST" action="{{ $editingSection ? route('dean.sections.update', $editingSection) : route('dean.sections.store') }}">
             @csrf
+            @if($editingSection) @method('PUT') @endif
             <input type="hidden" name="section_modal" value="1">
             <div class="admin-profile-form-grid">
                 <div class="admin-profile-field">
                     <label for="section_name">Section name</label>
-                    <input id="section_name" class="input" name="name" value="{{ old('name') }}" placeholder="Year 1-A" required>
+                    <input id="section_name" class="input" name="name" value="{{ old('name', $editingSection?->name) }}" placeholder="Year 1-A" required>
                     @error('name')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field">
                     <label for="section_year_level">Year level</label>
                     <select id="section_year_level" class="input" name="year_level" required>
                         @for($i=1;$i<=4;$i++)
-                            <option value="{{ $i }}" @selected((int) old('year_level', 1) === $i)>Year {{ $i }}</option>
+                            <option value="{{ $i }}" @selected((int) old('year_level', $editingSection?->year_level ?? 1) === $i)>Year {{ $i }}</option>
                         @endfor
                     </select>
                     @error('year_level')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field full">
                     <label for="section_academic_year">Academic year</label>
-                    <input id="section_academic_year" class="input" name="academic_year" value="{{ old('academic_year') }}" placeholder="2026-2027" inputmode="numeric" required>
+                    <input id="section_academic_year" class="input" name="academic_year" value="{{ old('academic_year', $editingSection?->academic_year) }}" placeholder="2026-2027" inputmode="numeric" required>
                     @error('academic_year')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
             </div>
 
             <footer class="admin-profile-actions">
                 <button class="button button-secondary" type="button" data-close-section-create>Cancel</button>
-                <button class="button" type="submit">Add Section</button>
+                <button class="button" type="submit">{{ $editingSection ? 'Save Changes' : 'Add Section' }}</button>
             </footer>
         </form>
     </section>
 </div>
 @endpush
 
-<div id="sectionDeleteModal" class="section-delete-modal" hidden>
-    <section class="section-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="sectionDeleteTitle" aria-describedby="sectionDeleteMessage">
-        <div class="section-delete-icon" aria-hidden="true">!</div>
-        <h2 id="sectionDeleteTitle">Delete Section?</h2>
-        <p id="sectionDeleteMessage">This section and all of its existing class schedules will be permanently deleted.</p>
-        <p id="sectionDeleteName" class="section-delete-name"></p>
-
-        <form id="sectionDeleteForm" method="POST">
-            @csrf @method('DELETE')
-            <div class="section-delete-actions">
-                <button type="button" id="cancelSectionDelete" class="button button-secondary">Cancel</button>
-                <button type="submit" id="confirmSectionDelete" class="button button-danger">Delete Section</button>
+@push('portal-profile-overlay')
+<div id="sectionImportModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="sectionImportTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="sectionImportTitle">Import Sections</h2>
+                <p>Bulk-create {{ $course }} sections from a CSV file.</p>
             </div>
+            <button class="admin-profile-close" type="button" data-close-section-import aria-label="Close section import">&times;</button>
+        </header>
+
+        <form method="POST" action="{{ route('dean.sections.import') }}" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="section_import_modal" value="1">
+            <div class="admin-profile-form-grid">
+                <div class="admin-profile-field full">
+                    <label for="section_csv_file">CSV file</label>
+                    <input id="section_csv_file" class="input" type="file" name="csv_file" accept=".csv,text/csv" required>
+                    @error('csv_file')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field full">
+                    <p style="margin:0;color:var(--muted);font-size:12px;line-height:1.6">
+                        Required columns: <strong>name</strong>, <strong>year_level</strong> (1–4), <strong>academic_year</strong> (format YYYY-YYYY).
+                        <a href="{{ route('dean.sections.import-template') }}">Download a CSV template</a>.
+                    </p>
+                </div>
+            </div>
+
+            <footer class="admin-profile-actions">
+                <button class="button button-secondary" type="button" data-close-section-import>Cancel</button>
+                <button class="button" type="submit">Import Sections</button>
+            </footer>
         </form>
     </section>
 </div>
+@endpush
+
+@include('dean.partials.delete-confirmation', [
+    'title' => 'Delete Section?',
+    'message' => 'This section and all of its existing class schedules will be permanently deleted.',
+    'confirmLabel' => 'Delete Section',
+])
 @endsection
 
 @push('scripts')
@@ -134,6 +145,38 @@
         const openButton = document.getElementById('openSectionCreate');
         const closeButtons = [...modal.querySelectorAll('[data-close-section-create]')];
         const firstInput = document.getElementById('section_name');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => firstInput.focus(), 0);
+        }
+
+        function closeModal() {
+            @if($editingSection)
+                window.location = '{{ route('dean.sections.index', request()->except('edit')) }}';
+                return;
+            @endif
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            openButton.focus();
+        }
+
+        openButton.addEventListener('click', openModal);
+        closeButtons.forEach(button => button.addEventListener('click', closeModal));
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        @if($errors->hasAny(['name', 'year_level', 'academic_year']) || $editingSection)
+            openModal();
+        @endif
+    })();
+
+    (() => {
+        const modal = document.getElementById('sectionImportModal');
+        const openButton = document.getElementById('openSectionImport');
+        const closeButtons = [...modal.querySelectorAll('[data-close-section-import]')];
+        const firstInput = document.getElementById('section_csv_file');
 
         function openModal() {
             modal.hidden = false;
@@ -152,41 +195,9 @@
         modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
 
-        @if($errors->hasAny(['name', 'year_level', 'academic_year']))
+        @if($errors->has('csv_file'))
             openModal();
         @endif
-    })();
-
-    (() => {
-        const modal = document.getElementById('sectionDeleteModal');
-        const form = document.getElementById('sectionDeleteForm');
-        const sectionName = document.getElementById('sectionDeleteName');
-        const cancelButton = document.getElementById('cancelSectionDelete');
-        const confirmButton = document.getElementById('confirmSectionDelete');
-        const triggers = [...document.querySelectorAll('.section-delete-trigger')];
-        let activeTrigger = null;
-
-        function openModal(trigger) {
-            activeTrigger = trigger;
-            form.action = trigger.dataset.deleteUrl;
-            sectionName.textContent = trigger.dataset.sectionName;
-            modal.hidden = false;
-            document.body.classList.add('modal-open');
-            cancelButton.focus();
-        }
-
-        function closeModal() {
-            modal.hidden = true;
-            document.body.classList.remove('modal-open');
-            form.removeAttribute('action');
-            activeTrigger?.focus();
-        }
-
-        triggers.forEach(trigger => trigger.addEventListener('click', () => openModal(trigger)));
-        cancelButton.addEventListener('click', closeModal);
-        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
-        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
-        form.addEventListener('submit', () => { confirmButton.disabled = true; confirmButton.textContent = 'Deleting...'; });
     })();
 </script>
 @endpush

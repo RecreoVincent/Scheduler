@@ -4,15 +4,24 @@
 
 @push('styles')
 <style>
-    .assignment-table td { vertical-align:middle; }
+    .assignment-table { table-layout:fixed; width:100%; }
+    .assignment-table th, .assignment-table td { padding:16px 24px; }
+    .assignment-table td { vertical-align:middle; word-wrap:break-word; }
+    .assignment-table th:nth-child(1), .assignment-table td:nth-child(1) { width:12%; }
+    .assignment-table th:nth-child(2), .assignment-table td:nth-child(2) { width:20%; }
+    .assignment-table th:nth-child(3), .assignment-table td:nth-child(3) { width:10%; }
+    .assignment-table th:nth-child(4), .assignment-table td:nth-child(4) { width:11%; }
+    .assignment-table th:nth-child(5), .assignment-table td:nth-child(5) { width:14%; }
+    .assignment-table th:nth-child(6), .assignment-table td:nth-child(6) { width:19%; }
+    .assignment-table th:nth-child(7), .assignment-table td:nth-child(7) { width:14%; }
     .assignment-instructors { display:flex; flex-wrap:wrap; gap:5px; }
     .assignment-instructors .badge { text-transform:none; }
-    .assignment-actions { width:145px; text-align:right; }
-    .assignment-actions .button { min-width:112px; }
+    .assignment-actions { width:1%; white-space:nowrap; text-align:right; }
+    .assignment-actions .actions { justify-content:flex-end; flex-wrap:nowrap; }
+    .assignment-actions .button { min-width:100px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }
-    .assignment-filters { grid-template-columns:repeat(4,minmax(0,1fr)); }
-    @media(max-width:1200px) { .assignment-filters { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    .assignment-filters { grid-template-columns:repeat(3,minmax(0,1fr)); }
     @media(max-width:760px) { .assignment-filters { grid-template-columns:1fr; } }
 </style>
 @endpush
@@ -56,12 +65,6 @@
                 <option value="{{ $level }}" @selected((string) request('year_level') === (string) $level)>Year {{ $level }}</option>
             @endfor
         </select>
-        <select class="input" name="semester">
-            <option value="">All semesters</option>
-            @foreach(['1st', '2nd', 'Summer'] as $semester)
-                <option value="{{ $semester }}" @selected(request('semester') === $semester)>{{ $semester }}</option>
-            @endforeach
-        </select>
         <select class="input" name="assignment_status">
             <option value="">All assignment statuses</option>
             <option value="assigned" @selected(request('assignment_status') === 'assigned')>Assigned</option>
@@ -100,9 +103,22 @@
                             </div>
                         </td>
                         <td class="assignment-actions">
-                            <a class="button button-secondary" href="{{ route('dean.subject-assignments.index', array_merge(request()->only(['search', 'year_level', 'semester', 'assignment_status']), ['subject_id' => $subject->id, 'open_assignment_modal' => 1])) }}#assignment-form">
-                                {{ $subject->instructors->isEmpty() ? 'Assign' : 'Update' }}
-                            </a>
+                            <div class="actions">
+                                <a class="button button-secondary" href="{{ route('dean.subject-assignments.index', array_merge(request()->only(['search', 'year_level', 'semester', 'assignment_status']), ['subject_id' => $subject->id, 'open_assignment_modal' => 1])) }}#assignment-form">
+                                    {{ $subject->instructors->isEmpty() ? 'Assign' : 'Update' }}
+                                </a>
+                                @if($subject->instructors->isNotEmpty())
+                                    <button
+                                        type="button"
+                                        class="button button-danger delete-confirmation-trigger"
+                                        data-delete-url="{{ route('dean.subject-assignments.destroy', $subject) }}"
+                                        data-delete-name="{{ $subject->code }} — {{ $subject->name }}"
+                                        data-delete-title="Remove Subject Assignments?"
+                                        data-delete-message="This removes every instructor priority assignment from this subject only. The subject itself will not be deleted."
+                                        data-delete-confirm-label="Remove Assignments"
+                                    >Remove</button>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty

@@ -1,14 +1,29 @@
 @extends('layouts.dean')
 @section('title','Rooms') @section('page-title','Rooms and Usage')
-@push('styles')<style>.room-card{margin-bottom:18px}.room-head{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:14px}.room-head .actions{display:flex;flex-wrap:wrap;gap:8px}.usage{padding:10px 0;border-top:1px solid #e2e8f0;font-size:13px}.usage strong{display:inline-block;min-width:120px}.room-qr-modal[hidden]{display:none}.room-qr-modal{position:fixed;z-index:2100;inset:0;display:grid;place-items:center;padding:20px;background:rgba(24,9,39,.72);backdrop-filter:blur(5px)}.room-qr-dialog{width:min(500px,100%);max-height:calc(100vh - 40px);overflow-y:auto;padding:30px;text-align:center;background:white;border-top:5px solid var(--gold);border-radius:20px;box-shadow:0 30px 90px rgba(23,8,40,.35)}.room-qr-head{display:flex;justify-content:flex-end}.room-qr-close{width:36px;height:36px;display:grid;place-items:center;color:var(--muted);background:#f5f2f8;border:0;border-radius:9px;font-size:22px;cursor:pointer}.room-qr-label{margin-top:-12px;color:var(--gold-dark);font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase}.room-qr-dialog h2{margin:7px 0 4px;color:var(--primary)}.room-qr-department{color:var(--muted);font-size:13px}.room-qr-image-wrap{width:min(330px,100%);margin:22px auto 15px;padding:14px;background:white;border:1px solid var(--border);border-radius:16px}.room-qr-image{display:block;width:100%;aspect-ratio:1;object-fit:contain}.room-qr-payload{display:inline-block;padding:7px 10px;color:var(--primary);background:#f6f0fb;border-radius:8px;font:700 12px ui-monospace,monospace}.room-qr-status{min-height:20px;margin:10px 0;color:var(--muted);font-size:12px}.room-qr-status.error{color:var(--danger)}.room-qr-instruction{margin:0 auto 18px;max-width:340px;color:var(--muted);font-size:13px;line-height:1.55}.room-qr-actions{display:flex;justify-content:center;gap:10px}.room-qr-actions [aria-disabled=true]{opacity:.5;pointer-events:none}@media(max-width:700px){.room-head{align-items:flex-start;flex-direction:column}.room-head .actions{width:100%}.room-head .actions .button{flex:1}.room-qr-dialog{padding:22px}}@media print{body *{visibility:hidden!important}.room-qr-modal,.room-qr-modal *{visibility:visible!important}.room-qr-modal{position:absolute;inset:0;display:block;padding:0;background:white}.room-qr-dialog{width:100%;max-height:none;margin:0;padding:20mm;border:0;box-shadow:none}.room-qr-close,.room-qr-actions,.room-qr-status{display:none!important}.room-qr-image-wrap{width:95mm;border:0}.room-qr-payload{font-size:14px}}</style>@endpush
 @push('styles')
 <style>
+    .room-card { margin-bottom:18px; }
+    .room-head { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:14px; }
+    .room-head .actions { display:flex; flex-wrap:wrap; gap:8px; }
     .room-usage-table-wrap { overflow-x:auto; border:1px solid rgba(69,6,147,.14); border-radius:10px; }
-    .room-usage-table { min-width:620px; }
-    .room-usage-table th, .room-usage-table td { padding:12px 14px; }
-    .room-usage-table td:first-child { font-weight:800; white-space:nowrap; }
-    .room-usage-table td:nth-child(2) { white-space:nowrap; }
+    .room-usage-table { min-width:620px; width:100%; }
+    .room-usage-table th, .room-usage-table td { padding:20px 220px 20px 30px; white-space:nowrap; }
+    .room-usage-table th:last-child, .room-usage-table td:last-child { width:100%; padding:0; }
+    .room-usage-table td:first-child { font-weight:800; }
     .room-empty { padding:14px; color:#64748b; text-align:center; }
+    .room-qr-image-wrap { width:min(330px,100%); margin:22px auto 15px; padding:14px; background:white; border:1px solid var(--border); border-radius:16px; }
+    .room-qr-image { display:block; width:100%; aspect-ratio:1; object-fit:contain; }
+    .room-qr-payload { display:inline-block; padding:7px 10px; color:var(--primary); background:#f6f0fb; border-radius:8px; font:700 12px ui-monospace,monospace; }
+    .room-qr-status { min-height:20px; margin:10px 0; color:var(--muted); font-size:12px; }
+    .room-qr-status.error { color:var(--danger); }
+    .room-qr-instruction { margin:0 auto 18px; max-width:340px; color:var(--muted); font-size:13px; line-height:1.55; }
+    .room-qr-actions { display:flex; justify-content:center; gap:10px; }
+    .room-qr-actions [aria-disabled=true] { opacity:.5; pointer-events:none; }
+    @media(max-width:700px) {
+        .room-head { align-items:flex-start; flex-direction:column; }
+        .room-head .actions { width:100%; }
+        .room-head .actions .button { flex:1; }
+    }
     @media print {
         body * { visibility:hidden !important; }
         #roomQrModal, #roomQrModal * { visibility:visible !important; }
@@ -21,28 +36,54 @@
 </style>
 @endpush
 @section('content')
-<div class="page-header"><div><h2>{{ $course }} Rooms</h2><p>Manage department rooms and view their scheduled usage.</p></div><button id="openRoomCreate" class="button" type="button">Add Room</button></div>
-@forelse($rooms as $room)<div class="card room-card"><div class="room-head"><div><h3>{{ $room->name }} <span class="badge">{{ $room->room_type }}</span></h3></div><div class="actions"><button type="button" class="button button-secondary room-qr-trigger" data-room-id="{{ $room->id }}" data-room-name="{{ $room->name }}" data-room-course="{{ $room->course }}">Generate QR Code</button><a class="button button-secondary" href="{{ route('dean.rooms.edit',$room) }}">Edit</a><button type="button" class="button button-danger delete-confirmation-trigger" data-delete-url="{{ route('dean.rooms.destroy',$room) }}" data-delete-name="{{ $room->name }}">Delete</button></div></div>
-@if($room->schedules->isNotEmpty())
-<div class="room-usage-table-wrap">
-    <table class="room-usage-table">
-        <thead><tr><th>Days</th><th>Time</th><th>Section</th><th>Subject</th></tr></thead>
-        <tbody>
-            @foreach($room->schedules as $schedule)
-                <tr>
-                    <td>{{ $schedule->day }}</td>
-                    <td>{{ date('g:i A', strtotime($schedule->start_time)) }}–{{ date('g:i A', strtotime($schedule->end_time)) }}</td>
-                    <td>{{ $schedule->section?->name ?? '—' }}</td>
-                    <td>{{ $schedule->subject?->code ?? '—' }}</td>
-                </tr>
+<div class="page-header"><div><h2>{{ $course }} Rooms</h2><p>Manage department rooms and view their scheduled usage.</p></div><div class="actions"><button id="openRoomImport" class="button button-secondary" type="button">Import Rooms</button><button id="openRoomCreate" class="button" type="button">Add Room</button></div></div>
+
+<div class="card">
+    <form class="filters" style="grid-template-columns:1fr 1fr;" method="GET" data-auto-filter>
+        <input class="input" name="search" value="{{ request('search') }}" placeholder="Search room name">
+        <select class="input" name="room_type">
+            <option value="">All room types</option>
+            @foreach($roomTypes as $type)
+                <option value="{{ $type }}" @selected(request('room_type') === $type)>{{ $type }}</option>
             @endforeach
-        </tbody>
-    </table>
+        </select>
+    </form>
 </div>
-@else
-    <p class="room-empty">No scheduled room usage.</p>
-@endif
-</div>@empty<div class="card">No rooms added yet.</div>@endforelse
+
+@forelse($rooms as $room)
+<div class="card room-card">
+    <div class="room-head">
+        <div><h3>{{ $room->name }} <span class="badge">{{ $room->room_type }}</span></h3></div>
+        <div class="actions">
+            <button type="button" class="button button-secondary room-qr-trigger" data-room-id="{{ $room->id }}" data-room-name="{{ $room->name }}" data-room-course="{{ $room->course }}">Generate QR Code</button>
+            <a class="button button-secondary" href="{{ route('dean.rooms.index', array_merge(request()->query(), ['edit' => $room->id])) }}#roomCreateModal">Edit</a>
+            <button type="button" class="button button-danger delete-confirmation-trigger" data-delete-url="{{ route('dean.rooms.destroy',$room) }}" data-delete-name="{{ $room->name }}">Delete</button>
+        </div>
+    </div>
+    @if($room->schedules->isNotEmpty())
+        <div class="room-usage-table-wrap">
+            <table class="room-usage-table">
+                <thead><tr><th>Days</th><th>Time</th><th>Section</th><th>Subject</th><th></th></tr></thead>
+                <tbody>
+                    @foreach($room->schedules as $schedule)
+                        <tr>
+                            <td>{{ $schedule->day }}</td>
+                            <td>{{ date('g:i A', strtotime($schedule->start_time)) }}–{{ date('g:i A', strtotime($schedule->end_time)) }}</td>
+                            <td>{{ $schedule->section?->name ?? '—' }}</td>
+                            <td>{{ $schedule->subject?->code ?? '—' }}</td>
+                            <td></td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <p class="room-empty">No scheduled room usage.</p>
+    @endif
+</div>
+@empty
+<div class="card">{{ request()->hasAny(['search', 'room_type']) ? 'No rooms match the current filters.' : 'No rooms added yet.' }}</div>
+@endforelse
 <x-pagination :paginator="$rooms" label="Room pages" />
 
 @push('portal-profile-overlay')
@@ -75,26 +116,27 @@
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="roomCreateTitle">
         <header class="admin-profile-header">
             <div>
-                <h2 id="roomCreateTitle">Add Room</h2>
-                <p>Create a new room for the {{ $course }} department.</p>
+                <h2 id="roomCreateTitle">{{ $editingRoom ? 'Edit Room' : 'Add Room' }}</h2>
+                <p>{{ $editingRoom ? "Update this {$course} room." : "Create a new room for the {$course} department." }}</p>
             </div>
             <button class="admin-profile-close" type="button" data-close-room-create aria-label="Close room form">&times;</button>
         </header>
 
-        <form id="roomCreateForm" method="POST" action="{{ route('dean.rooms.store') }}">
+        <form id="roomCreateForm" method="POST" action="{{ $editingRoom ? route('dean.rooms.update', $editingRoom) : route('dean.rooms.store') }}">
             @csrf
+            @if($editingRoom) @method('PUT') @endif
             <input type="hidden" name="room_modal" value="1">
             <div class="admin-profile-form-grid">
                 <div class="admin-profile-field">
                     <label for="room_name">Room name</label>
-                    <input id="room_name" class="input" name="name" value="{{ old('name') }}" placeholder="ITE 101" required>
+                    <input id="room_name" class="input" name="name" value="{{ old('name', $editingRoom?->name) }}" placeholder="ITE 101" required>
                     @error('name')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field">
                     <label for="room_type">Room type</label>
                     <select id="room_type" class="input" name="room_type" required>
-                        @foreach(['Lecture', 'Laboratory', 'Kitchen Laboratory'] as $type)
-                            <option value="{{ $type }}" @selected(old('room_type', 'Lecture') === $type)>{{ $type }}</option>
+                        @foreach($roomTypes as $type)
+                            <option value="{{ $type }}" @selected(old('room_type', $editingRoom?->room_type ?? 'Lecture') === $type)>{{ $type }}</option>
                         @endforeach
                     </select>
                     @error('room_type')<span class="admin-profile-error">{{ $message }}</span>@enderror
@@ -103,7 +145,44 @@
 
             <footer class="admin-profile-actions">
                 <button class="button button-secondary" type="button" data-close-room-create>Cancel</button>
-                <button class="button" type="submit">Add Room</button>
+                <button class="button" type="submit">{{ $editingRoom ? 'Save Changes' : 'Add Room' }}</button>
+            </footer>
+        </form>
+    </section>
+</div>
+@endpush
+
+@push('portal-profile-overlay')
+<div id="roomImportModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="roomImportTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="roomImportTitle">Import Rooms</h2>
+                <p>Bulk-create {{ $course }} rooms from a CSV file.</p>
+            </div>
+            <button class="admin-profile-close" type="button" data-close-room-import aria-label="Close room import">&times;</button>
+        </header>
+
+        <form method="POST" action="{{ route('dean.rooms.import') }}" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="room_import_modal" value="1">
+            <div class="admin-profile-form-grid">
+                <div class="admin-profile-field full">
+                    <label for="room_csv_file">CSV file</label>
+                    <input id="room_csv_file" class="input" type="file" name="csv_file" accept=".csv,text/csv" required>
+                    @error('csv_file')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field full">
+                    <p style="margin:0;color:var(--muted);font-size:12px;line-height:1.6">
+                        Required columns: <strong>name</strong>, <strong>room_type</strong> ({{ implode(', ', $roomTypes) }}).
+                        <a href="{{ route('dean.rooms.import-template') }}">Download a CSV template</a>.
+                    </p>
+                </div>
+            </div>
+
+            <footer class="admin-profile-actions">
+                <button class="button button-secondary" type="button" data-close-room-import>Cancel</button>
+                <button class="button" type="submit">Import Rooms</button>
             </footer>
         </form>
     </section>
@@ -125,6 +204,10 @@
         }
 
         function closeModal() {
+            @if($editingRoom)
+                window.location = '{{ route('dean.rooms.index', request()->except('edit')) }}';
+                return;
+            @endif
             modal.hidden = true;
             document.body.classList.remove('modal-open');
             openButton.focus();
@@ -135,10 +218,38 @@
         modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
 
-        @if($errors->hasAny(['name', 'room_type']))
+        @if($errors->hasAny(['name', 'room_type']) || $editingRoom)
+            openModal();
+        @endif
+    })();
+
+    (() => {
+        const modal = document.getElementById('roomImportModal');
+        const openButton = document.getElementById('openRoomImport');
+        const closeButtons = [...modal.querySelectorAll('[data-close-room-import]')];
+        const firstInput = document.getElementById('room_csv_file');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => firstInput.focus(), 0);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            openButton.focus();
+        }
+
+        openButton.addEventListener('click', openModal);
+        closeButtons.forEach(button => button.addEventListener('click', closeModal));
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        @if($errors->has('csv_file'))
             openModal();
         @endif
     })();
 </script>
-    @vite('resources/js/room-qr-generator.js')
+@vite('resources/js/room-qr-generator.js')
 @endpush

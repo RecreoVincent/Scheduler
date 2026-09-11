@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Dean;
 
 use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
+use App\Services\SectionImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SectionController extends DeanController
 {
@@ -23,7 +26,12 @@ class SectionController extends DeanController
 
         $sections = $query->orderBy('year_level')->orderBy('name')->paginate(15)->withQueryString();
 
-        return view('dean.sections.index', compact('course', 'sections'));
+        $editingSection = null;
+        if ($request->filled('edit')) {
+            $editingSection = AcademicSection::forDepartment($course)->find($request->input('edit'));
+        }
+
+        return view('dean.sections.index', compact('course', 'sections', 'editingSection'));
     }
 
     public function create(Request $request): RedirectResponse
@@ -40,6 +48,43 @@ class SectionController extends DeanController
         ]);
 
         return redirect()->route('dean.sections.create')->with('success', 'Section added successfully.');
+    }
+
+    public function import(Request $request, SectionImporter $importer): RedirectResponse
+    {
+        $request->validate(['csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120']]);
+
+        try {
+            $result = $importer->import($request->file('csv_file')->getRealPath(), $this->course($request));
+        } catch (RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $response = back()->with('success', "Import complete: {$result['imported']} section(s) created, {$result['skipped']} skipped.");
+
+        if ($result['errors'] !== []) {
+            $shown = array_slice($result['errors'], 0, 15);
+            $note = implode(' | ', $shown);
+            if (count($result['errors']) > 15) {
+                $note .= ' | +'.(count($result['errors']) - 15).' more.';
+            }
+            $response->with('error_note', $note);
+        }
+
+        return $response;
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        $headers = ['name', 'year_level', 'academic_year'];
+        $sample = ['1 - East', '1', '2026-2027'];
+
+        return response()->streamDownload(function () use ($headers, $sample) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            fputcsv($out, $sample);
+            fclose($out);
+        }, 'section-import-template.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function edit(Request $request, AcademicSection $section): View

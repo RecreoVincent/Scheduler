@@ -185,7 +185,8 @@
         place-items: center;
         padding: 24px;
         background: rgba(15, 23, 42, .58);
-        backdrop-filter: blur(3px);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
 
     .chart-panel {

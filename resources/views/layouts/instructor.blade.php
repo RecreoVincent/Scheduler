@@ -18,7 +18,8 @@
         .department-chip { margin:0 10px 24px; padding:10px; font-size:12px; font-weight:700; color:#1d4ed8; text-align:center; background:white; border:1px solid #bfdbfe; border-radius:10px; }
         .menu-label { margin:20px 12px 8px; font-size:10px; font-weight:700; letter-spacing:1px; color:#94a3b8; text-transform:uppercase; }
         .menu-link { width:100%; display:flex; align-items:center; gap:11px; margin-bottom:5px; padding:11px 13px; font-size:13px; font-weight:600; color:#475569; background:transparent; border:0; border-radius:10px; cursor:pointer; }
-        .menu-icon { width:20px; flex:0 0 20px; color:#64748b; font-size:18px; line-height:1; text-align:center; }
+        .menu-icon { width:20px; flex:0 0 20px; display:inline-flex; align-items:center; justify-content:center; color:#64748b; font-size:18px; line-height:1; text-align:center; }
+        .menu-icon svg { width:18px; height:18px; }
         .menu-link:hover .menu-icon,.menu-link.active .menu-icon { color:var(--primary); }
         .menu-link:hover,.menu-link.active { color:var(--primary); background:white; box-shadow:0 6px 16px rgba(15,23,42,.06); }
         .main { width:calc(100% - 260px); margin-left:260px; }
@@ -35,7 +36,7 @@
         .form-actions { display:flex; gap:10px; margin-top:20px; } .error { margin-top:5px; font-size:12px; color:var(--danger); }
         .table-wrap { overflow-x:auto; } table { width:100%; border-collapse:collapse; } th,td { padding:13px; text-align:left; border-bottom:1px solid #e2e8f0; } th { font-size:11px; color:var(--muted); text-transform:uppercase; } td { font-size:13px; }
         .badge { display:inline-block; padding:5px 9px; font-size:11px; font-weight:700; color:#1d4ed8; background:#eff6ff; border-radius:20px; }
-        .notice-modal { position:fixed; z-index:2000; inset:0; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.58); }
+        .notice-modal { position:fixed; z-index:2000; inset:0; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.58); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
         .notice-dialog { width:min(440px,100%); padding:30px; text-align:center; background:white; border-radius:18px; }
         .notice-dialog h2 { margin-bottom:10px; color:var(--navy); } .notice-dialog p { color:var(--muted); line-height:1.6; } .notice-dialog ul { margin:14px 0 0; padding-left:28px; color:var(--danger); text-align:left; }
         @media(max-width:950px){ .sidebar{position:static;width:100%;height:auto}.app{display:block}.main{width:100%;margin:0}.filters,.form-grid{grid-template-columns:1fr}.content,.topbar{padding-left:18px;padding-right:18px}.page-header{align-items:flex-start;flex-direction:column} }
@@ -62,11 +63,11 @@
         <a href="{{ route('instructor.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Instructor Portal</small></span></a>
         <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} Department</div>
         <p class="menu-label">Overview</p>
-        <a class="menu-link {{ request()->routeIs('instructor.dashboard') ? 'active' : '' }}" href="{{ route('instructor.dashboard') }}"><span class="menu-icon" aria-hidden="true">⌂</span>Dashboard</a>
-        <a class="menu-link {{ request()->routeIs('instructor.workload.*') ? 'active' : '' }}" href="{{ route('instructor.workload.index') }}"><span class="menu-icon" aria-hidden="true">▤</span>Workload</a>
-        <a class="menu-link {{ request()->routeIs('instructor.scanner.*') ? 'active' : '' }}" href="{{ route('instructor.scanner.index') }}"><span class="menu-icon" aria-hidden="true">▣</span>QR Scanner</a>
+        <a class="menu-link {{ request()->routeIs('instructor.dashboard') ? 'active' : '' }}" href="{{ route('instructor.dashboard') }}"><span class="menu-icon"><x-icon name="home" /></span>Dashboard</a>
+        <a class="menu-link {{ request()->routeIs('instructor.workload.*') ? 'active' : '' }}" href="{{ route('instructor.workload.index') }}"><span class="menu-icon"><x-icon name="clipboard" /></span>Workload</a>
+        <a class="menu-link {{ request()->routeIs('instructor.scanner.*') ? 'active' : '' }}" href="{{ route('instructor.scanner.index') }}"><span class="menu-icon"><x-icon name="qrcode" /></span>QR Scanner</a>
         <p class="menu-label">Account</p>
-        <a class="menu-link {{ request()->routeIs('instructor.print.*') ? 'active' : '' }}" target="_blank" href="{{ route('instructor.print.workload') }}"><span class="menu-icon" aria-hidden="true">🖨</span>Print Workload</a>
+        <a class="menu-link {{ request()->routeIs('instructor.print.*') ? 'active' : '' }}" target="_blank" href="{{ route('instructor.print.workload') }}"><span class="menu-icon"><x-icon name="printer" /></span>Print Workload</a>
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
     <main class="main">

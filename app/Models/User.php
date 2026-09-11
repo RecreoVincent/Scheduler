@@ -32,14 +32,22 @@ class User extends Authenticatable
         return $this->belongsTo(AcademicSection::class);
     }
 
+    public const DEFAULT_UNIT_LIMITS = [
+        'full_time' => 30,
+        'industry_part_time' => 15,
+        'flexible_part_time' => 15,
+    ];
+
     public function defaultTeachingUnitLimit(): int
     {
-        return match ($this->employment_type) {
-            'full_time' => 30,
-            'industry_part_time', 'flexible_part_time', 'part_time' => 15,
-            null => 20,
-            default => 15,
-        };
+        if ($this->employment_type === null) {
+            return 20;
+        }
+
+        $key = $this->employment_type === 'part_time' ? 'flexible_part_time' : $this->employment_type;
+        $fallback = self::DEFAULT_UNIT_LIMITS[$key] ?? 15;
+
+        return $this->department?->{"default_unit_limit_{$key}"} ?? $fallback;
     }
 
     public function effectiveTeachingUnitLimit(): int

@@ -50,6 +50,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'gec' => [
+            'driver' => 'session',
+            'provider' => 'users',
+        ],
         'instructor' => [
             'driver' => 'session',
             'provider' => 'users',

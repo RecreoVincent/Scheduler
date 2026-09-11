@@ -506,7 +506,7 @@ class DeanPortalTest extends TestCase
         ]))
             ->assertOk()
             ->assertSee('name="academic_year"', false)
-            ->assertSee('name="semester"', false)
+            ->assertDontSee('name="semester"', false)
             ->assertSee('name="deleted_on"', false)
             ->assertSee('Academic Year 2026-2027')
             ->assertSee('1st Semester archived schedules')
@@ -771,6 +771,10 @@ class DeanPortalTest extends TestCase
         foreach ([
             ['IT101', 'First Year Major A', 1, 'Major'],
             ['IT102', 'First Year Major B', 1, 'Major'],
+            // A third Major subject so the First Year section can cover all
+            // three meeting-day pairs, since Minor subjects are no longer
+            // generated.
+            ['IT103', 'First Year Major C', 1, 'Major'],
             ['GE101', 'First Year Minor', 1, 'Minor'],
             ['IT201', 'Second Year Major', 2, 'Major'],
         ] as [$code, $name, $yearLevel, $classification]) {
@@ -808,87 +812,7 @@ class DeanPortalTest extends TestCase
                 fn (ClassSchedule $schedule): bool => $schedule->section->year_level === $schedule->subject->year_level,
             ),
         );
-    }
-
-    public function test_generator_balances_shared_instructors_before_minor_slots_are_exhausted(): void
-    {
-        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
-        $instructors = User::factory()->count(13)->create([
-            'role' => 'instructor',
-            'course' => 'BSIT',
-            'employment_type' => null,
-            'account_status' => 'active',
-        ]);
-        // This instructor is Priority 1 for one shared subject and the backup
-        // for another, so the configured capacity must cover both allocations.
-        $instructors[10]->update(['teaching_unit_limit' => 30]);
-
-        Room::create(['course' => 'BSIT', 'name' => 'Lab 1', 'room_type' => 'Laboratory']);
-        Room::create(['course' => 'BSIT', 'name' => 'Lab 2', 'room_type' => 'Laboratory']);
-        Room::create(['course' => 'BSIT', 'name' => 'Lab 3', 'room_type' => 'Laboratory']);
-
-        foreach (range(1, 8) as $sectionNumber) {
-            AcademicSection::create([
-                'course' => 'BSIT',
-                'name' => "1 - Section {$sectionNumber}",
-                'year_level' => 1,
-                'academic_year' => '2026-2027',
-                'semester' => 'All',
-            ]);
-        }
-
-        $subjects = collect([
-            ['ITE 111', 'First Major', 'Major', 'Laboratory'],
-            ['ITE 112', 'Second Major', 'Major', 'Laboratory'],
-            ['GE 1', 'First Filler Minor', 'Minor', 'Lecture'],
-            ['GE 2', 'Second Filler Minor', 'Minor', 'Lecture'],
-            ['GE 3', 'Third Filler Minor', 'Minor', 'Lecture'],
-            ['GEFIL 1', 'Shared Minor', 'Minor', 'Lecture'],
-            ['NSTP 1', 'Target Minor', 'Minor', 'Lecture'],
-        ])->map(fn (array $details) => Subject::create([
-            'course' => 'BSIT',
-            'code' => $details[0],
-            'name' => $details[1],
-            'classification' => $details[2],
-            'subject_type' => $details[3],
-            'year_level' => 1,
-            'semester' => '1st',
-            'units' => 3,
-        ]));
-
-        $subjects[0]->instructors()->attach([$instructors[0]->id, $instructors[1]->id]);
-        $subjects[1]->instructors()->attach([$instructors[2]->id, $instructors[3]->id]);
-        $subjects[2]->instructors()->attach([$instructors[4]->id, $instructors[5]->id]);
-        $subjects[3]->instructors()->attach([$instructors[6]->id, $instructors[7]->id]);
-        $subjects[4]->instructors()->attach([$instructors[8]->id, $instructors[9]->id]);
-        $subjects[5]->instructors()->attach([
-            $instructors[11]->id => ['priority' => 1],
-            $instructors[10]->id => ['priority' => 2],
-        ]);
-        $subjects[6]->instructors()->attach([$instructors[12]->id, $instructors[10]->id]);
-
-        DB::flushQueryLog();
-        DB::enableQueryLog();
-
-        $response = $this->actingAs($dean)->post(route('dean.schedules.store'), [
-            'academic_year' => '2026-2027',
-            'semester' => '1st',
-            'year_level' => '1',
-            'number_of_sections' => 8,
-        ]);
-        $generationQueryCount = count(DB::getQueryLog());
-        DB::disableQueryLog();
-
-        $response->assertRedirect()->assertSessionHas('success');
-        $this->assertLessThan(
-            250,
-            $generationQueryCount,
-            "Schedule generation executed {$generationQueryCount} queries; conflict checks may have regressed to per-slot database queries.",
-        );
-
-        $nstpSchedules = ClassSchedule::where('subject_id', $subjects[6]->id)->get();
-        $this->assertCount(8, $nstpSchedules);
-        $this->assertSame(2, $nstpSchedules->pluck('instructor_id')->unique()->count());
+        $this->assertFalse($schedules->pluck('subject.code')->contains('GE101'), 'Minor subjects must never be auto-generated.');
     }
 
     public function test_bsit_major_schedules_use_tba_after_laboratory_slots_are_full(): void
@@ -932,8 +856,10 @@ class DeanPortalTest extends TestCase
             'number_of_sections' => 2,
         ])->assertRedirect()->assertSessionHas('success');
 
-        $this->assertSame(10, ClassSchedule::whereNotNull('room_id')->count());
-        $this->assertSame(0, ClassSchedule::whereNull('room_id')->count());
+        // One lab room now provides 3 fixed slots x 3 day pairs = 9 weekly
+        // room periods, one short of the 10 Laboratory classes requested.
+        $this->assertSame(9, ClassSchedule::whereNotNull('room_id')->count());
+        $this->assertSame(1, ClassSchedule::whereNull('room_id')->count());
     }
 
     public function test_priority_laboratory_subjects_receive_rooms_before_non_priority_laboratories(): void
@@ -988,8 +914,11 @@ class DeanPortalTest extends TestCase
             8,
             ClassSchedule::whereIn('subject_id', $subjects->take(2)->pluck('id'))->whereNotNull('room_id')->count(),
         );
+        // The priority subjects consume 8 of the room's 9 weekly slots (3
+        // fixed blocks x 3 day pairs), leaving only 1 slot for the 4
+        // non-priority requests; the other 3 fall back to TBA.
         $this->assertSame(
-            1,
+            3,
             ClassSchedule::where('subject_id', $subjects[2]->id)->whereNull('room_id')->count(),
         );
     }
@@ -1004,12 +933,6 @@ class DeanPortalTest extends TestCase
             'outside_work_end_time' => '15:30',
             'account_status' => 'active',
         ]);
-        $flexibleInstructor = User::factory()->create([
-            'role' => 'instructor',
-            'course' => 'BSIT',
-            'employment_type' => 'flexible_part_time',
-            'account_status' => 'active',
-        ]);
         $lectureRoom = Room::create(['course' => 'BSIT', 'name' => 'Room 101', 'room_type' => 'Lecture']);
         Room::create(['course' => 'BSIT', 'name' => 'Lab 1', 'room_type' => 'Laboratory']);
         AcademicSection::create([
@@ -1017,7 +940,9 @@ class DeanPortalTest extends TestCase
             'academic_year' => '2026-2027', 'semester' => 'All',
         ]);
 
-        foreach ([['IT101', 'Programming 1'], ['IT102', 'Programming 2']] as [$code, $name]) {
+        // Three Major subjects so the First Year section can cover all three
+        // meeting-day pairs, since Minor subjects are no longer generated.
+        foreach ([['IT101', 'Programming 1'], ['IT102', 'Programming 2'], ['IT103', 'Programming 3']] as [$code, $name]) {
             $subject = Subject::create([
                 'course' => 'BSIT', 'code' => $code, 'name' => $name,
                 'subject_type' => 'Lecture', 'classification' => 'Major',
@@ -1026,25 +951,15 @@ class DeanPortalTest extends TestCase
             $subject->instructors()->attach($industryInstructor);
         }
 
-        foreach (range(1, 5) as $number) {
-            $minorSubject = Subject::create([
-                'course' => 'BSIT', 'code' => "GE10{$number}", 'name' => "Minor Laboratory {$number}",
-                'subject_type' => 'Laboratory', 'classification' => 'Minor',
-                'year_level' => 1, 'semester' => '1st', 'units' => 3,
-            ]);
-            $minorSubject->instructors()->attach($flexibleInstructor);
-        }
-
         $this->actingAs($dean)->post(route('dean.schedules.store'), [
             'academic_year' => '2026-2027', 'semester' => '1st', 'year_level' => 1,
             'number_of_sections' => 1,
         ])->assertRedirect()->assertSessionHas('success');
 
         $schedules = ClassSchedule::with(['subject', 'room'])->get();
-        $this->assertCount(7, $schedules);
+        $this->assertCount(3, $schedules);
         $this->assertEqualsCanonicalizing(['M - W', 'T - Th', 'F - S'], $schedules->pluck('day')->unique()->all());
         $this->assertSame([0, 15], app(ClassScheduleGenerator::class)->workloadRange($industryInstructor));
-        $this->assertSame([0, 15], app(ClassScheduleGenerator::class)->workloadRange($flexibleInstructor));
 
         foreach ($schedules as $schedule) {
             $start = substr($schedule->start_time, 0, 5);
@@ -1054,52 +969,19 @@ class DeanPortalTest extends TestCase
             $this->assertFalse($start < '13:00' && $end > '12:00');
 
             $durationMinutes = (int) ((strtotime($end) - strtotime($start)) / 60);
-            $expectedDuration = $schedule->subject->classification === 'Minor' ? 90 : 150;
-            $this->assertSame($expectedDuration, $durationMinutes);
+            $this->assertSame(150, $durationMinutes);
 
-            if ($schedule->subject->classification === 'Major') {
-                $this->assertSame('Laboratory', $schedule->room->room_type);
-                $this->assertContains($schedule->day, ['M - W', 'T - Th', 'F - S']);
-                $this->assertSame($industryInstructor->id, $schedule->instructor_id);
-                $this->assertGreaterThanOrEqual('15:30', $start);
-                $this->assertNotSame($lectureRoom->id, $schedule->room_id);
-            } else {
-                $this->assertContains($schedule->day, ['M - W', 'T - Th', 'F - S']);
-                $this->assertSame($flexibleInstructor->id, $schedule->instructor_id);
-                $this->assertNull($schedule->room_id);
-            }
+            $this->assertSame('Laboratory', $schedule->room->room_type);
+            $this->assertContains($schedule->day, ['M - W', 'T - Th', 'F - S']);
+            $this->assertSame($industryInstructor->id, $schedule->instructor_id);
+            // The instructor's 3:30 PM outside-work-hours cutoff only leaves
+            // the 4:30-7:00 PM block open on weekdays and Friday.
+            $this->assertSame('16:30', $start);
+            $this->assertNotSame($lectureRoom->id, $schedule->room_id);
         }
 
         $industryUnits = $schedules->where('instructor_id', $industryInstructor->id)->sum(fn (ClassSchedule $schedule): float => (float) $schedule->subject->units);
         $this->assertLessThanOrEqual(15, $industryUnits);
-    }
-
-    public function test_bsit_minor_subject_is_generated_with_a_tba_room(): void
-    {
-        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
-        $instructor = User::factory()->create([
-            'role' => 'instructor', 'course' => 'BSIT', 'employment_type' => null, 'account_status' => 'active',
-        ]);
-        AcademicSection::create([
-            'course' => 'BSIT', 'name' => 'Section 1', 'year_level' => 2,
-            'academic_year' => '2026-2027', 'semester' => 'All',
-        ]);
-        $subject = Subject::create([
-            'course' => 'BSIT', 'code' => 'GE 3', 'name' => 'Mathematics in the Modern World',
-            'subject_type' => 'Lecture', 'classification' => 'Minor',
-            'year_level' => 2, 'semester' => '1st', 'units' => 3,
-        ]);
-        $subject->instructors()->attach($instructor);
-
-        $this->actingAs($dean)->post(route('dean.schedules.store'), [
-            'academic_year' => '2026-2027', 'semester' => '1st', 'year_level' => 2,
-            'number_of_sections' => 1,
-        ])->assertRedirect()->assertSessionHas('success');
-
-        $this->assertDatabaseHas('class_schedules', [
-            'subject_id' => $subject->id,
-            'room_id' => null,
-        ]);
     }
 
     public function test_second_to_fourth_year_major_subjects_are_balanced_through_friday_and_saturday(): void
@@ -1128,9 +1010,10 @@ class DeanPortalTest extends TestCase
         ])->assertRedirect()->assertSessionHas('success');
 
         $dayCounts = ClassSchedule::query()->selectRaw('day, COUNT(*) as total')->groupBy('day')->pluck('total', 'day');
-        $this->assertSame(2, (int) $dayCounts['M - W']);
-        $this->assertSame(1, (int) $dayCounts['T - Th']);
-        $this->assertSame(1, (int) $dayCounts['F - S']);
+        $this->assertEqualsCanonicalizing(['M - W', 'T - Th', 'F - S'], $dayCounts->keys()->all());
+        $this->assertSame(4, $dayCounts->sum());
+        $this->assertSame(1, (int) $dayCounts->min(), 'every meeting pattern should receive at least one of the four subjects');
+        $this->assertSame(2, (int) $dayCounts->max(), 'four subjects across three patterns should leave exactly one pattern with two classes');
     }
 
     public function test_schedule_generation_uses_only_the_selected_curriculum(): void
@@ -1209,7 +1092,7 @@ class DeanPortalTest extends TestCase
 
         $this->assertSame($room->id, $secondYearSchedule->room_id);
         $this->assertSame($room->id, $fourthYearSchedule->room_id);
-        $this->assertSame('07:00', substr($secondYearSchedule->start_time, 0, 5));
+        $this->assertSame('08:30', substr($secondYearSchedule->start_time, 0, 5));
         $this->assertSame('16:30', substr($fourthYearSchedule->start_time, 0, 5));
     }
 
@@ -1486,7 +1369,7 @@ class DeanPortalTest extends TestCase
         ]);
     }
 
-    public function test_subject_creation_and_instructor_assignment_use_separate_pages(): void
+    public function test_subject_creation_and_instructor_assignment_are_separate_features(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
         $instructors = User::factory()->count(2)->create([
@@ -1503,7 +1386,7 @@ class DeanPortalTest extends TestCase
             'semester' => '1st',
             'curriculum' => 'Old',
             'units' => 3,
-        ])->assertRedirect(route('dean.subjects.create'));
+        ])->assertRedirect(route('dean.subjects.index'));
 
         $subject = Subject::where('code', 'IT202')->firstOrFail();
         $this->assertCount(0, $subject->instructors);
@@ -1520,13 +1403,17 @@ class DeanPortalTest extends TestCase
             'units' => 3,
         ]);
 
+        // Subject creation is a modal on the index page, not a dedicated
+        // page — the standalone create route just redirects there.
         $this->actingAs($dean)
             ->get(route('dean.subjects.create'))
+            ->assertRedirect(route('dean.subjects.index'));
+
+        $this->actingAs($dean)
+            ->get(route('dean.subjects.index'))
             ->assertOk()
             ->assertSee('Enter the curriculum information for BSIT')
             ->assertSee('type="hidden" name="curriculum" value="New"', false)
-            ->assertDontSee('New Curriculum')
-            ->assertDontSee('Old Curriculum')
             ->assertDontSee('name="instructor_department"', false)
             ->assertDontSee('name="instructor_ids[]"', false);
 
@@ -1602,8 +1489,8 @@ class DeanPortalTest extends TestCase
             ->assertOk()
             ->assertViewHas('subjectsByYear', fn ($subjectsByYear): bool => $subjectsByYear->get(2)->contains('id', $subject->id))
             ->assertSeeInOrder(['First Year Subjects', 'Second Year Subjects', 'Third Year Subjects', 'Fourth Year Subjects'])
-            ->assertSee('Which subject do you want to edit?', false)
-            ->assertSee('Which subject do you want to delete?', false);
+            ->assertSee('edit='.$subject->id, false)
+            ->assertSee('delete-confirmation-trigger', false);
     }
 
     public function test_subject_code_uniqueness_is_scoped_to_the_selected_curriculum(): void
@@ -1622,13 +1509,13 @@ class DeanPortalTest extends TestCase
         $this->actingAs($dean)->post(route('dean.subjects.store'), [
             ...$subjectData,
             'curriculum' => 'Old',
-        ])->assertRedirect(route('dean.subjects.create'));
+        ])->assertRedirect(route('dean.subjects.index'));
 
         $this->actingAs($dean)->post(route('dean.subjects.store'), [
             ...$subjectData,
             'name' => 'Introduction in Computing Revised',
             'curriculum' => 'New',
-        ])->assertRedirect(route('dean.subjects.create'));
+        ])->assertRedirect(route('dean.subjects.index'));
 
         $this->assertSame(2, Subject::where('course', 'BSIT')->where('code', 'ITE 111')->count());
 
@@ -1836,16 +1723,18 @@ class DeanPortalTest extends TestCase
         ]);
     }
 
-    public function test_pending_instructors_are_listed_above_active_instructors(): void
+    public function test_pending_instructors_are_not_shown_in_the_active_instructor_list(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
-        User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'pending']);
-        User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $pending = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'pending']);
+        $active = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
 
         $this->actingAs($dean)
             ->get(route('dean.instructors.index'))
             ->assertOk()
-            ->assertSeeInOrder(['Pending Instructor Registrations', 'BSIT Instructor Accounts', 'Search active instructor', 'All employment types']);
+            ->assertDontSee('Pending Instructor Registrations')
+            ->assertSee($active->name)
+            ->assertDontSee($pending->name);
     }
 
     public function test_bsba_subjects_can_use_any_department_room_regardless_of_subject_type(): void

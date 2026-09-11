@@ -10,27 +10,15 @@
             box-sizing: border-box;
         }
 
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-            background-color: #ffffff;
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 72px;
         }
 
-        body {
-            height: 100vh;
-            height: 100dvh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: clamp(28px, 5vw, 76px);
-            background-image:
-                linear-gradient(rgba(0, 0, 0, 0.20), rgba(0, 0, 0, 0.20)),
-                url("{{ asset('images/landing-background.png') }}");
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
+        html, body {
+            width: 100%;
+            margin: 0;
+            background-color: #12021f;
         }
 
         body.modal-open {
@@ -39,6 +27,83 @@
 
         button {
             font: inherit;
+        }
+
+        /* Top navigation */
+        .site-nav {
+            position: fixed;
+            z-index: 200;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-start;
+            row-gap: 6px;
+            gap: 16px;
+            padding: 13px clamp(20px, 4vw, 56px);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+            backdrop-filter: blur(14px) saturate(130%);
+            -webkit-backdrop-filter: blur(14px) saturate(130%);
+        }
+
+        .site-nav-brand {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .site-nav-brand img {
+            display: block;
+            width: 52px;
+            height: 52px;
+            margin: -6px 0;
+            object-fit: contain;
+        }
+
+        .site-nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: clamp(2px, 1vw, 8px);
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .site-nav-links a {
+            display: inline-block;
+            padding: 8px 15px;
+            color: rgba(255, 255, 255, 0.82);
+            text-decoration: none;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 9px;
+            transition: background 0.18s ease, color 0.18s ease;
+        }
+
+        .site-nav-links a:hover,
+        .site-nav-links a:focus-visible {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.14);
+            outline: none;
+        }
+
+        /* Home (hero) section — original landing design, unchanged */
+        .home-section {
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(28px, 5vw, 76px);
+            padding-top: clamp(78px, 9vw, 116px);
+            background: linear-gradient(160deg, #1c0330 0%, #2d045f 55%, #3a0a72 100%);
         }
 
         .landing-shell {
@@ -155,7 +220,7 @@
         .portal-heading span {
             display: block;
             margin-bottom: 7px;
-            color: #450693;
+            color: #ffffff;
             font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
             font-size: 11px;
             font-weight: 800;
@@ -183,7 +248,7 @@
 
         .portal-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 13px;
         }
 
@@ -237,12 +302,6 @@
             font-weight: 850;
         }
 
-        .portal-card:nth-child(2) .portal-symbol {
-            color: #ffffff;
-            background: #450693;
-            border-color: rgba(255, 255, 255, 0.42);
-        }
-
         .portal-arrow {
             color: rgba(255, 255, 255, 0.70);
             font-size: 20px;
@@ -274,7 +333,7 @@
 
         .course-modal {
             position: fixed;
-            z-index: 100;
+            z-index: 300;
             inset: 0;
             display: grid;
             place-items: center;
@@ -288,7 +347,12 @@
             position: relative;
             isolation: isolate;
             width: min(1240px, 100%);
-            overflow: hidden;
+            max-height: 94vh;
+            max-height: 94dvh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
             padding: clamp(26px, 3.3vw, 44px);
             color: #ffffff;
             background:
@@ -299,6 +363,23 @@
             box-shadow: 0 35px 90px rgba(41, 10, 66, 0.38);
             backdrop-filter: blur(20px) saturate(120%);
             -webkit-backdrop-filter: blur(20px) saturate(120%);
+        }
+
+        .course-dialog::-webkit-scrollbar {
+            width: 7px;
+        }
+
+        .course-dialog::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .course-dialog::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 999px;
+        }
+
+        .course-dialog::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.6);
         }
 
         .course-dialog::before,
@@ -549,6 +630,219 @@
             transform: translateX(50%) translateY(3px);
         }
 
+        /* About / Contact — new professional content sections */
+        .content-section {
+            width: 100%;
+            padding: clamp(64px, 8vw, 108px) clamp(20px, 6vw, 90px);
+            background: linear-gradient(160deg, #1c0330 0%, #2d045f 55%, #3a0a72 100%);
+        }
+
+        .content-section--alt {
+            background: linear-gradient(180deg, #170228 0%, #2d045f 100%);
+        }
+
+        .content-inner {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+        }
+
+        .section-kicker {
+            display: block;
+            margin-bottom: 9px;
+            color: #c9a6f2;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.4px;
+            text-transform: uppercase;
+        }
+
+        .section-heading {
+            max-width: 660px;
+            margin: 0 0 16px;
+            color: #ffffff;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: clamp(26px, 3vw, 38px);
+            font-weight: 750;
+            line-height: 1.15;
+            letter-spacing: -0.7px;
+        }
+
+        .section-lede {
+            max-width: 700px;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.78);
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            line-height: 1.65;
+        }
+
+        .about-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 40px;
+        }
+
+        .about-card {
+            padding: 24px 22px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 18px;
+            box-shadow: 0 14px 32px rgba(12, 1, 24, 0.22);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .about-card-icon {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 16px;
+            color: #ffffff;
+            background: linear-gradient(145deg, #7022b8, #450693);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 12px;
+        }
+
+        .about-card h3 {
+            margin: 0 0 7px;
+            color: #ffffff;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            font-weight: 750;
+        }
+
+        .about-card p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 12.5px;
+            line-height: 1.55;
+        }
+
+        .contact-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.05fr;
+            gap: 40px;
+            align-items: start;
+            margin-top: 36px;
+        }
+
+        .contact-details {
+            display: grid;
+            gap: 14px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 18px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 16px;
+            box-shadow: 0 12px 28px rgba(12, 1, 24, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            min-width: 0;
+        }
+
+        .contact-icon {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 11px;
+        }
+
+        .contact-item strong {
+            display: block;
+            margin-bottom: 3px;
+            color: #ffffff;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 13px;
+        }
+
+        .contact-item > div {
+            min-width: 0;
+        }
+
+        .contact-item span,
+        .contact-item a {
+            display: inline-block;
+            max-width: 100%;
+            color: rgba(255, 255, 255, 0.72);
+            text-decoration: none;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 12.5px;
+            line-height: 1.5;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+
+        .contact-item a:hover {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+
+        .contact-panel {
+            padding: 30px;
+            color: #ffffff;
+            background: linear-gradient(150deg, #450693, #7022b8 55%, #9b4fd6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 22px;
+            box-shadow: 0 26px 55px rgba(12, 1, 24, 0.35);
+        }
+
+        .contact-panel h3 {
+            margin: 0 0 10px;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 19px;
+        }
+
+        .contact-panel p {
+            margin: 0 0 20px;
+            color: rgba(255, 255, 255, 0.82);
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .contact-panel .button-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            color: #450693;
+            text-decoration: none;
+            background: #ffffff;
+            border-radius: 11px;
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 13px;
+            font-weight: 800;
+            transition: transform 0.18s ease;
+        }
+
+        .contact-panel .button-link:hover {
+            transform: translateY(-2px);
+        }
+
+        .site-footer {
+            padding: 26px clamp(20px, 6vw, 90px);
+            color: rgba(255, 255, 255, 0.5);
+            background: #170228;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: "Segoe UI", Inter, Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            text-align: center;
+        }
+
         @media (max-width: 980px) {
             .portal-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -574,12 +868,40 @@
                 width: 70px;
                 height: 70px;
             }
+
+            .about-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .contact-layout {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 700px) {
-            body {
+            .site-nav {
+                padding: 10px 14px;
+            }
+
+            .site-nav-brand img {
+                width: 40px;
+                height: 40px;
+                margin: 0;
+            }
+
+            .site-nav-links {
+                gap: 2px;
+            }
+
+            .site-nav-links a {
+                padding: 7px 9px;
+                font-size: 11px;
+            }
+
+            .home-section {
                 justify-content: center;
                 padding: 12px;
+                padding-top: 70px;
             }
 
             .landing-intro {
@@ -709,6 +1031,19 @@
                 height: 24px;
                 font-size: 12px;
             }
+
+            .content-section {
+                padding: 48px 18px;
+            }
+
+            .about-grid {
+                grid-template-columns: 1fr;
+                margin-top: 26px;
+            }
+
+            .contact-layout {
+                margin-top: 24px;
+            }
         }
 
         @media (max-width: 430px) {
@@ -736,7 +1071,7 @@
         }
 
         @media (max-height: 820px) and (min-width: 701px) {
-            body { padding: 18px 34px; }
+            .home-section { padding: 18px 34px; padding-top: 96px; }
             .college-logo { width: clamp(150px, 14vw, 185px); max-height: 185px; }
             .department-emblem { width:clamp(58px,6vw,76px); height:clamp(58px,6vw,76px); }
             .department-emblem.department-emblem--featured { width:clamp(78px,7.5vw,98px); height:clamp(78px,7.5vw,98px); }
@@ -777,35 +1112,112 @@
     </style>
 </head>
 <body>
-    <main class="landing-shell">
-        <section class="landing-intro" aria-labelledby="landingTitle">
-            <div class="institution-logos" aria-label="Madridejos Community College and department logos">
-                <div class="department-logo-group department-logo-group--left">
-                    <img class="department-emblem" src="{{ asset('images/bsba-department-logo.jpg') }}" alt="Business Administration Department logo">
-                    <img class="department-emblem department-emblem--featured" src="{{ asset('images/bsit-department-logo.jpg') }}" alt="Information Technology Department logo">
-                </div>
-                <img class="college-logo" src="{{ asset('images/mcc-college-logo.png') }}" alt="Madridejos Community College logo">
-                <div class="department-logo-group department-logo-group--right">
-                    <img class="department-emblem department-emblem--featured" src="{{ asset('images/bshm-department-logo.jpg') }}" alt="Hospitality Management Department logo">
-                    <img class="department-emblem" src="{{ asset('images/education-department-logo.jpg') }}" alt="College of Education logo">
-                </div>
-            </div>
-            <div class="brand-copy">
-                <h1 id="landingTitle" class="brand-name" aria-label="MCC | Scheduler"><span>MCC</span><b>|</b><span>Scheduler</span></h1>
-                <p class="brand-tagline">An Automated Class Scheduling and Room Allocation System</p>
-            </div>
-        </section>
+    <nav class="site-nav" aria-label="Primary">
+        <a class="site-nav-brand" href="#home">
+            <img src="{{ asset('images/mcc-scheduler-logo-transparent.png') }}" alt="MCC Scheduler logo">
+        </a>
+        <ul class="site-nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+        </ul>
+    </nav>
 
-        <section class="portal-area" aria-labelledby="portalTitle">
-            <div class="portal-heading"><div><span>Secure role access</span><h2 id="portalTitle">Choose your portal</h2></div><p>Continue to the workspace assigned to your account.</p></div>
-            <div class="portal-grid">
-                <a class="portal-card" href="{{ route('login', ['role' => 'admin']) }}"><div class="portal-top"><span class="portal-symbol">A</span><span class="portal-arrow">→</span></div><div><h3>Administrator</h3><p>Accounts and institution analytics</p></div></a>
-                <button id="openCourses" class="portal-card" type="button"><div class="portal-top"><span class="portal-symbol">D</span><span class="portal-arrow">→</span></div><div><h3>Dean</h3><p>Department schedules and resources</p></div></button>
-                <a class="portal-card" href="{{ route('login', ['role' => 'instructor']) }}"><div class="portal-top"><span class="portal-symbol">I</span><span class="portal-arrow">→</span></div><div><h3>Instructor</h3><p>Workload and room monitoring</p></div></a>
-                <a class="portal-card" href="{{ route('login', ['role' => 'student']) }}"><div class="portal-top"><span class="portal-symbol">S</span><span class="portal-arrow">→</span></div><div><h3>Student</h3><p>Study Load and class schedule</p></div></a>
+    <section id="home" class="home-section">
+        <main class="landing-shell">
+            <section class="landing-intro" aria-labelledby="landingTitle">
+                <div class="institution-logos" aria-label="Madridejos Community College and department logos">
+                    <div class="department-logo-group department-logo-group--left">
+                        <img class="department-emblem" src="{{ asset('images/bsba-department-logo.jpg') }}" alt="Business Administration Department logo">
+                        <img class="department-emblem department-emblem--featured" src="{{ asset('images/bsit-department-logo.jpg') }}" alt="Information Technology Department logo">
+                    </div>
+                    <img class="college-logo" src="{{ asset('images/mcc-college-logo.png') }}" alt="Madridejos Community College logo">
+                    <div class="department-logo-group department-logo-group--right">
+                        <img class="department-emblem department-emblem--featured" src="{{ asset('images/bshm-department-logo.jpg') }}" alt="Hospitality Management Department logo">
+                        <img class="department-emblem" src="{{ asset('images/education-department-logo.jpg') }}" alt="College of Education logo">
+                    </div>
+                </div>
+                <div class="brand-copy">
+                    <h1 id="landingTitle" class="brand-name" aria-label="MCC | Scheduler"><span>MCC</span><b>|</b><span>Scheduler</span></h1>
+                    <p class="brand-tagline">An Automated Class Scheduling and Room Allocation System</p>
+                </div>
+            </section>
+
+            <section id="portals" class="portal-area" aria-labelledby="portalTitle">
+                <div class="portal-heading"><div><span>Secure role access</span><h2 id="portalTitle">Choose your portal</h2></div><p>Continue to the workspace assigned to your account.</p></div>
+                <div class="portal-grid">
+                    <a class="portal-card" href="{{ route('login', ['role' => 'admin']) }}"><div class="portal-top"><span class="portal-symbol">A</span><span class="portal-arrow">→</span></div><div><h3>Administrator</h3><p>Accounts and institution analytics</p></div></a>
+                    <button id="openCourses" class="portal-card" type="button"><div class="portal-top"><span class="portal-symbol">D</span><span class="portal-arrow">→</span></div><div><h3>Dean</h3><p>Department schedules and resources</p></div></button>
+                    <a class="portal-card" href="{{ route('login', ['role' => 'gec']) }}"><div class="portal-top"><span class="portal-symbol">G</span><span class="portal-arrow">→</span></div><div><h3>GEC</h3><p>General Education Course</p></div></a>
+                    <a class="portal-card" href="{{ route('login', ['role' => 'instructor']) }}"><div class="portal-top"><span class="portal-symbol">I</span><span class="portal-arrow">→</span></div><div><h3>Instructor</h3><p>Workload and room monitoring</p></div></a>
+                    <a class="portal-card" href="{{ route('login', ['role' => 'student']) }}"><div class="portal-top"><span class="portal-symbol">S</span><span class="portal-arrow">→</span></div><div><h3>Student</h3><p>Study Load and class schedule</p></div></a>
+                </div>
+            </section>
+        </main>
+    </section>
+
+    <section id="about" class="content-section" aria-labelledby="aboutTitle">
+        <div class="content-inner">
+            <span class="section-kicker">About the platform</span>
+            <h2 id="aboutTitle" class="section-heading">Built for Madridejos Community College's academic scheduling</h2>
+            <p class="section-lede">MCC Scheduler is an automated class scheduling and room allocation system that coordinates every department's sections, subjects, instructors, and rooms into conflict-free timetables — while giving Administrators, Deans, GEC, Instructors, and Students each a dedicated, role-specific workspace.</p>
+            <div class="about-grid">
+                <div class="about-card">
+                    <div class="about-card-icon"><x-icon name="calendar-plus" /></div>
+                    <h3>Automated Scheduling</h3>
+                    <p>Generates conflict-free class schedules across sections, instructors, and rooms in seconds.</p>
+                </div>
+                <div class="about-card">
+                    <div class="about-card-icon"><x-icon name="building" /></div>
+                    <h3>Multi-Department Support</h3>
+                    <p>Covers BSIT, BSBA, BSHM, BSED, BEED, and General Education subjects in one unified system.</p>
+                </div>
+                <div class="about-card">
+                    <div class="about-card-icon"><x-icon name="users" /></div>
+                    <h3>Role-Based Portals</h3>
+                    <p>Administrators, Deans, GEC, Instructors, and Students each get tools built for their exact role.</p>
+                </div>
+                <div class="about-card">
+                    <div class="about-card-icon"><x-icon name="clipboard" /></div>
+                    <h3>Live Academic Records</h3>
+                    <p>Rooms, workloads, and timetables stay current for every department, every semester.</p>
+                </div>
             </div>
-        </section>
-    </main>
+        </div>
+    </section>
+
+    <section id="contact" class="content-section content-section--alt" aria-labelledby="contactTitle">
+        <div class="content-inner">
+            <span class="section-kicker">Get in touch</span>
+            <h2 id="contactTitle" class="section-heading">Need help or have a question?</h2>
+            <p class="section-lede">Reach out to the college for account access, technical issues, or general inquiries about the scheduling system.</p>
+            <div class="contact-layout">
+                <div class="contact-details">
+                    <div class="contact-item">
+                        <span class="contact-icon"><x-icon name="at-sign" /></span>
+                        <div><strong>Email</strong><a href="mailto:collegeofinfotech2023@gmail.com">collegeofinfotech2023@gmail.com</a></div>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-icon"><x-icon name="building" /></span>
+                        <div><strong>Address</strong><span>Crossing Bunakan, Madridejos, Cebu, Philippines</span></div>
+                    </div>
+                    <div class="contact-item">
+                        <span class="contact-icon"><x-icon name="refresh" /></span>
+                        <div><strong>Office Hours</strong><span>Monday – Friday, 8:00 AM – 5:00 PM</span></div>
+                    </div>
+                </div>
+                <div class="contact-panel">
+                    <h3>Need portal access?</h3>
+                    <p>Administrators, deans, instructors, and students can register directly from the portal login page. Reach out to the college if your account needs approval or troubleshooting.</p>
+                    <a class="button-link" href="#portals">Go to portal login <span aria-hidden="true">&rarr;</span></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="site-footer">
+        &copy; {{ date('Y') }} Madridejos Community College. All rights reserved.
+    </footer>
 
     <div id="courseModal" class="course-modal" hidden>
         <section class="course-dialog" role="dialog" aria-modal="true" aria-labelledby="courseTitle">

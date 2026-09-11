@@ -1,9 +1,10 @@
 @push('styles')
 <style>
     .delete-confirmation-modal[hidden] { display:none; }
-    .delete-confirmation-modal { position:fixed; z-index:1900; inset:0; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.58); backdrop-filter:blur(3px); }
+    .delete-confirmation-modal { position:fixed; z-index:1900; inset:0; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.58); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
     .delete-confirmation-dialog { width:min(450px,100%); padding:30px; text-align:center; background:white; border-radius:18px; box-shadow:0 25px 65px rgba(15,23,42,.28); }
-    .delete-confirmation-icon { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 17px; font-size:27px; font-weight:700; color:#dc2626; background:#fee2e2; border-radius:50%; }
+    .delete-confirmation-icon { width:58px; height:58px; display:grid; place-items:center; margin:0 auto 17px; color:#dc2626; background:#fee2e2; border-radius:50%; }
+    .delete-confirmation-icon svg { width:28px; height:28px; }
     .delete-confirmation-dialog h2 { margin-bottom:9px; color:var(--navy); }
     .delete-confirmation-dialog p { color:#64748b; line-height:1.6; }
     .delete-confirmation-name { margin-top:6px; font-weight:700; color:#334155 !important; }
@@ -13,7 +14,7 @@
 
 <div id="deleteConfirmationModal" class="delete-confirmation-modal" hidden>
     <section class="delete-confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmationTitle" aria-describedby="deleteConfirmationMessage">
-        <div class="delete-confirmation-icon" aria-hidden="true">!</div>
+        <div class="delete-confirmation-icon"><x-icon name="warning" /></div>
         <h2 id="deleteConfirmationTitle">{{ $title }}</h2>
         <p id="deleteConfirmationMessage">{{ $message }}</p>
         <p id="deleteConfirmationName" class="delete-confirmation-name"></p>

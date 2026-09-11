@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Dean;
 
 use App\Models\ClassSchedule;
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,15 +21,18 @@ class InstructorUnitController extends DeanController
             'search' => ['nullable', 'string', 'max:100'],
         ]);
         $course = $this->course($request);
+        $department = Department::where('code', $course)->first();
+        $enabledSemesters = $department?->enabledSemesterCodes() ?? ['1st', '2nd', 'Summer'];
         $academicYears = ClassSchedule::query()
             ->forDepartment($course)
             ->distinct()
             ->orderByDesc('academic_year')
             ->pluck('academic_year');
         $academicYear = $validated['academic_year'] ?? $academicYears->first();
-        $semester = $validated['semester'] ?? '1st';
+        $semester = $validated['semester'] ?? ($enabledSemesters[0] ?? '1st');
 
         $query = User::query()
+            ->with('department')
             ->where('role', 'instructor')
             ->forDepartment($course)
             ->where('account_status', 'active');
@@ -63,14 +67,36 @@ class InstructorUnitController extends DeanController
                 ->pluck('units', 'instructor_id');
         }
 
+        $defaultUnitLimits = [
+            'full_time' => $department?->default_unit_limit_full_time ?? User::DEFAULT_UNIT_LIMITS['full_time'],
+            'industry_part_time' => $department?->default_unit_limit_industry_part_time ?? User::DEFAULT_UNIT_LIMITS['industry_part_time'],
+            'flexible_part_time' => $department?->default_unit_limit_flexible_part_time ?? User::DEFAULT_UNIT_LIMITS['flexible_part_time'],
+        ];
+
         return view('dean.instructor-units.index', compact(
             'course',
             'instructors',
             'scheduledUnits',
             'academicYears',
+            'enabledSemesters',
             'academicYear',
             'semester',
+            'defaultUnitLimits',
         ));
+    }
+
+    public function updateDefaults(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'default_unit_limit_full_time' => ['required', 'integer', 'min:0', 'max:60'],
+            'default_unit_limit_industry_part_time' => ['required', 'integer', 'min:0', 'max:60'],
+            'default_unit_limit_flexible_part_time' => ['required', 'integer', 'min:0', 'max:60'],
+        ]);
+
+        $department = Department::where('code', $this->course($request))->firstOrFail();
+        $department->update($validated);
+
+        return back()->with('success', 'Default teaching-unit limits updated successfully.');
     }
 
     public function update(Request $request, User $instructor): RedirectResponse
@@ -98,5 +124,24 @@ class InstructorUnitController extends DeanController
             'success',
             "{$instructor->name}'s teaching-unit limit was changed from {$previousLimit} to {$validated['teaching_unit_limit']} units.",
         );
+    }
+
+    public function destroy(Request $request, User $instructor): RedirectResponse
+    {
+        abort_unless(
+            $instructor->role === 'instructor'
+            && $instructor->account_status === 'active'
+            && strtoupper((string) $instructor->course) === $this->course($request),
+            404,
+        );
+        abort_if($instructor->teaching_unit_limit === null, 422, 'This instructor already uses the default teaching-unit limit.');
+
+        $instructor->update([
+            'teaching_unit_limit' => null,
+            'unit_limit_note' => null,
+            'unit_limit_updated_at' => null,
+        ]);
+
+        return back()->with('success', "{$instructor->name}'s teaching-unit limit was reset to the default.");
     }
 }

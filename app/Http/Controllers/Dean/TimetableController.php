@@ -23,7 +23,8 @@ class TimetableController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = ClassSchedule::query()->forDepartment($course);
+        $enabledSemesters = $this->enabledSemesters($request);
+        $query = ClassSchedule::query()->forDepartment($course)->whereIn('semester', $enabledSemesters);
 
         foreach (['section_id', 'academic_year', 'semester', 'day'] as $filter) {
             if ($request->filled($filter)) {
@@ -54,9 +55,21 @@ class TimetableController extends DeanController
             ->get()
             ->groupBy('section_id');
 
-        $sections = AcademicSection::forDepartment($course)->orderBy('year_level')->orderBy('name')->get();
+        $sections = AcademicSection::forDepartment($course)
+            ->when($request->filled('year_level'), fn ($sectionQuery) => $sectionQuery->where('year_level', (int) $request->input('year_level')))
+            ->orderBy('year_level')
+            ->orderBy('name')
+            ->get();
 
-        return view('dean.timetable.index', compact('course', 'sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount'));
+        $rooms = Room::forDepartment($course)->orderBy('name')->get();
+        $instructors = User::where('role', 'instructor')->where('account_status', 'active')->orderBy('course')->orderBy('first_name')->get();
+
+        $editingSchedule = null;
+        if ($request->filled('edit')) {
+            $editingSchedule = ClassSchedule::with(['section', 'subject'])->forDepartment($course)->find($request->input('edit'));
+        }
+
+        return view('dean.timetable.index', compact('course', 'sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount', 'enabledSemesters', 'rooms', 'instructors', 'editingSchedule'));
     }
 
     public function edit(Request $request, ClassSchedule $timetable): View

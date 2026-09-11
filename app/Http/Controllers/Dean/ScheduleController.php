@@ -11,7 +11,6 @@ use App\Services\ClassScheduleGenerator;
 use App\Services\ScheduleNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -31,15 +30,16 @@ class ScheduleController extends DeanController
             ->orderBy('year_level')
             ->orderBy('name')
             ->get();
+        $enabledSemesters = $this->enabledSemesters($request);
 
-        return view('dean.schedules.create', compact('course', 'sections'));
+        return view('dean.schedules.create', compact('course', 'sections', 'enabledSemesters'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'academic_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
-            'semester' => ['required', Rule::in(['1st', '2nd', 'Summer'])],
+            'semester' => ['required', Rule::in($this->enabledSemesters($request))],
             'curriculum' => ['nullable', Rule::in(['New', 'Old'])],
             // Keep accepting the former scalar field for old links/tests while
             // the form now submits a checkbox-based list.
@@ -107,6 +107,7 @@ class ScheduleController extends DeanController
             ->whereIn('year_level', $selectedYearLevels)
             ->where('semester', $validated['semester'])
             ->where('curriculum', $validated['curriculum'])
+            ->where('classification', 'Major')
             ->get();
         $yearWithoutSubjects = $selectedYearLevels->first(
             fn ($yearLevel): bool => $subjects->where('year_level', $yearLevel)->isEmpty(),
@@ -114,16 +115,11 @@ class ScheduleController extends DeanController
 
         if ($yearWithoutSubjects !== null) {
             throw ValidationException::withMessages([
-                'year_level' => "No {$validated['semester']} semester {$validated['curriculum']} Curriculum subjects are available for Year {$yearWithoutSubjects}.",
+                'year_level' => "No {$validated['semester']} semester {$validated['curriculum']} Curriculum Major subjects are available for Year {$yearWithoutSubjects}.",
             ]);
         }
 
         $rooms = Room::forDepartment($course)->orderBy('name')->get();
-        $roomCapacityError = $this->roomCapacityError($course, $sections, $subjects, $rooms);
-        if ($roomCapacityError !== null) {
-            return $this->failureResponse($roomCapacityError);
-        }
-
         $instructors = User::forDepartment($course)->where('role', 'instructor')->where('account_status', 'active')->get();
 
         $assignedInstructors = $subjects->flatMap->instructors->where('account_status', 'active');
@@ -165,52 +161,11 @@ class ScheduleController extends DeanController
             str_contains($message, 'every allowed day and time') => 'Check the section timetable for occupied periods, assign another instructor who still has available units, and verify that a compatible room is free. If resources are limited, generate fewer sections at one time.',
             str_contains($message, 'No assigned instructor has enough workload capacity') => 'Every instructor assigned to this subject has reached or would exceed their configured teaching-unit limit. Assign an instructor with remaining units or adjust the limit on the Instructor Units page.',
             str_contains($message, 'room is available'), str_contains($message, 'matching room') => 'There are not enough rooms of the required type for the selected sections. Add a compatible room, free an occupied room period, or generate fewer sections.',
-            str_contains($message, 'First Year section') => 'First-year schedules must include the M–W, T–Th, and F–S meeting patterns. Add the missing major or minor subjects and make sure instructors and rooms are available on those days.',
+            str_contains($message, 'First Year section') => 'First-year schedules must include the M–W, T–Th, and F–S meeting patterns. Add the missing Major subjects for the affected day pattern and make sure instructors and rooms are available on those days.',
             str_contains($message, 'teaching units') => 'The generated load exceeds the instructor’s configured maximum. Reduce the assigned load or adjust the maximum on the Instructor Units page; instructors do not need to use all available units.',
             str_contains($message, 'required subject, compatible room, or active instructor is missing') => 'Review the Subjects, Subject Assignment, Instructor List, and Rooms pages. Complete the missing information, then create the schedule again.',
             default => 'Review the selected academic period, sections, subject assignments, instructor unit limits, room types, and existing timetable conflicts before trying again.',
         };
     }
 
-    /**
-     * @param  Collection<int, AcademicSection>  $sections
-     * @param  Collection<int, Subject>  $subjects
-     * @param  Collection<int, Room>  $rooms
-     */
-    private function roomCapacityError(string $course, Collection $sections, Collection $subjects, Collection $rooms): ?string
-    {
-        $sectionsByYear = $sections->countBy('year_level');
-        $demands = $subjects
-            ->reject(fn (Subject $subject): bool => $this->generator->subjectCanUseTba($course, $subject))
-            ->groupBy(fn (Subject $subject): string => $subject->classification.'|'.$this->generator->roomRequirementLabel($course, $subject));
-
-        foreach ($demands as $demandKey => $roomSubjects) {
-            [$classification, $roomLabel] = explode('|', $demandKey, 2);
-            $representativeSubject = $roomSubjects->first();
-            $requiredEntries = $roomSubjects->sum(
-                fn (Subject $subject): int => (int) ($sectionsByYear[$subject->year_level] ?? 0),
-            );
-            // From 7:00 AM to 7:00 PM, with 12:00 PM to 1:00 PM reserved
-            // for lunch, one room can hold seven 90-minute Minor slots on
-            // each of the three day pairs (21 weekly placements), or
-            // twelve non-conflicting 150-minute Major slots each week.
-            $slotsPerRoom = $classification === 'Minor' ? 21 : 12;
-            $matchingRoomCount = $rooms->filter(
-                fn (Room $room): bool => $this->generator->roomIsCompatible($course, $representativeSubject, $room),
-            )->count();
-            $availableSlots = $matchingRoomCount * $slotsPerRoom;
-
-            if ($requiredEntries <= $availableSlots) {
-                continue;
-            }
-
-            $requiredRoomCount = (int) ceil($requiredEntries / $slotsPerRoom);
-            $additionalRooms = $requiredRoomCount - $matchingRoomCount;
-            return "The selected sections require {$requiredEntries} {$classification} classes needing a {$roomLabel}, but {$matchingRoomCount} matching ".
-                str('room')->plural($matchingRoomCount)." provide only {$availableSlots} conflict-free weekly slots. Add at least {$additionalRooms} more ".
-                str($roomLabel)->plural($additionalRooms).' or generate fewer sections.';
-        }
-
-        return null;
-    }
 }

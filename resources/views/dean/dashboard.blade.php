@@ -10,7 +10,7 @@
     .welcome h2 { margin-bottom:7px; color:var(--navy); }
     .schedule-row { display:grid; grid-template-columns:1fr 1.4fr 1fr 1fr; gap:10px; padding:12px 0; border-bottom:1px solid #e2e8f0; font-size:13px; }
     .analytics-modal[hidden] { display:none; }
-    .analytics-modal { position:fixed; z-index:1000; top:68px; right:0; bottom:0; left:220px; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.58); backdrop-filter:blur(3px); }
+    .analytics-modal { position:fixed; z-index:1000; top:68px; right:0; bottom:0; left:220px; display:grid; place-items:center; padding:24px; background:rgba(15,23,42,.58); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
     .analytics-dialog { width:min(1100px,100%); max-height:calc(100vh - 132px); padding:26px; overflow-y:auto; color:#24152f; background:rgba(239,226,248,.68); border:1px solid rgba(69,6,147,.32); border-radius:18px; box-shadow:0 24px 65px rgba(15,23,42,.25); backdrop-filter:blur(8px); }
     .chart-header,.chart-actions,.chart-layout,.legend-item { display:flex; align-items:center; }
     .chart-header { justify-content:space-between; gap:18px; margin-bottom:24px; }

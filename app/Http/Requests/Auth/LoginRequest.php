@@ -31,7 +31,7 @@ class LoginRequest extends FormRequest
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
-            'role' => ['nullable', Rule::in(['admin', 'dean', 'instructor', 'student'])],
+            'role' => ['nullable', Rule::in(['admin', 'dean', 'gec', 'instructor', 'student'])],
         ];
     }
 
@@ -94,6 +94,6 @@ class LoginRequest extends FormRequest
     {
         $role = strtolower($this->string('role')->toString());
 
-        return in_array($role, ['admin', 'dean', 'instructor', 'student'], true) ? $role : 'web';
+        return in_array($role, ['admin', 'dean', 'gec', 'instructor', 'student'], true) ? $role : 'web';
     }
 }

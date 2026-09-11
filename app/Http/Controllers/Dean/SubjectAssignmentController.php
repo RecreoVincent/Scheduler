@@ -22,7 +22,8 @@ class SubjectAssignmentController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = Subject::with('instructors')->forDepartment($course);
+        $enabledSemesters = $this->enabledSemesters($request);
+        $query = Subject::with('instructors')->forDepartment($course)->where('managed_by_gec', false)->whereIn('semester', $enabledSemesters);
 
         foreach (['year_level', 'semester', 'curriculum'] as $filter) {
             if ($request->filled($filter)) {
@@ -52,11 +53,12 @@ class SubjectAssignmentController extends DeanController
         $assignmentCount = DB::table('subject_instructor')
             ->join('subjects', 'subjects.id', '=', 'subject_instructor.subject_id')
             ->where('subjects.course', $course)
+            ->where('subjects.managed_by_gec', false)
             ->count();
 
         return view('dean.subject-assignments.index', array_merge(
-            compact('course', 'subjects', 'assignmentCount'),
-            $this->assignmentFormData($request, $course),
+            compact('course', 'subjects', 'assignmentCount', 'enabledSemesters'),
+            $this->assignmentFormData($request, $course, $enabledSemesters),
         ));
     }
 
@@ -65,11 +67,14 @@ class SubjectAssignmentController extends DeanController
         return $this->index($request);
     }
 
-    /** @return array<string, mixed> */
-    private function assignmentFormData(Request $request, string $course): array
+    /** @param array<int, string> $enabledSemesters
+     *  @return array<string, mixed> */
+    private function assignmentFormData(Request $request, string $course, array $enabledSemesters): array
     {
         $subjectOptions = Subject::with('instructors')
             ->forDepartment($course)
+            ->where('managed_by_gec', false)
+            ->whereIn('semester', $enabledSemesters)
             ->orderBy('year_level')
             ->orderBy('code')
             ->get();
@@ -78,6 +83,7 @@ class SubjectAssignmentController extends DeanController
         if ($request->filled('subject_id')) {
             $selectedSubject = Subject::with('instructors')
                 ->forDepartment($course)
+                ->where('managed_by_gec', false)
                 ->findOrFail((int) $request->input('subject_id'));
         }
 
@@ -125,7 +131,7 @@ class SubjectAssignmentController extends DeanController
                 (string) $instructor->id => (float) $this->generator->workloadRange($instructor)[1],
             ],
         )->all();
-        $semesters = collect(['1st', '2nd', 'Summer']);
+        $semesters = collect($enabledSemesters);
         $selectedSemester = old(
             'semester',
             $selectedSubject?->semester ?? $request->string('semester')->toString(),
@@ -171,7 +177,7 @@ class SubjectAssignmentController extends DeanController
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'semester' => ['required', Rule::in(['1st', '2nd', 'Summer'])],
+            'semester' => ['required', Rule::in($this->enabledSemesters($request))],
             'year_level' => ['nullable', 'integer', 'between:1,4'],
             'subject_id' => ['required', 'integer'],
             'instructor_department' => ['required', Rule::in(self::DEPARTMENTS)],
@@ -202,6 +208,7 @@ class SubjectAssignmentController extends DeanController
         }
         $subjectQuery = Subject::query()
             ->forDepartment($this->course($request))
+            ->where('managed_by_gec', false)
             ->where('semester', $validated['semester']);
 
         if (filled($validated['year_level'] ?? null)) {
@@ -303,11 +310,31 @@ class SubjectAssignmentController extends DeanController
             ->with('success', $message);
     }
 
+    public function destroy(Request $request, Subject $subject): RedirectResponse
+    {
+        $this->ensureCourse($request, $subject);
+        abort_if($subject->managed_by_gec, 404);
+
+        $removedCount = $subject->instructors()->count();
+
+        if ($removedCount === 0) {
+            return back()->with('error', "{$subject->code} has no instructor assignments to remove.");
+        }
+
+        $subject->instructors()->sync([]);
+
+        return back()->with(
+            'success',
+            "Removed {$removedCount} instructor ".str('assignment')->plural($removedCount)." from {$subject->code}.",
+        );
+    }
+
     public function destroyAll(Request $request): RedirectResponse
     {
         $course = $this->course($request);
         $subjectIds = Subject::query()
             ->forDepartment($course)
+            ->where('managed_by_gec', false)
             ->pluck('id');
 
         $removedCount = DB::table('subject_instructor')

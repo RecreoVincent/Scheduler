@@ -4,18 +4,22 @@ namespace App\Http\Controllers\Dean;
 
 use App\Models\ClassSchedule;
 use App\Models\Subject;
+use App\Services\SubjectImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SubjectController extends DeanController
 {
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = Subject::with('instructors')->forDepartment($course);
+        $enabledSemesters = $this->enabledSemesters($request);
+        $query = Subject::with('instructors')->forDepartment($course)->where('managed_by_gec', false)->whereIn('semester', $enabledSemesters);
         foreach (['year_level', 'semester', 'subject_type', 'curriculum'] as $filter) {
             if ($request->filled($filter)) {
                 $query->where($filter, $request->input($filter));
@@ -27,12 +31,17 @@ class SubjectController extends DeanController
             ->get()
             ->groupBy('year_level');
 
-        return view('dean.subjects.index', compact('course', 'subjectsByYear'));
+        $editingSubject = null;
+        if ($request->filled('edit')) {
+            $editingSubject = Subject::forDepartment($course)->where('managed_by_gec', false)->find($request->input('edit'));
+        }
+
+        return view('dean.subjects.index', compact('course', 'subjectsByYear', 'enabledSemesters', 'editingSubject'));
     }
 
-    public function create(Request $request): View
+    public function create(): RedirectResponse
     {
-        return $this->formView($request, new Subject);
+        return redirect()->route('dean.subjects.index');
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,19 +50,58 @@ class SubjectController extends DeanController
 
         Subject::create(['course' => $this->course($request), ...$validated]);
 
-        return redirect()->route('dean.subjects.create')->with('success', 'Subject added successfully.');
+        return redirect()->route('dean.subjects.index')->with('success', 'Subject added successfully.');
     }
 
-    public function edit(Request $request, Subject $subject): View
+    public function import(Request $request, SubjectImporter $importer): RedirectResponse
+    {
+        $request->validate(['csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120']]);
+
+        try {
+            $result = $importer->import($request->file('csv_file')->getRealPath(), $this->course($request));
+        } catch (RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $response = back()->with('success', "Import complete: {$result['imported']} subject(s) created, {$result['skipped']} skipped.");
+
+        if ($result['errors'] !== []) {
+            $shown = array_slice($result['errors'], 0, 15);
+            $note = implode(' | ', $shown);
+            if (count($result['errors']) > 15) {
+                $note .= ' | +'.(count($result['errors']) - 15).' more.';
+            }
+            $response->with('error_note', $note);
+        }
+
+        return $response;
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        $headers = ['code', 'name', 'subject_type', 'classification', 'year_level', 'semester', 'curriculum', 'units'];
+        $sample = ['IT101', 'Introduction to Computing', 'Lecture', 'Major', '1', '1st', 'New', '3'];
+
+        return response()->streamDownload(function () use ($headers, $sample) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            fputcsv($out, $sample);
+            fclose($out);
+        }, 'subject-import-template.csv', ['Content-Type' => 'text/csv']);
+    }
+
+    public function edit(Request $request, Subject $subject): RedirectResponse
     {
         $this->ensureCourse($request, $subject);
+        $this->ensureNotGecManaged($subject);
 
-        return $this->formView($request, $subject);
+        return redirect()->route('dean.subjects.index', ['edit' => $subject->id]);
     }
 
     public function update(Request $request, Subject $subject): RedirectResponse
     {
         $this->ensureCourse($request, $subject);
+        $this->ensureNotGecManaged($subject);
         $validated = $this->validated($request, $subject);
 
         $subject->update($validated);
@@ -64,6 +112,7 @@ class SubjectController extends DeanController
     public function destroy(Request $request, Subject $subject): RedirectResponse
     {
         $this->ensureCourse($request, $subject);
+        $this->ensureNotGecManaged($subject);
         ClassSchedule::withTrashed()->where('subject_id', $subject->id)->forceDelete();
         $subject->instructors()->detach();
         $subject->delete();
@@ -71,11 +120,14 @@ class SubjectController extends DeanController
         return back()->with('success', 'Subject deleted successfully.');
     }
 
-    private function formView(Request $request, Subject $subject): View
+    /**
+     * Subjects GEC originates on its own portal are exclusive to GEC — a
+     * department's Dean must not be able to view, edit, or delete them here,
+     * even by guessing the subject's URL directly.
+     */
+    private function ensureNotGecManaged(Subject $subject): void
     {
-        $course = $this->course($request);
-
-        return view('dean.subjects.form', compact('course', 'subject'));
+        abort_if($subject->managed_by_gec, 404);
     }
 
     private function validated(Request $request, ?Subject $subject = null): array

@@ -16,10 +16,13 @@
         color:#24152f;
         font:inherit;
         text-align:left;
-        background:rgba(255,255,255,.68);
         border:1px solid rgba(69,6,147,.22);
         border-radius:16px;
         transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+    }
+    .stat.portal-analytics-card {
+        background-color:#ffffff !important;
+        background-image:none !important;
     }
     button.portal-analytics-card { cursor:pointer; }
     button.portal-analytics-card:hover,
@@ -68,7 +71,8 @@
         place-items:center;
         padding:24px;
         background:rgba(15,23,42,.58);
-        backdrop-filter:blur(3px);
+        backdrop-filter:blur(10px);
+        -webkit-backdrop-filter:blur(10px);
     }
     .portal-data-dialog {
         width:min(1100px,100%);

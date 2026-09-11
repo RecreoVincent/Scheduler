@@ -22,7 +22,8 @@ class ScheduleArchiveController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $archiveQuery = ClassSchedule::onlyTrashed()->forDepartment($course);
+        $enabledSemesters = $this->enabledSemesters($request);
+        $archiveQuery = ClassSchedule::onlyTrashed()->forDepartment($course)->whereIn('semester', $enabledSemesters);
         $academicYears = (clone $archiveQuery)
             ->select('academic_year')
             ->distinct()
@@ -97,6 +98,7 @@ class ScheduleArchiveController extends DeanController
             'archivePages',
             'sectionsById',
             'archivedSchedulesByGroup',
+            'enabledSemesters',
         ));
     }
 

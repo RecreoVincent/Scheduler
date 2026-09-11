@@ -56,10 +56,17 @@ class UserController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $editingUser = null;
+        if ($request->filled('edit')) {
+            $editingUser = User::whereIn('role', $this->roles)->find($request->input('edit'));
+        }
+
         return view('admin.users.index', [
             'users' => $users,
             'roles' => $this->roles,
             'courses' => $this->courses(),
+            'sections' => AcademicSection::orderBy('course')->orderBy('year_level')->orderBy('name')->get(),
+            'editingUser' => $editingUser,
         ]);
     }
 

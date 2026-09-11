@@ -47,7 +47,7 @@
     .timetable-header-actions { display:flex; align-items:center; gap:10px; flex:0 0 auto; flex-wrap:nowrap; }
     .timetable-header-actions .button { width:auto !important; white-space:nowrap; }
     .timetable-header-actions .button[disabled] { opacity:.5; cursor:not-allowed; }
-    .timetable-filters { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
+    .timetable-filters { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
     @media (max-width:1100px) {
         .timetable-filters { grid-template-columns:repeat(2,minmax(0,1fr)) !important; }
     }
@@ -57,6 +57,8 @@
         .section-schedule-controls { width:100%; flex-wrap:wrap; }
         .section-schedule-controls .button { flex:1; }
         .selection-notice { align-items:flex-start; flex-direction:column; }
+        .schedule-table { table-layout:auto; min-width:640px; }
+        .section-schedule .table-wrap { overflow-x:auto; }
     }
 </style>
 @endpush
@@ -97,12 +99,6 @@
             @endfor
         </select>
         <input class="input" name="academic_year" value="{{ request('academic_year') }}" placeholder="Academic year">
-        <select class="input" name="semester">
-            <option value="">All semesters</option>
-            @foreach(['1st', '2nd', 'Summer'] as $semester)
-                <option value="{{ $semester }}" @selected(request('semester') === $semester)>{{ $semester }}</option>
-            @endforeach
-        </select>
         <select class="input" name="day">
             <option value="">All days</option>
             @foreach(['M - W', 'T - Th', 'F - S'] as $day)
@@ -183,7 +179,7 @@
                                     <td>{{ $schedule->room?->name ?? 'TBA' }}</td>
                                     <td>{{ $schedule->instructor?->name }}</td>
                                     <td class="selection-column">
-                                        <a class="button button-secondary entry-action edit-entry-action" href="{{ route('dean.timetable.edit', $schedule) }}">Choose</a>
+                                        <a class="button button-secondary entry-action edit-entry-action" href="{{ route('dean.timetable.index', array_merge(request()->query(), ['edit' => $schedule->id])) }}#scheduleEditModal">Choose</a>
                                     </td>
                                 </tr>
                             @endforeach
@@ -204,6 +200,77 @@
 ])
 @endsection
 
+@push('portal-profile-overlay')
+<div id="scheduleEditModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="scheduleEditTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="scheduleEditTitle">{{ $editingSchedule ? "{$editingSchedule->section?->name} · {$editingSchedule->subject?->code}" : 'Edit Class Schedule' }}</h2>
+                <p>Edit the selected class entry. The system will check the section, instructor, and room for conflicts.</p>
+            </div>
+            <button id="closeScheduleEdit" class="admin-profile-close" type="button" aria-label="Close schedule edit form">&times;</button>
+        </header>
+
+        @if($editingSchedule)
+            <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:22px">
+                <span class="badge">{{ $editingSchedule->subject?->name }}</span>
+                <span class="badge">{{ $editingSchedule->academic_year }}</span>
+                <span class="badge">{{ $editingSchedule->semester }} Semester</span>
+            </div>
+        @endif
+
+        <form id="scheduleEditForm" method="POST" action="{{ $editingSchedule ? route('dean.timetable.update', $editingSchedule) : '' }}">
+            @csrf
+            @method('PUT')
+            <div class="admin-profile-form-grid">
+                <div class="admin-profile-field">
+                    <label for="modal_instructor_id">Instructor</label>
+                    <select id="modal_instructor_id" class="input" name="instructor_id" required>
+                        @foreach($instructors as $instructor)
+                            <option value="{{ $instructor->id }}" @selected((string) old('instructor_id', $editingSchedule?->instructor_id) === (string) $instructor->id)>{{ $instructor->name }} ({{ $instructor->course }})</option>
+                        @endforeach
+                    </select>
+                    @error('instructor_id')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="modal_room_id">Room</label>
+                    <select id="modal_room_id" class="input" name="room_id" required>
+                        @foreach($rooms as $room)
+                            <option value="{{ $room->id }}" @selected((string) old('room_id', $editingSchedule?->room_id) === (string) $room->id)>{{ $room->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('room_id')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="modal_day">Day</label>
+                    <select id="modal_day" class="input" name="day" required>
+                        @foreach(['M - W', 'T - Th', 'F - S'] as $day)
+                            <option value="{{ $day }}" @selected(old('day', $editingSchedule?->day) === $day)>{{ $day }}</option>
+                        @endforeach
+                    </select>
+                    @error('day')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="modal_start_time">Start Time</label>
+                    <input id="modal_start_time" class="input" type="time" name="start_time" value="{{ old('start_time', $editingSchedule ? substr($editingSchedule->start_time, 0, 5) : null) }}" required>
+                    @error('start_time')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field">
+                    <label for="modal_end_time">End Time</label>
+                    <input id="modal_end_time" class="input" type="time" name="end_time" value="{{ old('end_time', $editingSchedule ? substr($editingSchedule->end_time, 0, 5) : null) }}" required>
+                    @error('end_time')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+            </div>
+
+            <footer class="admin-profile-actions">
+                <button id="cancelScheduleEdit" type="button" class="button button-secondary">Cancel</button>
+                <button class="button" type="submit">Save Schedule Changes</button>
+            </footer>
+        </form>
+    </section>
+</div>
+@endpush
+
 @push('scripts')
 <script>
     (() => {
@@ -222,6 +289,32 @@
                 message.textContent = '';
             });
         });
+    })();
+
+    (() => {
+        const modal = document.getElementById('scheduleEditModal');
+        const closeButton = document.getElementById('closeScheduleEdit');
+        const cancelButton = document.getElementById('cancelScheduleEdit');
+        const firstInput = document.getElementById('modal_instructor_id');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => firstInput.focus(), 0);
+        }
+
+        function closeModal() {
+            window.location = '{{ route('dean.timetable.index', request()->except('edit')) }}';
+        }
+
+        closeButton.addEventListener('click', closeModal);
+        cancelButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        @if($editingSchedule || $errors->hasAny(['instructor_id', 'room_id', 'day', 'start_time', 'end_time']))
+            openModal();
+        @endif
     })();
 </script>
 @endpush

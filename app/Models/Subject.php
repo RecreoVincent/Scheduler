@@ -8,10 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['course', 'department_id', 'code', 'name', 'subject_type', 'classification', 'year_level', 'semester', 'academic_term_id', 'curriculum', 'units'])]
+#[Fillable(['course', 'department_id', 'code', 'name', 'subject_type', 'classification', 'managed_by_gec', 'year_level', 'semester', 'academic_term_id', 'curriculum', 'units'])]
 class Subject extends Model
 {
     use BelongsToDepartment;
+
+    protected function casts(): array
+    {
+        return ['managed_by_gec' => 'boolean'];
+    }
 
     protected static function booted(): void
     {

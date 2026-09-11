@@ -4,10 +4,9 @@
 
 @push('styles')
 <style>
-    .unit-summary { margin-bottom:20px; padding:17px 19px; color:#4b3264; background:linear-gradient(110deg,#f5edfc,#fffaf0); border:1px solid #e3d5ef; border-radius:12px; }
-    .unit-summary strong { display:block; margin-bottom:5px; color:var(--navy); }
-    .unit-summary p { margin:0; font-size:12px; line-height:1.6; }
-    .unit-filters { grid-template-columns:2fr 1fr 1fr; align-items:end; }
+    .unit-filters { grid-template-columns:2fr 1fr; align-items:end; }
+    #unitSearch, #unitAcademicYear { width:100%; border:1.5px solid var(--primary-light); }
+    #unitSearch:focus, #unitAcademicYear:focus { border-color:var(--primary); }
     .unit-table td { vertical-align:middle; }
     .instructor-cell { display:flex; align-items:center; gap:10px; min-width:210px; }
     .instructor-mark { width:38px; height:38px; display:grid; place-items:center; flex:0 0 38px; font-weight:850; color:white; background:var(--primary); border-radius:10px; }
@@ -23,20 +22,14 @@
     .capacity-copy.over { color:var(--danger); font-weight:750; }
     .custom-limit { margin-left:5px; }
     .adjustment-note { max-width:230px; color:#665b6e; line-height:1.45; }
-    .unit-modal[hidden] { display:none; }
-    .unit-modal { position:fixed; z-index:1900; inset:0; display:grid; place-items:center; padding:20px; background:rgba(31,5,57,.62); backdrop-filter:blur(4px); }
-    .unit-dialog { width:min(520px,100%); padding:28px; background:white; border-top:4px solid var(--gold); border-radius:16px; box-shadow:0 28px 80px rgba(24,3,48,.3); }
-    .unit-dialog h2 { margin:0 0 7px; color:var(--navy); }
-    .unit-dialog-intro { margin:0 0 20px; color:var(--muted); font-size:12px; line-height:1.55; }
     .unit-current-summary { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:18px; }
     .unit-current-summary div { padding:12px; background:#f8f3fb; border:1px solid #e9dcf2; border-radius:9px; }
     .unit-current-summary span,.unit-current-summary strong { display:block; }
     .unit-current-summary span { margin-bottom:3px; color:var(--muted); font-size:9px; font-weight:750; text-transform:uppercase; }
     .unit-current-summary strong { color:var(--navy); }
     .unit-warning { margin-top:12px; padding:11px 12px; color:#9f2424; background:#fff4f3; border:1px solid #fecaca; border-radius:9px; font-size:11px; line-height:1.5; }
-    .unit-dialog-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
     @media(max-width:900px) { .unit-filters { grid-template-columns:1fr 1fr; } }
-    @media(max-width:600px) { .unit-filters,.unit-current-summary { grid-template-columns:1fr; } .unit-dialog-actions .button { flex:1; } }
+    @media(max-width:600px) { .unit-filters,.unit-current-summary { grid-template-columns:1fr; } }
 </style>
 @endpush
 
@@ -46,11 +39,7 @@
         <h2>{{ $course }} Instructor Units</h2>
         <p>Set a fair maximum teaching load for every instructor based on performance and department needs.</p>
     </div>
-</div>
-
-<div class="unit-summary">
-    <strong>How unit limits work</strong>
-    <p>The configured limit controls future subject assignments, manual timetable edits, and automatic schedule generation. Full-time instructors default to 30 units and part-time instructors default to 15 units until the Dean sets a custom limit.</p>
+    <button id="openDefaultUnit" class="button button-secondary" type="button">Default Unit</button>
 </div>
 
 <div class="card" style="margin-bottom:20px">
@@ -69,14 +58,6 @@
                         <option value="{{ $year }}" @selected($academicYear === $year)>{{ $year }}</option>
                     @endforeach
                 @endif
-            </select>
-        </div>
-        <div>
-            <label for="unitSemester">Semester</label>
-            <select id="unitSemester" class="input" name="semester">
-                @foreach(['1st', '2nd', 'Summer'] as $semesterOption)
-                    <option value="{{ $semesterOption }}" @selected($semester === $semesterOption)>{{ $semesterOption }} Semester</option>
-                @endforeach
             </select>
         </div>
     </form>
@@ -137,15 +118,28 @@
                                 @endif
                             </td>
                             <td>
-                                <button
-                                    type="button"
-                                    class="button button-secondary unit-adjust-trigger"
-                                    data-update-url="{{ route('dean.instructor-units.update',$instructor) }}"
-                                    data-instructor-name="{{ $instructor->name }}"
-                                    data-current-units="{{ $usedUnits }}"
-                                    data-unit-limit="{{ $unitLimit }}"
-                                    data-unit-note="{{ $instructor->unit_limit_note }}"
-                                >Adjust Units</button>
+                                <div class="actions">
+                                    <button
+                                        type="button"
+                                        class="button button-secondary unit-adjust-trigger"
+                                        data-update-url="{{ route('dean.instructor-units.update',$instructor) }}"
+                                        data-instructor-name="{{ $instructor->name }}"
+                                        data-current-units="{{ $usedUnits }}"
+                                        data-unit-limit="{{ $unitLimit }}"
+                                        data-unit-note="{{ $instructor->unit_limit_note }}"
+                                    >Adjust Units</button>
+                                    @if($instructor->teaching_unit_limit !== null)
+                                        <button
+                                            type="button"
+                                            class="button button-danger delete-confirmation-trigger"
+                                            data-delete-url="{{ route('dean.instructor-units.destroy',$instructor) }}"
+                                            data-delete-name="{{ $instructor->name }}"
+                                            data-delete-title="Reset Teaching-Unit Limit?"
+                                            data-delete-message="This clears the custom unit limit and reverts this instructor to the department default."
+                                            data-delete-confirm-label="Reset to Default"
+                                        >Reset to Default</button>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -156,10 +150,16 @@
     @endif
 </div>
 
-<div id="unitAdjustmentModal" class="unit-modal" hidden>
-    <section class="unit-dialog" role="dialog" aria-modal="true" aria-labelledby="unitAdjustmentTitle">
-        <h2 id="unitAdjustmentTitle">Adjust Teaching Units</h2>
-        <p id="unitAdjustmentIntro" class="unit-dialog-intro"></p>
+@push('portal-profile-overlay')
+<div id="unitAdjustmentModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="unitAdjustmentTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="unitAdjustmentTitle">Adjust Teaching Units</h2>
+                <p id="unitAdjustmentIntro"></p>
+            </div>
+            <button id="closeUnitAdjustment" class="admin-profile-close" type="button" aria-label="Close unit adjustment form">&times;</button>
+        </header>
         <div class="unit-current-summary">
             <div><span>Currently scheduled</span><strong id="modalScheduledUnits">0 units</strong></div>
             <div><span>Current limit</span><strong id="modalCurrentLimit">0 units</strong></div>
@@ -167,23 +167,65 @@
         <form id="unitAdjustmentForm" method="POST">
             @csrf
             @method('PATCH')
-            <div class="form-group">
+            <div class="admin-profile-field">
                 <label for="modalUnitLimit">New teaching-unit limit</label>
                 <input id="modalUnitLimit" class="input" type="number" name="teaching_unit_limit" min="0" max="60" step="1" required>
                 <p style="margin-top:5px;color:var(--muted);font-size:10px">Allowed range: 0 to 60 units.</p>
             </div>
-            <div class="form-group" style="margin-top:14px">
+            <div class="admin-profile-field" style="margin-top:14px">
                 <label for="modalUnitNote">Reason for adjustment</label>
                 <textarea id="modalUnitNote" class="input" name="unit_limit_note" rows="3" maxlength="500" placeholder="Example: Increased after excellent performance review"></textarea>
             </div>
             <p id="unitLimitWarning" class="unit-warning" hidden>The new limit is below this instructor's current scheduled load. Existing classes will remain, but no additional subjects can be assigned until the load is reduced.</p>
-            <div class="unit-dialog-actions">
+            <footer class="admin-profile-actions">
                 <button id="cancelUnitAdjustment" type="button" class="button button-secondary">Cancel</button>
                 <button id="saveUnitAdjustment" type="submit" class="button">Save Unit Limit</button>
-            </div>
+            </footer>
         </form>
     </section>
 </div>
+@endpush
+
+@push('portal-profile-overlay')
+<div id="defaultUnitModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="defaultUnitTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="defaultUnitTitle">Default Teaching-Unit Limits</h2>
+                <p>Set the {{ $course }} department-wide default limit used for instructors who don't have an individual custom override.</p>
+            </div>
+            <button id="closeDefaultUnit" class="admin-profile-close" type="button" aria-label="Close default unit form">&times;</button>
+        </header>
+        <form id="defaultUnitForm" method="POST" action="{{ route('dean.instructor-units.defaults') }}">
+            @csrf
+            @method('PATCH')
+            <div class="admin-profile-field">
+                <label for="default_unit_limit_full_time">Full time</label>
+                <input id="default_unit_limit_full_time" class="input" type="number" name="default_unit_limit_full_time" min="0" max="60" step="1" value="{{ old('default_unit_limit_full_time', $defaultUnitLimits['full_time']) }}" required>
+            </div>
+            <div class="admin-profile-field" style="margin-top:14px">
+                <label for="default_unit_limit_industry_part_time">Industry part-time</label>
+                <input id="default_unit_limit_industry_part_time" class="input" type="number" name="default_unit_limit_industry_part_time" min="0" max="60" step="1" value="{{ old('default_unit_limit_industry_part_time', $defaultUnitLimits['industry_part_time']) }}" required>
+            </div>
+            <div class="admin-profile-field" style="margin-top:14px">
+                <label for="default_unit_limit_flexible_part_time">Flexible part-time</label>
+                <input id="default_unit_limit_flexible_part_time" class="input" type="number" name="default_unit_limit_flexible_part_time" min="0" max="60" step="1" value="{{ old('default_unit_limit_flexible_part_time', $defaultUnitLimits['flexible_part_time']) }}" required>
+            </div>
+            <p style="margin-top:12px;color:var(--muted);font-size:11px">Instructors with an individual custom limit (marked "Custom" below) are not affected by this change.</p>
+            <footer class="admin-profile-actions">
+                <button id="cancelDefaultUnit" type="button" class="button button-secondary">Cancel</button>
+                <button id="saveDefaultUnit" type="submit" class="button">Save Defaults</button>
+            </footer>
+        </form>
+    </section>
+</div>
+@endpush
+
+@include('dean.partials.delete-confirmation', [
+    'title' => 'Reset Teaching-Unit Limit?',
+    'message' => 'This clears the custom unit limit and reverts this instructor to the department default.',
+    'confirmLabel' => 'Reset to Default',
+])
 @endsection
 
 @push('scripts')
@@ -195,6 +237,7 @@
         const note=document.getElementById('modalUnitNote');
         const warning=document.getElementById('unitLimitWarning');
         const cancel=document.getElementById('cancelUnitAdjustment');
+        const closeButton=document.getElementById('closeUnitAdjustment');
         const save=document.getElementById('saveUnitAdjustment');
         let scheduledUnits=0;
         let activeTrigger=null;
@@ -218,9 +261,43 @@
         }));
         input.addEventListener('input',updateWarning);
         cancel.addEventListener('click',close);
+        closeButton.addEventListener('click',close);
         modal.addEventListener('click',event=>{if(event.target===modal)close();});
         document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!modal.hidden)close();});
         form.addEventListener('submit',()=>{save.disabled=true;save.textContent='Saving...';});
+    })();
+
+    (() => {
+        const modal = document.getElementById('defaultUnitModal');
+        const openButton = document.getElementById('openDefaultUnit');
+        const cancelButton = document.getElementById('cancelDefaultUnit');
+        const closeButton = document.getElementById('closeDefaultUnit');
+        const saveButton = document.getElementById('saveDefaultUnit');
+        const form = document.getElementById('defaultUnitForm');
+        const firstInput = document.getElementById('default_unit_limit_full_time');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => firstInput.focus(), 0);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            openButton.focus();
+        }
+
+        openButton.addEventListener('click', openModal);
+        cancelButton.addEventListener('click', closeModal);
+        closeButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+        form.addEventListener('submit', () => { saveButton.disabled = true; saveButton.textContent = 'Saving...'; });
+
+        @if($errors->hasAny(['default_unit_limit_full_time', 'default_unit_limit_industry_part_time', 'default_unit_limit_flexible_part_time']))
+            openModal();
+        @endif
     })();
 </script>
 @endpush

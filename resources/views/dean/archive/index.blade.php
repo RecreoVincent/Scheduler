@@ -4,7 +4,7 @@
 
 @push('styles')
 <style>
-    .archive-filters { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:22px; }
+    .archive-filters { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:22px; }
     .archive-date-groups { display:grid; gap:34px; }
     .archive-date-group { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-flow:row dense; align-items:stretch; gap:20px; }
     .archive-date-group > .archive-date-header { grid-column:1; }
@@ -51,9 +51,10 @@
     .archive-empty h3 { margin-bottom:8px; color:var(--primary); }
     .archive-empty p { color:var(--muted); }
     .archive-modal[hidden] { display:none; }
-    .archive-modal { position:fixed; z-index:2200; inset:0; display:grid; place-items:center; padding:20px; background:rgba(24,9,39,.68); backdrop-filter:blur(4px); }
+    .archive-modal { position:fixed; z-index:2200; inset:0; display:grid; place-items:center; padding:20px; background:rgba(24,9,39,.68); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
     .archive-dialog { width:min(430px,100%); padding:30px; text-align:center; background:white; border-top:4px solid var(--gold); border-radius:15px; box-shadow:0 28px 80px rgba(24,3,48,.3); }
-    .archive-dialog-icon { width:52px; height:52px; display:grid; place-items:center; margin:0 auto 15px; color:#2d1b00; background:var(--gold-soft); border:1px solid #efd486; border-radius:50%; font-size:21px; font-weight:900; }
+    .archive-dialog-icon { width:52px; height:52px; display:grid; place-items:center; margin:0 auto 15px; color:#2d1b00; background:var(--gold-soft); border:1px solid #efd486; border-radius:50%; }
+    .archive-dialog-icon svg { width:24px; height:24px; }
     .archive-dialog h2 { margin-bottom:10px; color:var(--primary); }
     .archive-dialog p { color:var(--muted); line-height:1.6; }
     .archive-dialog-actions { display:flex; justify-content:center; gap:10px; margin-top:22px; }
@@ -82,12 +83,6 @@
         <option value="">All academic years</option>
         @foreach($academicYears as $academicYear)
             <option value="{{ $academicYear }}" @selected(request('academic_year') === $academicYear)>{{ $academicYear }}</option>
-        @endforeach
-    </select>
-    <select class="input" name="semester">
-        <option value="">All semesters</option>
-        @foreach(['1st', '2nd', 'Summer'] as $semester)
-            <option value="{{ $semester }}" @selected(request('semester') === $semester)>{{ $semester }}</option>
         @endforeach
     </select>
     <select class="input" name="deleted_on">
@@ -202,7 +197,7 @@
 
 <div id="archiveActionModal" class="archive-modal" hidden>
     <section class="archive-dialog" role="dialog" aria-modal="true" aria-labelledby="archiveActionTitle">
-        <div id="archiveActionIcon" class="archive-dialog-icon" aria-hidden="true">↻</div>
+        <div id="archiveActionIcon" class="archive-dialog-icon"><x-icon name="refresh" /></div>
         <h2 id="archiveActionTitle">Restore Schedule?</h2>
         <p id="archiveActionMessage"></p>
         <form id="archiveActionForm" method="POST">@csrf @method('PATCH')
@@ -219,7 +214,8 @@
     let trigger=null;
     const close=()=>{modal.hidden=true;document.body.classList.remove('modal-open');trigger?.focus();trigger=null};
     document.querySelectorAll('[data-section-card]').forEach(card=>{const selectionMessage=card.querySelector('[data-selection-message]');card.querySelector('[data-selection-mode]')?.addEventListener('click',()=>{card.dataset.mode='restore';selectionMessage.textContent='Which class entry do you want to restore?'});card.querySelector('.cancel-selection')?.addEventListener('click',()=>{delete card.dataset.mode;selectionMessage.textContent=''})});
-    document.querySelectorAll('.archive-action-trigger').forEach(button=>button.addEventListener('click',()=>{trigger=button;const deleting=button.dataset.kind.startsWith('delete');form.action=button.dataset.url;method.value=deleting?'DELETE':'PATCH';title.textContent=deleting?'Delete Schedule Permanently?':'Restore Schedule?';message.textContent=deleting?`${button.dataset.label} will be permanently deleted and cannot be retrieved again.`:`Restore ${button.dataset.label} to the active timetable?`;icon.textContent=deleting?'!':'↻';confirm.textContent=deleting?'Delete Schedule':'Restore';confirm.classList.toggle('button-danger',deleting);modal.hidden=false;document.body.classList.add('modal-open');cancel.focus()}));
+    const archiveIconSvg={warning:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>',refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>'};
+    document.querySelectorAll('.archive-action-trigger').forEach(button=>button.addEventListener('click',()=>{trigger=button;const deleting=button.dataset.kind.startsWith('delete');form.action=button.dataset.url;method.value=deleting?'DELETE':'PATCH';title.textContent=deleting?'Delete Schedule Permanently?':'Restore Schedule?';message.textContent=deleting?`${button.dataset.label} will be permanently deleted and cannot be retrieved again.`:`Restore ${button.dataset.label} to the active timetable?`;icon.innerHTML=deleting?archiveIconSvg.warning:archiveIconSvg.refresh;confirm.textContent=deleting?'Delete Schedule':'Restore';confirm.classList.toggle('button-danger',deleting);modal.hidden=false;document.body.classList.add('modal-open');cancel.focus()}));
     cancel.addEventListener('click',close);modal.addEventListener('click',event=>{if(event.target===modal)close()});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!modal.hidden)close()});
 })();
 </script>

@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::table('departments', function (Blueprint $table) {
+            $table->unsignedSmallInteger('default_unit_limit_full_time')->nullable()->after('sort_order');
+            $table->unsignedSmallInteger('default_unit_limit_industry_part_time')->nullable()->after('default_unit_limit_full_time');
+            $table->unsignedSmallInteger('default_unit_limit_flexible_part_time')->nullable()->after('default_unit_limit_industry_part_time');
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::table('departments', function (Blueprint $table) {
+            $table->dropColumn([
+                'default_unit_limit_full_time',
+                'default_unit_limit_industry_part_time',
+                'default_unit_limit_flexible_part_time',
+            ]);
+        });
+    }
+};
