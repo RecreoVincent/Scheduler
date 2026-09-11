@@ -14,6 +14,7 @@
     @include('layouts.partials.favicon')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dean Portal') | Scheduler</title>
     <style>
         :root {
@@ -147,6 +148,7 @@
     @include('layouts.partials.sidebar-toggle-styles')
     @stack('styles')
     @include('layouts.partials.portal-unified-theme')
+    @include('layouts.partials.schedule-notification-styles')
     <style>
         body.dean-department-portal,
         body.dean-department-portal .app,
@@ -319,6 +321,7 @@
                         </form>
                     </div>
                 </details>
+                @include('layouts.partials.schedule-notifications')
                 @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Dean'])
             </div>
         </header>

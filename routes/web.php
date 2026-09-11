@@ -149,6 +149,7 @@ Route::middleware('gec')
         Route::post('/create-schedule', [GecScheduleController::class, 'store'])->name('schedules.store');
         Route::delete('/timetable/delete-all', [GecTimetableController::class, 'destroyAll'])->name('timetable.destroy-all');
         Route::delete('/timetable/sections/{section}', [GecTimetableController::class, 'destroySection'])->name('timetable.sections.destroy');
+        Route::post('/timetable/send-to-dean', [GecTimetableController::class, 'sendToDean'])->name('timetable.send-to-dean');
         Route::resource('timetable', GecTimetableController::class)->only(['index', 'edit', 'update', 'destroy']);
         Route::get('/archive', [GecScheduleArchiveController::class, 'index'])->name('archive.index');
         Route::delete('/archive/sections/{section}', [GecScheduleArchiveController::class, 'destroySection'])->name('archive.sections.destroy');
@@ -160,6 +161,9 @@ Route::middleware('gec')
         Route::get('/print', [GecPrintController::class, 'index'])->name('print.index');
         Route::get('/print/instructor-workload/excel', [GecPrintController::class, 'instructorWorkloadExcel'])->name('print.instructor-workload.excel');
         Route::get('/print/{type}', [GecPrintController::class, 'report'])->name('print.report');
+        Route::get('/notifications', [PortalNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [PortalNotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{notification}/read', [PortalNotificationController::class, 'read'])->name('notifications.read');
     });
 
 Route::middleware('dean')
@@ -209,6 +213,7 @@ Route::middleware('dean')
         Route::post('/create-schedule', [DeanScheduleController::class, 'store'])->name('schedules.store');
         Route::delete('/timetable/delete-all', [DeanTimetableController::class, 'destroyAll'])->name('timetable.destroy-all');
         Route::delete('/timetable/sections/{section}', [DeanTimetableController::class, 'destroySection'])->name('timetable.sections.destroy');
+        Route::post('/timetable/send-to-gec', [DeanTimetableController::class, 'sendToGec'])->name('timetable.send-to-gec');
         Route::resource('timetable', DeanTimetableController::class)->only(['index', 'edit', 'update', 'destroy']);
         Route::get('/archive', [DeanScheduleArchiveController::class, 'index'])->name('archive.index');
         Route::delete('/archive/sections/{section}', [DeanScheduleArchiveController::class, 'destroySection'])->name('archive.sections.destroy');
@@ -223,6 +228,9 @@ Route::middleware('dean')
         Route::get('/print', [DeanPrintController::class, 'index'])->name('print.index');
         Route::get('/print/instructor-workload/excel', [DeanPrintController::class, 'instructorWorkloadExcel'])->name('print.instructor-workload.excel');
         Route::get('/print/{type}', [DeanPrintController::class, 'report'])->name('print.report');
+        Route::get('/notifications', [PortalNotificationController::class, 'index'])->name('notifications.index');
+        Route::post('/notifications/read-all', [PortalNotificationController::class, 'readAll'])->name('notifications.read-all');
+        Route::post('/notifications/{notification}/read', [PortalNotificationController::class, 'read'])->name('notifications.read');
     });
 
 Route::middleware('instructor')

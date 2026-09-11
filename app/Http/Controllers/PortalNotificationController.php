@@ -59,7 +59,7 @@ class PortalNotificationController extends Controller
     /** @return array<string, bool|string> */
     private function notificationData(Request $request, DatabaseNotification $notification): array
     {
-        $routePrefix = $this->portalUser($request)->role === 'student' ? 'student' : 'instructor';
+        $routePrefix = $this->portalUser($request)->role;
 
         return [
             'id' => $notification->id,
@@ -75,13 +75,13 @@ class PortalNotificationController extends Controller
     {
         /** @var User|null $user */
         $user = $request->user();
-        abort_unless($user && in_array($user->role, ['instructor', 'student'], true), 403);
+        abort_unless($user && in_array($user->role, ['instructor', 'student', 'dean', 'gec'], true), 403);
 
         return $user;
     }
 
     private function dashboardRoute(string $role): string
     {
-        return route($role === 'student' ? 'student.dashboard' : 'instructor.dashboard');
+        return route($role.'.dashboard');
     }
 }

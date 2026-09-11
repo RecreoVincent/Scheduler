@@ -71,6 +71,13 @@
     </div>
     <div class="timetable-header-actions">
         <a class="button" href="{{ route('gec.schedules.create') }}">Generate Schedule</a>
+        @if(request()->filled('department'))
+            <form method="POST" action="{{ route('gec.timetable.send-to-dean') }}" onsubmit="return confirm('Send the {{ request('department') }} Minor-subject schedules back to the Dean?\n\nThis notifies the department\'s Dean that their Minor-subject schedules are ready.');">
+                @csrf
+                <input type="hidden" name="department" value="{{ request('department') }}">
+                <button type="submit" class="button button-secondary">Send Back to Dean</button>
+            </form>
+        @endif
         <button
             type="button"
             class="button button-danger delete-confirmation-trigger"
@@ -83,6 +90,27 @@
         >Delete All Schedules</button>
     </div>
 </div>
+
+@if($scheduleHandoffs->isNotEmpty())
+    <div class="card" style="margin-bottom:20px">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:var(--navy)">{{ request('department') }} Handoff Status</p>
+        <div style="display:flex;flex-direction:column;gap:6px">
+            @foreach($scheduleHandoffs as $handoff)
+                <p style="margin:0;font-size:11px;color:var(--muted)">
+                    <strong>{{ $handoff->semester }} Semester {{ $handoff->academic_year }}:</strong>
+                    @if($handoff->majors_sent_at)
+                        Major schedules received {{ $handoff->majors_sent_at->format('M j, Y g:i A') }}.
+                    @else
+                        Major schedules not sent yet.
+                    @endif
+                    @if($handoff->minors_sent_back_at)
+                        Minor schedules sent back {{ $handoff->minors_sent_back_at->format('M j, Y g:i A') }}.
+                    @endif
+                </p>
+            @endforeach
+        </div>
+    </div>
+@endif
 
 <div class="card">
     <form class="filters timetable-filters" method="GET" data-auto-filter>

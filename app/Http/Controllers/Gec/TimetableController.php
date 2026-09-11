@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Gec;
 use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
 use App\Models\Room;
+use App\Models\ScheduleHandoff;
 use App\Models\User;
 use App\Services\ClassScheduleGenerator;
 use App\Services\ScheduleNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class TimetableController extends GecController
@@ -74,7 +76,44 @@ class TimetableController extends GecController
             $editingSchedule = $this->minorSchedules()->with(['section', 'subject'])->find($request->input('edit'));
         }
 
-        return view('gec.timetable.index', compact('sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount', 'enabledSemesters', 'rooms', 'instructors', 'editingSchedule'));
+        $scheduleHandoffs = $request->filled('department')
+            ? ScheduleHandoff::forDepartment($request->input('department'))->orderByDesc('majors_sent_at')->get()
+            : collect();
+
+        return view('gec.timetable.index', compact('sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount', 'enabledSemesters', 'rooms', 'instructors', 'editingSchedule', 'scheduleHandoffs'));
+    }
+
+    public function sendToDean(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'department' => ['required', Rule::in(self::REAL_DEPARTMENTS)],
+        ]);
+        $department = $validated['department'];
+
+        $periods = $this->minorSchedules()
+            ->where('course', $department)
+            ->select('academic_year', 'semester')
+            ->distinct()
+            ->get()
+            ->map(fn (ClassSchedule $schedule): array => [
+                'academic_year' => $schedule->academic_year,
+                'semester' => $schedule->semester,
+            ]);
+
+        if ($periods->isEmpty()) {
+            return back()->with('error', "There are no {$department} Minor-subject schedules to send back yet.");
+        }
+
+        foreach ($periods as $period) {
+            ScheduleHandoff::updateOrCreate(
+                ['course' => $department, 'academic_year' => $period['academic_year'], 'semester' => $period['semester']],
+                ['minors_sent_back_at' => now(), 'minors_sent_back_by' => $request->user()->id],
+            );
+        }
+
+        $this->notifications->minorSchedulesSentBackToDean($department, $request->user(), $periods);
+
+        return back()->with('success', "The {$department} Minor-subject schedules were sent back to the Dean.");
     }
 
     public function edit(ClassSchedule $timetable): View

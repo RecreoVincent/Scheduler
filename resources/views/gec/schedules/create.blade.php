@@ -6,6 +6,7 @@
 @push('styles')
 <style>
     #scheduleForm .form-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    #scheduleForm .form-grid .input { width:100%; }
     @media(max-width:900px) { #scheduleForm .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media(max-width:560px) { #scheduleForm .form-grid { grid-template-columns:1fr; } }
     .section-preview { grid-column:1/-1; margin-top:4px; padding:18px; background:#faf8fb; border:1px solid var(--border); border-radius:11px; }
@@ -51,16 +52,29 @@
     <div><h2>Generate Minor-Subject Class Schedules</h2><p>Choose the department whose existing sections and minor subjects should be scheduled using GEC instructors.</p></div>
 </div>
 
-<div class="card" style="max-width:920px;margin-left:auto;margin-right:auto;margin-bottom:18px">
+<div class="card" style="margin-bottom:18px">
     <label for="department_select">Department</label>
-    <select id="department_select" class="input">
+    <select id="department_select" class="input" style="width:100%">
         @foreach(\App\Http\Controllers\Gec\GecController::REAL_DEPARTMENTS as $realDepartment)
             <option value="{{ $realDepartment }}" @selected($department === $realDepartment)>{{ $realDepartment }}</option>
         @endforeach
     </select>
+
+    @if($scheduleHandoffs->isEmpty())
+        <p style="margin:14px 0 0;font-size:11px;color:var(--muted)">{{ $department }} hasn't sent their Major-subject schedules to GEC yet. You can still generate Minor-subject schedules — conflicts are checked against whatever schedules already exist.</p>
+    @else
+        <div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">
+            @foreach($scheduleHandoffs as $handoff)
+                <p style="margin:0;font-size:11px;color:var(--muted)">
+                    <strong>{{ $handoff->semester }} Semester {{ $handoff->academic_year }}:</strong>
+                    &#10003; Major schedules received {{ $handoff->majors_sent_at->format('M j, Y g:i A') }}.
+                </p>
+            @endforeach
+        </div>
+    @endif
 </div>
 
-<div class="card" style="max-width:920px;margin-left:auto;margin-right:auto">
+<div class="card">
 
     <form id="scheduleForm" method="POST" action="{{ route('gec.schedules.store') }}">
         @csrf

@@ -71,6 +71,10 @@
     </div>
     <div class="timetable-header-actions">
         <a class="button" href="{{ route('dean.schedules.create') }}">Generate Schedule</a>
+        <form method="POST" action="{{ route('dean.timetable.send-to-gec') }}" onsubmit="return confirm('Send all class schedules to GEC?\n\nThis notifies GEC that your department\'s Major-subject schedules are ready to reference while creating Minor-subject schedules.');">
+            @csrf
+            <button type="submit" class="button button-secondary" @disabled($filteredScheduleCount === 0)>Send to GEC</button>
+        </form>
         <button
             type="button"
             class="button button-danger delete-confirmation-trigger"
@@ -83,6 +87,27 @@
         >Delete All Schedules</button>
     </div>
 </div>
+
+@if($scheduleHandoffs->isNotEmpty())
+    <div class="card" style="margin-bottom:20px">
+        <p style="margin:0 0 10px;font-size:12px;font-weight:800;color:var(--navy)">GEC Handoff Status</p>
+        <div style="display:flex;flex-direction:column;gap:6px">
+            @foreach($scheduleHandoffs as $handoff)
+                <p style="margin:0;font-size:11px;color:var(--muted)">
+                    <strong>{{ $handoff->semester }} Semester {{ $handoff->academic_year }}:</strong>
+                    @if($handoff->majors_sent_at)
+                        Sent to GEC on {{ $handoff->majors_sent_at->format('M j, Y g:i A') }}.
+                    @else
+                        Not yet sent to GEC.
+                    @endif
+                    @if($handoff->minors_sent_back_at)
+                        GEC sent back Minor-subject schedules on {{ $handoff->minors_sent_back_at->format('M j, Y g:i A') }}.
+                    @endif
+                </p>
+            @endforeach
+        </div>
+    </div>
+@endif
 
 <div class="card">
     <form class="filters timetable-filters" method="GET" data-auto-filter>

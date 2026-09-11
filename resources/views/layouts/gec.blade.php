@@ -6,6 +6,7 @@
 
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@yield('title', 'GEC Portal') | Scheduler</title>
 
@@ -214,6 +215,8 @@
             border-radius: 17px;
             box-shadow: 0 10px 28px rgba(15, 23, 42, .05);
         }
+
+        label { display: block; margin-bottom: 7px; }
 
         .form-grid, .filters {
             display: grid;
@@ -452,6 +455,7 @@
     @include('layouts.partials.sidebar-toggle-styles')
     @stack('styles')
     @include('layouts.partials.portal-unified-theme')
+    @include('layouts.partials.schedule-notification-styles')
     <style>
         body.gec-institution-portal,
         body.gec-institution-portal .app,
@@ -720,6 +724,8 @@
                         </form>
                     </div>
                 </details>
+
+                @include('layouts.partials.schedule-notifications')
 
                 <details class="profile-menu">
                     <summary class="profile">

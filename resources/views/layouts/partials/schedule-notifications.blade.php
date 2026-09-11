@@ -1,6 +1,6 @@
 @php
     $notificationUser = auth()->user();
-    $notificationRoutePrefix = $notificationUser->role === 'student' ? 'student' : 'instructor';
+    $notificationRoutePrefix = $notificationUser->role;
     $scheduleNotifications = $notificationUser->notifications()->latest()->limit(8)->get();
     $unreadScheduleNotificationCount = $notificationUser->unreadNotifications()->count();
 @endphp

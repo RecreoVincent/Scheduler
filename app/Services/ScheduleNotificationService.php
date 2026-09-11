@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
 use App\Models\User;
+use App\Notifications\MajorSchedulesSentNotification;
+use App\Notifications\MinorSchedulesSentBackNotification;
 use App\Notifications\ScheduleChangedNotification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Notification;
@@ -135,6 +137,37 @@ class ScheduleNotificationService
                 'section_id' => $sectionIds->count() === 1 ? $sectionIds->first() : null,
             ],
         );
+    }
+
+    /** @param  Collection<int, array{academic_year:string, semester:string}>  $periods */
+    public function majorSchedulesSentToGec(string $course, User $sender, Collection $periods): void
+    {
+        $recipients = User::query()
+            ->where('role', 'gec')
+            ->where('account_status', 'active')
+            ->get();
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        Notification::send($recipients, new MajorSchedulesSentNotification($course, $sender->name, $periods));
+    }
+
+    /** @param  Collection<int, array{academic_year:string, semester:string}>  $periods */
+    public function minorSchedulesSentBackToDean(string $course, User $sender, Collection $periods): void
+    {
+        $recipients = User::query()
+            ->where('role', 'dean')
+            ->where('account_status', 'active')
+            ->forDepartment($course)
+            ->get();
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        Notification::send($recipients, new MinorSchedulesSentBackNotification($course, $sender->name, $periods));
     }
 
     /**

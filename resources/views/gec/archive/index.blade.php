@@ -74,12 +74,13 @@
 
 @section('content')
 <div class="page-header">
-    <div><h2>Minor Subject Archive</h2><p>Deleted minor-subject class schedules and GEC instructor accounts, kept here until restored or permanently deleted.</p></div>
+    <div><h2>Archive</h2><p>Deleted minor-subject class schedules and GEC instructor accounts, kept here until restored or permanently deleted.</p></div>
     <a class="button button-secondary" href="{{ route('gec.timetable.index') }}">Back to Timetable</a>
 </div>
 
 @if($deletedInstructors->isNotEmpty())
-<section class="card" style="margin-bottom:22px">
+<div style="margin-bottom:14px"><h3 style="margin:0;color:var(--navy)">Deleted Accounts</h3></div>
+<section class="card" style="margin-bottom:32px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
         <div>
             <h3 style="margin-bottom:4px;color:var(--navy)">Deleted Instructor Accounts</h3>
@@ -115,6 +116,8 @@
     </div>
 </section>
 @endif
+
+<div style="margin-bottom:14px"><h3 style="margin:0;color:var(--navy)">Minor Subject Archive</h3><p style="margin-top:4px;color:var(--muted);font-size:12px">Deleted minor-subject class schedules, grouped by deletion date and academic period.</p></div>
 
 <form class="filters archive-filters" method="GET" data-auto-filter>
     <div>

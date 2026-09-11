@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dean;
 use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
 use App\Models\Room;
+use App\Models\ScheduleHandoff;
 use App\Models\User;
 use App\Services\ClassScheduleGenerator;
 use App\Services\ScheduleNotificationService;
@@ -69,7 +70,38 @@ class TimetableController extends DeanController
             $editingSchedule = ClassSchedule::with(['section', 'subject'])->forDepartment($course)->find($request->input('edit'));
         }
 
-        return view('dean.timetable.index', compact('course', 'sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount', 'enabledSemesters', 'rooms', 'instructors', 'editingSchedule'));
+        $scheduleHandoffs = ScheduleHandoff::forDepartment($course)->orderByDesc('majors_sent_at')->get();
+
+        return view('dean.timetable.index', compact('course', 'sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount', 'enabledSemesters', 'rooms', 'instructors', 'editingSchedule', 'scheduleHandoffs'));
+    }
+
+    public function sendToGec(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $periods = ClassSchedule::forDepartment($course)
+            ->whereHas('subject', fn ($query) => $query->where('classification', 'Major'))
+            ->select('academic_year', 'semester')
+            ->distinct()
+            ->get()
+            ->map(fn (ClassSchedule $schedule): array => [
+                'academic_year' => $schedule->academic_year,
+                'semester' => $schedule->semester,
+            ]);
+
+        if ($periods->isEmpty()) {
+            return back()->with('error', 'There are no class schedules to send yet.');
+        }
+
+        foreach ($periods as $period) {
+            ScheduleHandoff::updateOrCreate(
+                ['course' => $course, 'academic_year' => $period['academic_year'], 'semester' => $period['semester']],
+                ['majors_sent_at' => now(), 'majors_sent_by' => $request->user()->id],
+            );
+        }
+
+        $this->notifications->majorSchedulesSentToGec($course, $request->user(), $periods);
+
+        return back()->with('success', "The {$course} Major-subject schedules were sent to GEC.");
     }
 
     public function edit(Request $request, ClassSchedule $timetable): View

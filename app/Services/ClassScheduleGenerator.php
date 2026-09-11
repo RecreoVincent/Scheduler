@@ -100,9 +100,15 @@ class ClassScheduleGenerator
                 ))
                 ->values();
 
+            $classification = $subjects->first()?->classification;
+
             ClassSchedule::forDepartment($course)
                 ->whereIn('section_id', $sections->pluck('id'))
                 ->forAcademicPeriod($period['academic_year'], $period['semester'])
+                ->when(
+                    $classification !== null,
+                    fn ($query) => $query->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', $classification)),
+                )
                 ->delete();
 
             // Serialize competing generators against the existing schedules in this period.

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Gec;
 use App\Exceptions\ScheduleGenerationException;
 use App\Models\AcademicSection;
 use App\Models\Room;
+use App\Models\ScheduleHandoff;
 use App\Models\User;
 use App\Services\ClassScheduleGenerator;
 use App\Services\ScheduleNotificationService;
@@ -32,8 +33,9 @@ class ScheduleController extends GecController
             ->orderBy('name')
             ->get();
         $enabledSemesters = $this->enabledSemesters($request);
+        $scheduleHandoffs = ScheduleHandoff::forDepartment($department)->whereNotNull('majors_sent_at')->orderByDesc('majors_sent_at')->get();
 
-        return view('gec.schedules.create', compact('department', 'sections', 'enabledSemesters'));
+        return view('gec.schedules.create', compact('department', 'sections', 'enabledSemesters', 'scheduleHandoffs'));
     }
 
     public function store(Request $request): RedirectResponse
