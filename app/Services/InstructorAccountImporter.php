@@ -12,18 +12,6 @@ class InstructorAccountImporter
 {
     private const REQUIRED_HEADERS = ['first_name', 'last_name', 'email', 'employment_type'];
 
-    private const EMPLOYMENT_TYPE_ALIASES = [
-        'full_time' => 'full_time',
-        'full time' => 'full_time',
-        'fulltime' => 'full_time',
-        'industry_part_time' => 'industry_part_time',
-        'industry part-time' => 'industry_part_time',
-        'industry part time' => 'industry_part_time',
-        'flexible_part_time' => 'flexible_part_time',
-        'flexible part-time' => 'flexible_part_time',
-        'flexible part time' => 'flexible_part_time',
-    ];
-
     /** @return array{imported:int, skipped:int, errors:array<int,string>, generated:array<int,array{email:string,password:string}>} */
     public function import(string $path, string $course): array
     {
@@ -70,8 +58,7 @@ class InstructorAccountImporter
             $lastName = $this->clean($data['last_name'] ?? null);
             $suffix = $this->clean($data['suffix'] ?? null);
             $email = strtolower((string) $this->clean($data['email'] ?? null));
-            $employmentTypeRaw = strtolower((string) $this->clean($data['employment_type'] ?? null));
-            $employmentType = self::EMPLOYMENT_TYPE_ALIASES[$employmentTypeRaw] ?? null;
+            $employmentType = $this->resolveEmploymentType($data['employment_type'] ?? null);
             $outsideWorkEndTime = $this->clean($data['outside_work_end_time'] ?? null);
             $password = $this->clean($data['password'] ?? null);
 
@@ -134,5 +121,44 @@ class InstructorAccountImporter
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Read a CSV employment_type cell loosely: case, spacing, hyphens, and
+     * underscores are all ignored ("Full-Time", "full time", "FULLTIME" all
+     * resolve the same). A bare "part time"/"part-time" with no "industry"
+     * or "flexible" qualifier is accepted too, defaulting to flexible part
+     * time since that type doesn't require the extra outside-work-end-time
+     * field a plain "part time" label wouldn't have specified.
+     */
+    private function resolveEmploymentType(mixed $raw): ?string
+    {
+        $value = $this->clean($raw);
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = trim((string) preg_replace('/[^a-z]+/', ' ', strtolower($value)));
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (str_contains($normalized, 'full')) {
+            return 'full_time';
+        }
+
+        if (str_contains($normalized, 'industry')) {
+            return 'industry_part_time';
+        }
+
+        if (str_contains($normalized, 'flexible') || str_contains($normalized, 'flexi')) {
+            return 'flexible_part_time';
+        }
+
+        if (str_contains($normalized, 'part')) {
+            return 'flexible_part_time';
+        }
+
+        return null;
     }
 }

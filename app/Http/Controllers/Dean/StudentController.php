@@ -58,7 +58,9 @@ class StudentController extends DeanController
             $editingStudent = User::forDepartment($course)->where('role', 'student')->find($request->input('edit'));
         }
 
-        return view('dean.students.index', compact('course', 'students', 'sections', 'allSections', 'editingStudent'));
+        $studentAccountCount = User::forDepartment($course)->where('role', 'student')->count();
+
+        return view('dean.students.index', compact('course', 'students', 'sections', 'allSections', 'editingStudent', 'studentAccountCount'));
     }
 
     public function create(Request $request): View
@@ -164,6 +166,23 @@ class StudentController extends DeanController
         $student->delete();
 
         return back()->with('success', 'Student account deleted successfully.');
+    }
+
+    public function destroyAll(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $studentIds = User::forDepartment($course)->where('role', 'student')->pluck('id');
+
+        if ($studentIds->isEmpty()) {
+            return back()->with('error', "There are no {$course} student accounts to remove.");
+        }
+
+        $removedCount = User::whereIn('id', $studentIds)->delete();
+
+        return redirect()->route('dean.students.index')->with(
+            'success',
+            "All {$course} student accounts were removed successfully ({$removedCount} ".str('account')->plural($removedCount).').',
+        );
     }
 
     private function ensureStudent(Request $request, User $student): void

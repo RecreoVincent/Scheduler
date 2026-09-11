@@ -58,7 +58,9 @@ class InstructorController extends DeanController
                 ->find($request->input('edit'));
         }
 
-        return view('dean.instructors.index', compact('course', 'pendingInstructors', 'instructors', 'editingInstructor'));
+        $instructorAccountCount = User::forDepartment($course)->where('role', 'instructor')->count();
+
+        return view('dean.instructors.index', compact('course', 'pendingInstructors', 'instructors', 'editingInstructor', 'instructorAccountCount'));
     }
 
     public function create(Request $request): View
@@ -172,6 +174,25 @@ class InstructorController extends DeanController
         return back()->with('success', $wasPending
             ? 'Pending instructor registration declined.'
             : 'Instructor account deleted successfully.');
+    }
+
+    public function destroyAll(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $instructorIds = User::forDepartment($course)->where('role', 'instructor')->pluck('id');
+
+        if ($instructorIds->isEmpty()) {
+            return back()->with('error', "There are no {$course} instructor accounts to remove.");
+        }
+
+        DB::table('subject_instructor')->whereIn('instructor_id', $instructorIds)->delete();
+        ClassSchedule::withTrashed()->whereIn('instructor_id', $instructorIds)->forceDelete();
+        $removedCount = User::whereIn('id', $instructorIds)->delete();
+
+        return redirect()->route('dean.instructors.index')->with(
+            'success',
+            "All {$course} instructor accounts were removed successfully ({$removedCount} ".str('account')->plural($removedCount).').',
+        );
     }
 
     private function ensureInstructor(Request $request, User $instructor): void

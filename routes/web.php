@@ -105,6 +105,10 @@ Route::middleware('admin')
             ->whereNumber('user')
             ->name('users.restore');
 
+        Route::delete('/users/{user}/force-delete', [UserController::class, 'forceDelete'])
+            ->whereNumber('user')
+            ->name('users.force-delete');
+
         Route::resource('users', UserController::class)
             ->except(['show']);
     });
@@ -148,6 +152,9 @@ Route::middleware('gec')
         Route::resource('timetable', GecTimetableController::class)->only(['index', 'edit', 'update', 'destroy']);
         Route::get('/archive', [GecScheduleArchiveController::class, 'index'])->name('archive.index');
         Route::delete('/archive/sections/{section}', [GecScheduleArchiveController::class, 'destroySection'])->name('archive.sections.destroy');
+        Route::delete('/archive/accounts/destroy-all', [GecScheduleArchiveController::class, 'destroyAllAccounts'])->name('archive.accounts.destroy-all');
+        Route::patch('/archive/accounts/{user}/restore', [GecScheduleArchiveController::class, 'restoreAccount'])->whereNumber('user')->name('archive.accounts.restore');
+        Route::delete('/archive/accounts/{user}', [GecScheduleArchiveController::class, 'destroyAccount'])->whereNumber('user')->name('archive.accounts.destroy');
         Route::patch('/archive/{schedule}/restore', [GecScheduleArchiveController::class, 'restore'])->name('archive.restore');
         Route::delete('/archive/{schedule}', [GecScheduleArchiveController::class, 'destroy'])->name('archive.destroy');
         Route::get('/print', [GecPrintController::class, 'index'])->name('print.index');
@@ -169,6 +176,7 @@ Route::middleware('dean')
         Route::get('/instructors/{instructor}/edit', [DeanInstructorController::class, 'edit'])->name('instructors.edit');
         Route::patch('/instructors/{instructor}', [DeanInstructorController::class, 'update'])->name('instructors.update');
         Route::patch('/instructors/{instructor}/approve', [DeanInstructorController::class, 'approve'])->name('instructors.approve');
+        Route::delete('/instructors/destroy-all', [DeanInstructorController::class, 'destroyAll'])->name('instructors.destroy-all');
         Route::delete('/instructors/{instructor}', [DeanInstructorController::class, 'destroy'])->name('instructors.destroy');
         Route::get('/instructor-units', [DeanInstructorUnitController::class, 'index'])->name('instructor-units.index');
         Route::patch('/instructor-units/defaults', [DeanInstructorUnitController::class, 'updateDefaults'])->name('instructor-units.defaults');
@@ -181,6 +189,7 @@ Route::middleware('dean')
         Route::get('/students/import-template', [DeanStudentController::class, 'importTemplate'])->name('students.import-template');
         Route::get('/students/{student}/edit', [DeanStudentController::class, 'edit'])->name('students.edit');
         Route::patch('/students/{student}', [DeanStudentController::class, 'update'])->name('students.update');
+        Route::delete('/students/destroy-all', [DeanStudentController::class, 'destroyAll'])->name('students.destroy-all');
         Route::delete('/students/{student}', [DeanStudentController::class, 'destroy'])->name('students.destroy');
         Route::post('/sections/import', [DeanSectionController::class, 'import'])->name('sections.import');
         Route::get('/sections/import-template', [DeanSectionController::class, 'importTemplate'])->name('sections.import-template');
@@ -203,6 +212,12 @@ Route::middleware('dean')
         Route::resource('timetable', DeanTimetableController::class)->only(['index', 'edit', 'update', 'destroy']);
         Route::get('/archive', [DeanScheduleArchiveController::class, 'index'])->name('archive.index');
         Route::delete('/archive/sections/{section}', [DeanScheduleArchiveController::class, 'destroySection'])->name('archive.sections.destroy');
+        Route::delete('/archive/accounts/destroy-all', [DeanScheduleArchiveController::class, 'destroyAllAccounts'])->name('archive.accounts.destroy-all');
+        Route::patch('/archive/accounts/{user}/restore', [DeanScheduleArchiveController::class, 'restoreAccount'])->whereNumber('user')->name('archive.accounts.restore');
+        Route::delete('/archive/accounts/{user}', [DeanScheduleArchiveController::class, 'destroyAccount'])->whereNumber('user')->name('archive.accounts.destroy');
+        Route::delete('/archive/students/destroy-all', [DeanScheduleArchiveController::class, 'destroyAllStudentAccounts'])->name('archive.students.destroy-all');
+        Route::patch('/archive/students/{user}/restore', [DeanScheduleArchiveController::class, 'restoreStudentAccount'])->whereNumber('user')->name('archive.students.restore');
+        Route::delete('/archive/students/{user}', [DeanScheduleArchiveController::class, 'destroyStudentAccount'])->whereNumber('user')->name('archive.students.destroy');
         Route::patch('/archive/{schedule}/restore', [DeanScheduleArchiveController::class, 'restore'])->name('archive.restore');
         Route::delete('/archive/{schedule}', [DeanScheduleArchiveController::class, 'destroy'])->name('archive.destroy');
         Route::get('/print', [DeanPrintController::class, 'index'])->name('print.index');

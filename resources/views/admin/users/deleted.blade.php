@@ -8,7 +8,8 @@
     .deleted-accounts-description { margin-bottom:18px; }
     .table-wrapper { overflow-x:auto; }
     .deleted-accounts-table { min-width:820px; }
-    .restore-form { display:inline-flex; }
+    .restore-form, .force-delete-form { display:inline-flex; }
+    .deleted-accounts-actions { display:flex; gap:8px; }
 </style>
 @endpush
 
@@ -45,11 +46,18 @@
                         <td>{{ $deletedUser->course ?? '—' }}</td>
                         <td>{{ $deletedUser->deleted_at->format('M d, Y g:i A') }}</td>
                         <td>
-                            <form class="restore-form" method="POST" action="{{ route('admin.users.restore', $deletedUser->id) }}">
-                                @csrf
-                                @method('PATCH')
-                                <button type="submit" class="button button-secondary">Restore</button>
-                            </form>
+                            <div class="deleted-accounts-actions">
+                                <form class="restore-form" method="POST" action="{{ route('admin.users.restore', $deletedUser->id) }}">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="button button-secondary">Restore</button>
+                                </form>
+                                <form class="force-delete-form" method="POST" action="{{ route('admin.users.force-delete', $deletedUser->id) }}" onsubmit="return confirm('Permanently delete {{ addslashes($deletedUser->name) }}? This cannot be undone.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="button button-danger">Delete Permanently</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 @empty

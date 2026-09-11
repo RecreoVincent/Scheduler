@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class GecPortalTest extends TestCase
@@ -238,6 +239,76 @@ class GecPortalTest extends TestCase
         $this->assertDatabaseHas('class_schedules', ['id' => $schedule->id, 'deleted_at' => null]);
     }
 
+    public function test_deleted_gec_instructor_account_appears_on_archive_page_and_can_be_restored(): void
+    {
+        $gec = $this->gecUser();
+        $instructor = User::factory()->create(['role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active']);
+
+        $this->actingAs($gec)->delete(route('gec.instructors.destroy', $instructor))->assertRedirect();
+        $this->assertSoftDeleted('users', ['id' => $instructor->id]);
+
+        $this->actingAs($gec)->get(route('gec.archive.index'))
+            ->assertOk()
+            ->assertSee('Deleted Instructor Accounts')
+            ->assertSee($instructor->email);
+
+        $this->actingAs($gec)
+            ->patch(route('gec.archive.accounts.restore', $instructor->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('users', ['id' => $instructor->id, 'deleted_at' => null]);
+    }
+
+    public function test_deleted_gec_instructor_account_can_be_permanently_deleted_from_archive_page(): void
+    {
+        $gec = $this->gecUser();
+        $instructor = User::factory()->create(['role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active']);
+        $this->actingAs($gec)->delete(route('gec.instructors.destroy', $instructor))->assertRedirect();
+
+        $this->actingAs($gec)
+            ->delete(route('gec.archive.accounts.destroy', $instructor->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $instructor->id]);
+    }
+
+    public function test_gec_can_permanently_delete_all_deleted_instructor_accounts_at_once(): void
+    {
+        $gec = $this->gecUser();
+        $instructorOne = User::factory()->create(['role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active']);
+        $instructorTwo = User::factory()->create(['role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active']);
+        $bsitInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $this->actingAs($gec)->delete(route('gec.instructors.destroy', $instructorOne))->assertRedirect();
+        $this->actingAs($gec)->delete(route('gec.instructors.destroy', $instructorTwo))->assertRedirect();
+        $bsitInstructor->delete();
+
+        $this->actingAs($gec)->get(route('gec.archive.index'))
+            ->assertOk()
+            ->assertSee('Delete All Permanently');
+
+        $this->actingAs($gec)
+            ->delete(route('gec.archive.accounts.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $instructorOne->id]);
+        $this->assertDatabaseMissing('users', ['id' => $instructorTwo->id]);
+        $this->assertSoftDeleted('users', ['id' => $bsitInstructor->id]);
+    }
+
+    public function test_gec_cannot_restore_or_delete_a_non_gec_deleted_instructor(): void
+    {
+        $gec = $this->gecUser();
+        $bsitInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $bsitInstructor->delete();
+
+        $this->actingAs($gec)->patch(route('gec.archive.accounts.restore', $bsitInstructor->id))->assertNotFound();
+        $this->actingAs($gec)->delete(route('gec.archive.accounts.destroy', $bsitInstructor->id))->assertNotFound();
+        $this->assertSoftDeleted('users', ['id' => $bsitInstructor->id]);
+    }
+
     public function test_gec_is_seeded_as_its_own_department_and_scopes_instructor_pool(): void
     {
         $this->assertDatabaseHas('departments', ['code' => 'GEC']);
@@ -279,6 +350,25 @@ class GecPortalTest extends TestCase
         $this->actingAs($gec)->delete(route('gec.instructors.destroy-all'))
             ->assertRedirect()
             ->assertSessionHas('error');
+    }
+
+    public function test_instructor_import_accepts_loosely_formatted_employment_type_values(): void
+    {
+        $gec = $this->gecUser();
+        $csv = "first_name,last_name,email,employment_type,outside_work_end_time\n"
+            ."Ana,Reyes,ana.reyes@example.test,Full-Time,\n"
+            ."Ben,Santos,ben.santos@example.test,Part Time,\n"
+            ."Cid,Lopez,cid.lopez@example.test,Industry Part-Time,17:00\n"
+            ."Dex,Cruz,dex.cruz@example.test,flexible parttime,\n";
+        $file = UploadedFile::fake()->createWithContent('instructors.csv', $csv);
+
+        $this->actingAs($gec)->post(route('gec.instructors.import'), ['csv_file' => $file])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('users', ['email' => 'ana.reyes@example.test', 'employment_type' => 'full_time']);
+        $this->assertDatabaseHas('users', ['email' => 'ben.santos@example.test', 'employment_type' => 'flexible_part_time']);
+        $this->assertDatabaseHas('users', ['email' => 'cid.lopez@example.test', 'employment_type' => 'industry_part_time']);
+        $this->assertDatabaseHas('users', ['email' => 'dex.cruz@example.test', 'employment_type' => 'flexible_part_time']);
     }
 
     public function test_gec_can_toggle_semester_availability(): void

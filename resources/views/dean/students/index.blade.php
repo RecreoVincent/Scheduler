@@ -43,6 +43,19 @@
     </select>
 </form>
 
+<div style="display:flex;justify-content:flex-end;margin:14px 0">
+    <button
+        type="button"
+        class="button button-danger delete-confirmation-trigger"
+        data-delete-url="{{ route('dean.students.destroy-all') }}"
+        data-delete-name="{{ $studentAccountCount }} {{ str('student account')->plural($studentAccountCount) }} in {{ $course }}"
+        data-delete-title="Delete All Student Accounts?"
+        data-delete-message="This permanently removes every student account below. This cannot be undone."
+        data-delete-confirm-label="Delete All Accounts"
+        @disabled($studentAccountCount === 0)
+    >Delete All Accounts</button>
+</div>
+
 <div class="card">
     <div class="table-wrap">
         <table>

@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Gec;
 
 use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
+use App\Models\User;
 use App\Services\ClassScheduleGenerator;
 use App\Services\ScheduleNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
@@ -96,6 +98,12 @@ class ScheduleArchiveController extends GecController
                 ));
         }
 
+        $deletedInstructors = User::onlyTrashed()
+            ->forDepartment($this->course($request))
+            ->where('role', 'instructor')
+            ->orderByDesc('deleted_at')
+            ->get();
+
         return view('gec.archive.index', compact(
             'academicYears',
             'deletionDates',
@@ -103,6 +111,7 @@ class ScheduleArchiveController extends GecController
             'sectionsById',
             'archivedSchedulesByGroup',
             'enabledSemesters',
+            'deletedInstructors',
         ));
     }
 
@@ -203,6 +212,64 @@ class ScheduleArchiveController extends GecController
                 .date('F j, Y', strtotime($validated['deleted_on']))
                 ." permanently deleted ({$deleted} class ".str('entry')->plural($deleted).').',
         );
+    }
+
+    public function restoreAccount(Request $request, int $user): RedirectResponse
+    {
+        $deletedInstructor = $this->archivedInstructor($request, $user);
+        $deletedInstructor->restore();
+
+        return back()->with('success', 'Instructor account restored successfully.');
+    }
+
+    public function destroyAccount(Request $request, int $user): RedirectResponse
+    {
+        $deletedInstructor = $this->archivedInstructor($request, $user);
+
+        try {
+            DB::table('subject_instructor')->where('instructor_id', $deletedInstructor->id)->delete();
+            ClassSchedule::withTrashed()->where('instructor_id', $deletedInstructor->id)->forceDelete();
+            $deletedInstructor->forceDelete();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'The instructor account could not be permanently deleted.');
+        }
+
+        return back()->with('success', 'Instructor account permanently deleted.');
+    }
+
+    public function destroyAllAccounts(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $instructorIds = User::onlyTrashed()->forDepartment($course)->where('role', 'instructor')->pluck('id');
+
+        if ($instructorIds->isEmpty()) {
+            return back()->with('error', 'There are no deleted GEC instructor accounts to remove.');
+        }
+
+        try {
+            DB::table('subject_instructor')->whereIn('instructor_id', $instructorIds)->delete();
+            ClassSchedule::withTrashed()->whereIn('instructor_id', $instructorIds)->forceDelete();
+            $removedCount = User::onlyTrashed()->whereIn('id', $instructorIds)->forceDelete();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'The deleted instructor accounts could not be permanently removed.');
+        }
+
+        return redirect()->route('gec.archive.index')->with(
+            'success',
+            "All deleted GEC instructor accounts were permanently removed ({$removedCount} ".str('account')->plural($removedCount).').',
+        );
+    }
+
+    private function archivedInstructor(Request $request, int $user): User
+    {
+        return User::onlyTrashed()
+            ->forDepartment($this->course($request))
+            ->where('role', 'instructor')
+            ->findOrFail($user);
     }
 
     private function archiveGroupKey(int $sectionId, string $academicYear, string $semester, string $deletionDate): string

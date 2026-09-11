@@ -1,6 +1,6 @@
 @extends('layouts.dean')
-@section('title', 'Schedule Archive')
-@section('page-title', 'Schedule Archive')
+@section('title', 'Archive')
+@section('page-title', 'Archive')
 
 @push('styles')
 <style>
@@ -74,9 +74,85 @@
 
 @section('content')
 <div class="page-header">
-    <div><h2>{{ $course }} Schedule Archive</h2><p>Deleted class schedules are organized by deletion date, academic year, semester, and section.</p></div>
+    <div><h2>{{ $course }} Archive</h2><p>Deleted class schedules and instructor and student accounts, kept here until restored or permanently deleted.</p></div>
     <a class="button button-secondary" href="{{ route('dean.timetable.index') }}">Back to Timetable</a>
 </div>
+
+@if($deletedInstructors->isNotEmpty())
+<section class="card" style="margin-bottom:22px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+        <div>
+            <h3 style="margin-bottom:4px;color:var(--navy)">Deleted Instructor Accounts</h3>
+            <p style="color:var(--muted);font-size:12px">Instructor accounts removed from {{ $course }}. Restore to reactivate sign-in, or delete permanently to remove for good.</p>
+        </div>
+        <button
+            class="button button-danger archive-action-trigger"
+            type="button"
+            data-kind="delete-all-accounts"
+            data-url="{{ route('dean.archive.accounts.destroy-all') }}"
+            data-label="{{ $deletedInstructors->count() }} deleted {{ str('instructor account')->plural($deletedInstructors->count()) }}"
+        >Delete All Permanently</button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Deleted</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach($deletedInstructors as $deletedInstructor)
+                    <tr>
+                        <td>{{ $deletedInstructor->name }}</td>
+                        <td>{{ $deletedInstructor->email }}</td>
+                        <td>{{ $deletedInstructor->deleted_at->format('M j, Y g:i A') }}</td>
+                        <td>
+                            <div class="actions">
+                                <button class="button button-secondary archive-action-trigger" type="button" data-kind="restore-account" data-url="{{ route('dean.archive.accounts.restore', $deletedInstructor->id) }}" data-label="{{ $deletedInstructor->name }}">Restore</button>
+                                <button class="button button-danger archive-action-trigger" type="button" data-kind="delete-account" data-url="{{ route('dean.archive.accounts.destroy', $deletedInstructor->id) }}" data-label="{{ $deletedInstructor->name }}">Delete Permanently</button>
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</section>
+@endif
+
+@if($deletedStudents->isNotEmpty())
+<section class="card" style="margin-bottom:22px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+        <div>
+            <h3 style="margin-bottom:4px;color:var(--navy)">Deleted Student Accounts</h3>
+            <p style="color:var(--muted);font-size:12px">Student accounts removed from {{ $course }}. Restore to reactivate sign-in, or delete permanently to remove for good.</p>
+        </div>
+        <button
+            class="button button-danger archive-action-trigger"
+            type="button"
+            data-kind="delete-all-student-accounts"
+            data-url="{{ route('dean.archive.students.destroy-all') }}"
+            data-label="{{ $deletedStudents->count() }} deleted {{ str('student account')->plural($deletedStudents->count()) }}"
+        >Delete All Permanently</button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Deleted</th><th>Action</th></tr></thead>
+            <tbody>
+                @foreach($deletedStudents as $deletedStudent)
+                    <tr>
+                        <td>{{ $deletedStudent->name }}</td>
+                        <td>{{ $deletedStudent->email }}</td>
+                        <td>{{ $deletedStudent->deleted_at->format('M j, Y g:i A') }}</td>
+                        <td>
+                            <div class="actions">
+                                <button class="button button-secondary archive-action-trigger" type="button" data-kind="restore-student-account" data-url="{{ route('dean.archive.students.restore', $deletedStudent->id) }}" data-label="{{ $deletedStudent->name }}">Restore</button>
+                                <button class="button button-danger archive-action-trigger" type="button" data-kind="delete-student-account" data-url="{{ route('dean.archive.students.destroy', $deletedStudent->id) }}" data-label="{{ $deletedStudent->name }}">Delete Permanently</button>
+                            </div>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</section>
+@endif
 
 <form class="card archive-filters" method="GET" data-auto-filter>
     <select class="input" name="academic_year">
@@ -215,7 +291,17 @@
     const close=()=>{modal.hidden=true;document.body.classList.remove('modal-open');trigger?.focus();trigger=null};
     document.querySelectorAll('[data-section-card]').forEach(card=>{const selectionMessage=card.querySelector('[data-selection-message]');card.querySelector('[data-selection-mode]')?.addEventListener('click',()=>{card.dataset.mode='restore';selectionMessage.textContent='Which class entry do you want to restore?'});card.querySelector('.cancel-selection')?.addEventListener('click',()=>{delete card.dataset.mode;selectionMessage.textContent=''})});
     const archiveIconSvg={warning:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4M12 17h.01"/></svg>',refresh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>'};
-    document.querySelectorAll('.archive-action-trigger').forEach(button=>button.addEventListener('click',()=>{trigger=button;const deleting=button.dataset.kind.startsWith('delete');form.action=button.dataset.url;method.value=deleting?'DELETE':'PATCH';title.textContent=deleting?'Delete Schedule Permanently?':'Restore Schedule?';message.textContent=deleting?`${button.dataset.label} will be permanently deleted and cannot be retrieved again.`:`Restore ${button.dataset.label} to the active timetable?`;icon.innerHTML=deleting?archiveIconSvg.warning:archiveIconSvg.refresh;confirm.textContent=deleting?'Delete Schedule':'Restore';confirm.classList.toggle('button-danger',deleting);modal.hidden=false;document.body.classList.add('modal-open');cancel.focus()}));
+    const archiveKindText={
+        restore:{title:'Restore Schedule?',message:label=>`Restore ${label} to the active timetable?`,confirmLabel:'Restore'},
+        'delete-section':{title:'Delete Schedule Permanently?',message:label=>`${label} will be permanently deleted and cannot be retrieved again.`,confirmLabel:'Delete Schedule'},
+        'restore-account':{title:'Restore Instructor Account?',message:label=>`Restore ${label}'s account so they can sign in again?`,confirmLabel:'Restore Account'},
+        'delete-account':{title:'Delete Instructor Account Permanently?',message:label=>`${label}'s account will be permanently deleted and cannot be recovered.`,confirmLabel:'Delete Account'},
+        'delete-all-accounts':{title:'Delete All Instructor Accounts Permanently?',message:label=>`${label} will be permanently deleted and cannot be recovered.`,confirmLabel:'Delete All'},
+        'restore-student-account':{title:'Restore Student Account?',message:label=>`Restore ${label}'s account so they can sign in again?`,confirmLabel:'Restore Account'},
+        'delete-student-account':{title:'Delete Student Account Permanently?',message:label=>`${label}'s account will be permanently deleted and cannot be recovered.`,confirmLabel:'Delete Account'},
+        'delete-all-student-accounts':{title:'Delete All Student Accounts Permanently?',message:label=>`${label} will be permanently deleted and cannot be recovered.`,confirmLabel:'Delete All'},
+    };
+    document.querySelectorAll('.archive-action-trigger').forEach(button=>button.addEventListener('click',()=>{trigger=button;const kind=button.dataset.kind;const deleting=kind.startsWith('delete');const text=archiveKindText[kind]??archiveKindText.restore;form.action=button.dataset.url;method.value=deleting?'DELETE':'PATCH';title.textContent=text.title;message.textContent=text.message(button.dataset.label);icon.innerHTML=deleting?archiveIconSvg.warning:archiveIconSvg.refresh;confirm.textContent=text.confirmLabel;confirm.classList.toggle('button-danger',deleting);modal.hidden=false;document.body.classList.add('modal-open');cancel.focus()}));
     cancel.addEventListener('click',close);modal.addEventListener('click',event=>{if(event.target===modal)close()});document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!modal.hidden)close()});
 })();
 </script>

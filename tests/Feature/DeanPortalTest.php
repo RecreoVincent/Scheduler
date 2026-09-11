@@ -16,6 +16,69 @@ class DeanPortalTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_dean_can_delete_all_student_accounts_in_its_department(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $studentOne = User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'account_status' => 'active']);
+        $studentTwo = User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'account_status' => 'active']);
+        $bsbaStudent = User::factory()->create(['role' => 'student', 'course' => 'BSBA', 'account_status' => 'active']);
+
+        $this->actingAs($dean)->get(route('dean.students.index'))
+            ->assertOk()
+            ->assertSee('Delete All Accounts');
+
+        $this->actingAs($dean)->delete(route('dean.students.destroy-all'))->assertRedirect();
+
+        $this->assertSoftDeleted('users', ['id' => $studentOne->id]);
+        $this->assertSoftDeleted('users', ['id' => $studentTwo->id]);
+        // Students outside the BSIT department must be untouched.
+        $this->assertDatabaseHas('users', ['id' => $bsbaStudent->id, 'deleted_at' => null]);
+    }
+
+    public function test_deleting_all_dean_student_accounts_with_none_present_shows_an_error(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+
+        $this->actingAs($dean)->delete(route('dean.students.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+    }
+
+    public function test_dean_can_delete_all_instructor_accounts_in_its_department(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $instructorOne = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $instructorTwo = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $bsbaInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSBA', 'account_status' => 'active']);
+        $subject = Subject::create([
+            'course' => 'BSIT', 'code' => 'IT301', 'name' => 'Test Subject',
+            'subject_type' => 'Lecture', 'classification' => 'Major',
+            'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $subject->instructors()->attach($instructorOne->id, ['priority' => 1]);
+
+        $this->actingAs($dean)->get(route('dean.instructors.index'))
+            ->assertOk()
+            ->assertSee('Delete All Accounts');
+
+        $this->actingAs($dean)->delete(route('dean.instructors.destroy-all'))->assertRedirect();
+
+        $this->assertSoftDeleted('users', ['id' => $instructorOne->id]);
+        $this->assertSoftDeleted('users', ['id' => $instructorTwo->id]);
+        $this->assertDatabaseMissing('subject_instructor', ['subject_id' => $subject->id, 'instructor_id' => $instructorOne->id]);
+        // Instructors outside the BSIT department must be untouched.
+        $this->assertDatabaseHas('users', ['id' => $bsbaInstructor->id, 'deleted_at' => null]);
+    }
+
+    public function test_deleting_all_dean_instructor_accounts_with_none_present_shows_an_error(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+
+        $this->actingAs($dean)->delete(route('dean.instructors.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+    }
+
     public function test_all_printable_reports_include_an_exit_button(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
@@ -396,7 +459,7 @@ class DeanPortalTest extends TestCase
             ->assertSee('data-archive-date="'.$deletedOn.'"', false)
             ->assertSee('data-archive-period="'.$deletedOn.'-2026-2027-1st"', false)
             ->assertSee('data-archive-section="'.$section->id.'-'.$deletedOn.'-2026-2027-1st"', false)
-            ->assertSeeInOrder(['Schedule Archive', 'Deleted on', 'Academic Year 2026-2027', '1st Semester', 'Section 1', 'Restore Schedule', 'Delete Schedule', 'IT201', 'Choose'])
+            ->assertSeeInOrder(['Archive', 'Deleted on', 'Academic Year 2026-2027', '1st Semester', 'Section 1', 'Restore Schedule', 'Delete Schedule', 'IT201', 'Choose'])
             ->assertSee('Delete Schedule Permanently?');
 
         $this->actingAs($dean)
@@ -406,6 +469,167 @@ class DeanPortalTest extends TestCase
 
         $this->assertNotSoftDeleted('class_schedules', ['id' => $schedule->id]);
         $this->assertSame(1, ClassSchedule::whereKey($schedule->id)->count());
+    }
+
+    public function test_deleted_instructor_account_appears_on_archive_page_and_can_be_restored(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $instructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+
+        $this->actingAs($dean)->delete(route('dean.instructors.destroy', $instructor))->assertRedirect();
+        $this->assertSoftDeleted('users', ['id' => $instructor->id]);
+
+        $this->actingAs($dean)->get(route('dean.archive.index'))
+            ->assertOk()
+            ->assertSee('Deleted Instructor Accounts')
+            ->assertSee($instructor->email);
+
+        $this->actingAs($dean)
+            ->patch(route('dean.archive.accounts.restore', $instructor->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('users', ['id' => $instructor->id, 'deleted_at' => null]);
+    }
+
+    public function test_deleted_instructor_account_can_be_permanently_deleted_from_archive_page(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $instructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $this->actingAs($dean)->delete(route('dean.instructors.destroy', $instructor))->assertRedirect();
+
+        $this->actingAs($dean)
+            ->delete(route('dean.archive.accounts.destroy', $instructor->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $instructor->id]);
+    }
+
+    public function test_dean_can_permanently_delete_all_deleted_instructor_accounts_at_once(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $instructorOne = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $instructorTwo = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $otherDeptInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSBA', 'account_status' => 'active']);
+        $this->actingAs($dean)->delete(route('dean.instructors.destroy', $instructorOne))->assertRedirect();
+        $this->actingAs($dean)->delete(route('dean.instructors.destroy', $instructorTwo))->assertRedirect();
+        $otherDeptInstructor->delete();
+
+        $this->actingAs($dean)->get(route('dean.archive.index'))
+            ->assertOk()
+            ->assertSee('Delete All Permanently');
+
+        $this->actingAs($dean)
+            ->delete(route('dean.archive.accounts.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $instructorOne->id]);
+        $this->assertDatabaseMissing('users', ['id' => $instructorTwo->id]);
+        // Untouched: belongs to a different department.
+        $this->assertSoftDeleted('users', ['id' => $otherDeptInstructor->id]);
+    }
+
+    public function test_deleting_all_instructor_archive_accounts_with_none_present_shows_an_error(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+
+        $this->actingAs($dean)
+            ->delete(route('dean.archive.accounts.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+    }
+
+    public function test_dean_cannot_restore_or_delete_another_departments_deleted_instructor(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $otherInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSBA', 'account_status' => 'active']);
+        $otherInstructor->delete();
+
+        $this->actingAs($dean)->patch(route('dean.archive.accounts.restore', $otherInstructor->id))->assertNotFound();
+        $this->actingAs($dean)->delete(route('dean.archive.accounts.destroy', $otherInstructor->id))->assertNotFound();
+        $this->assertSoftDeleted('users', ['id' => $otherInstructor->id]);
+    }
+
+    public function test_deleted_student_account_appears_on_archive_page_and_can_be_restored(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $student = User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'account_status' => 'active']);
+
+        $this->actingAs($dean)->delete(route('dean.students.destroy', $student))->assertRedirect();
+        $this->assertSoftDeleted('users', ['id' => $student->id]);
+
+        $this->actingAs($dean)->get(route('dean.archive.index'))
+            ->assertOk()
+            ->assertSee('Deleted Student Accounts')
+            ->assertSee($student->email);
+
+        $this->actingAs($dean)
+            ->patch(route('dean.archive.students.restore', $student->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('users', ['id' => $student->id, 'deleted_at' => null]);
+    }
+
+    public function test_deleted_student_account_can_be_permanently_deleted_from_archive_page(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $student = User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'account_status' => 'active']);
+        $this->actingAs($dean)->delete(route('dean.students.destroy', $student))->assertRedirect();
+
+        $this->actingAs($dean)
+            ->delete(route('dean.archive.students.destroy', $student->id))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $student->id]);
+    }
+
+    public function test_dean_can_permanently_delete_all_deleted_student_accounts_at_once(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $studentOne = User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'account_status' => 'active']);
+        $studentTwo = User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'account_status' => 'active']);
+        $otherDeptStudent = User::factory()->create(['role' => 'student', 'course' => 'BSBA', 'account_status' => 'active']);
+        $this->actingAs($dean)->delete(route('dean.students.destroy', $studentOne))->assertRedirect();
+        $this->actingAs($dean)->delete(route('dean.students.destroy', $studentTwo))->assertRedirect();
+        $otherDeptStudent->delete();
+
+        $this->actingAs($dean)->get(route('dean.archive.index'))
+            ->assertOk()
+            ->assertSee('Delete All Permanently');
+
+        $this->actingAs($dean)
+            ->delete(route('dean.archive.students.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('users', ['id' => $studentOne->id]);
+        $this->assertDatabaseMissing('users', ['id' => $studentTwo->id]);
+        $this->assertSoftDeleted('users', ['id' => $otherDeptStudent->id]);
+    }
+
+    public function test_deleting_all_student_archive_accounts_with_none_present_shows_an_error(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+
+        $this->actingAs($dean)
+            ->delete(route('dean.archive.students.destroy-all'))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+    }
+
+    public function test_dean_cannot_restore_or_delete_another_departments_deleted_student(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $otherStudent = User::factory()->create(['role' => 'student', 'course' => 'BSBA', 'account_status' => 'active']);
+        $otherStudent->delete();
+
+        $this->actingAs($dean)->patch(route('dean.archive.students.restore', $otherStudent->id))->assertNotFound();
+        $this->actingAs($dean)->delete(route('dean.archive.students.destroy', $otherStudent->id))->assertNotFound();
+        $this->assertSoftDeleted('users', ['id' => $otherStudent->id]);
     }
 
     public function test_permanent_archive_deletion_uses_confirmation_and_success_notification(): void

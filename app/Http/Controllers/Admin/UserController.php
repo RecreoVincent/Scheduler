@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicSection;
+use App\Models\ClassSchedule;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
@@ -279,5 +281,19 @@ class UserController extends Controller
         return redirect()
             ->route('admin.users.deleted')
             ->with('success', 'Account restored successfully.');
+    }
+
+    public function forceDelete(int $user)
+    {
+        $deletedUser = User::onlyTrashed()->findOrFail($user);
+        abort_if($deletedUser->role === 'admin', 403);
+
+        DB::table('subject_instructor')->where('instructor_id', $deletedUser->id)->delete();
+        ClassSchedule::withTrashed()->where('instructor_id', $deletedUser->id)->forceDelete();
+        $deletedUser->forceDelete();
+
+        return redirect()
+            ->route('admin.users.deleted')
+            ->with('success', 'Account permanently deleted.');
     }
 }

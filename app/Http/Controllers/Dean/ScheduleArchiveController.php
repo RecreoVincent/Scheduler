@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Dean;
 
 use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
+use App\Models\User;
 use App\Services\ClassScheduleGenerator;
 use App\Services\ScheduleNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Throwable;
@@ -91,6 +93,18 @@ class ScheduleArchiveController extends DeanController
                 ));
         }
 
+        $deletedInstructors = User::onlyTrashed()
+            ->forDepartment($course)
+            ->where('role', 'instructor')
+            ->orderByDesc('deleted_at')
+            ->get();
+
+        $deletedStudents = User::onlyTrashed()
+            ->forDepartment($course)
+            ->where('role', 'student')
+            ->orderByDesc('deleted_at')
+            ->get();
+
         return view('dean.archive.index', compact(
             'course',
             'academicYears',
@@ -99,6 +113,8 @@ class ScheduleArchiveController extends DeanController
             'sectionsById',
             'archivedSchedulesByGroup',
             'enabledSemesters',
+            'deletedInstructors',
+            'deletedStudents',
         ));
     }
 
@@ -198,6 +214,118 @@ class ScheduleArchiveController extends DeanController
                 .date('F j, Y', strtotime($validated['deleted_on']))
                 ." permanently deleted ({$deleted} class ".str('entry')->plural($deleted).').',
         );
+    }
+
+    public function restoreAccount(Request $request, int $user): RedirectResponse
+    {
+        $deletedInstructor = $this->archivedInstructor($request, $user);
+        $deletedInstructor->restore();
+
+        return back()->with('success', 'Instructor account restored successfully.');
+    }
+
+    public function destroyAccount(Request $request, int $user): RedirectResponse
+    {
+        $deletedInstructor = $this->archivedInstructor($request, $user);
+
+        try {
+            DB::table('subject_instructor')->where('instructor_id', $deletedInstructor->id)->delete();
+            ClassSchedule::withTrashed()->where('instructor_id', $deletedInstructor->id)->forceDelete();
+            $deletedInstructor->forceDelete();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'The instructor account could not be permanently deleted.');
+        }
+
+        return back()->with('success', 'Instructor account permanently deleted.');
+    }
+
+    public function destroyAllAccounts(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $instructorIds = User::onlyTrashed()->forDepartment($course)->where('role', 'instructor')->pluck('id');
+
+        if ($instructorIds->isEmpty()) {
+            return back()->with('error', "There are no deleted {$course} instructor accounts to remove.");
+        }
+
+        try {
+            DB::table('subject_instructor')->whereIn('instructor_id', $instructorIds)->delete();
+            ClassSchedule::withTrashed()->whereIn('instructor_id', $instructorIds)->forceDelete();
+            $removedCount = User::onlyTrashed()->whereIn('id', $instructorIds)->forceDelete();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'The deleted instructor accounts could not be permanently removed.');
+        }
+
+        return redirect()->route('dean.archive.index')->with(
+            'success',
+            "All deleted {$course} instructor accounts were permanently removed ({$removedCount} ".str('account')->plural($removedCount).').',
+        );
+    }
+
+    private function archivedInstructor(Request $request, int $user): User
+    {
+        return User::onlyTrashed()
+            ->forDepartment($this->course($request))
+            ->where('role', 'instructor')
+            ->findOrFail($user);
+    }
+
+    public function restoreStudentAccount(Request $request, int $user): RedirectResponse
+    {
+        $deletedStudent = $this->archivedStudent($request, $user);
+        $deletedStudent->restore();
+
+        return back()->with('success', 'Student account restored successfully.');
+    }
+
+    public function destroyStudentAccount(Request $request, int $user): RedirectResponse
+    {
+        $deletedStudent = $this->archivedStudent($request, $user);
+
+        try {
+            $deletedStudent->forceDelete();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'The student account could not be permanently deleted.');
+        }
+
+        return back()->with('success', 'Student account permanently deleted.');
+    }
+
+    public function destroyAllStudentAccounts(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $studentIds = User::onlyTrashed()->forDepartment($course)->where('role', 'student')->pluck('id');
+
+        if ($studentIds->isEmpty()) {
+            return back()->with('error', "There are no deleted {$course} student accounts to remove.");
+        }
+
+        try {
+            $removedCount = User::onlyTrashed()->whereIn('id', $studentIds)->forceDelete();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'The deleted student accounts could not be permanently removed.');
+        }
+
+        return redirect()->route('dean.archive.index')->with(
+            'success',
+            "All deleted {$course} student accounts were permanently removed ({$removedCount} ".str('account')->plural($removedCount).').',
+        );
+    }
+
+    private function archivedStudent(Request $request, int $user): User
+    {
+        return User::onlyTrashed()
+            ->forDepartment($this->course($request))
+            ->where('role', 'student')
+            ->findOrFail($user);
     }
 
     private function archiveGroupKey(int $sectionId, string $academicYear, string $semester, string $deletionDate): string
