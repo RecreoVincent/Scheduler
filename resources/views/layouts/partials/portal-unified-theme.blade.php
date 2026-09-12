@@ -702,12 +702,35 @@
     }
 
     @media(max-width:700px) {
-        .topbar { align-items:flex-start; flex-direction:row; }
-        .profile { max-width:52%; }
+        .topbar {
+            position:relative !important;
+            align-items:flex-start;
+            flex-direction:column;
+            gap:12px;
+        }
+        .topbar-start,.topbar-actions { width:100%; }
+        .topbar-actions { flex-wrap:wrap; justify-content:flex-end; }
+        .profile { max-width:100%; }
+        .main { padding-top:0; }
         .content { padding-top:24px; }
         .page-header { align-items:flex-start; flex-direction:column; }
         .page-header .button { width:100%; }
         .card { padding:20px; }
+
+        /* These menus anchor to their trigger via right:0, which can push
+           them off-screen once the trigger no longer sits at the true
+           right edge of a wrapped topbar row. Break them out to the
+           viewport instead, matching the notification panel's own
+           mobile pattern (schedule-notification-styles.blade.php). */
+        .topbar-settings-dropdown,
+        .portal-profile-dropdown,
+        .profile-dropdown {
+            position:fixed;
+            top:130px;
+            left:15px;
+            right:15px;
+            width:auto;
+        }
     }
 
     @media(max-width:520px) {

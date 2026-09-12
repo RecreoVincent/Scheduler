@@ -53,6 +53,9 @@
     }
     @media (max-width:780px) {
         .timetable-filters { grid-template-columns:1fr !important; }
+        .timetable-header-actions { flex-wrap:wrap; width:100%; }
+        .timetable-header-actions form,
+        .timetable-header-actions .button { width:100% !important; }
         .section-schedule-header { align-items:flex-start; flex-direction:column; }
         .section-schedule-controls { width:100%; flex-wrap:wrap; }
         .section-schedule-controls .button { flex:1; }
