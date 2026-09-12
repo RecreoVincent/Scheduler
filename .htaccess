@@ -14,3 +14,19 @@ Options -Indexes
 <FilesMatch "^\.(env|git|htaccess|user\.ini)">
     Require all denied
 </FilesMatch>
+
+# ============================================
+# SECURITY HEADERS
+#
+# Laravel's SecurityHeaders middleware (app/Http/Middleware/SecurityHeaders.php)
+# already sets these on every response the app renders. They're repeated here
+# as a baseline so raw Apache/PHP error pages served before Laravel boots
+# (e.g. a fatal error before the framework loads) still carry them.
+# ============================================
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" env=HTTPS
+</IfModule>
