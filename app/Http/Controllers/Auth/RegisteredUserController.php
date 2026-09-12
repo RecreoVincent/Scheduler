@@ -100,7 +100,16 @@ class RegisteredUserController extends Controller
         }
 
         if ($validated['role'] === 'student') {
-            $this->startStudentOtpVerification($request, $validated);
+            try {
+                $this->startStudentOtpVerification($request, $validated);
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                return back()->withInput()->with(
+                    'error',
+                    'We could not send the verification code to your Microsoft 365 email right now. Please try again in a moment, or contact the registrar if this keeps happening.',
+                );
+            }
 
             return redirect()->route('register.otp');
         }
@@ -161,7 +170,15 @@ class RegisteredUserController extends Controller
         $pending = $request->session()->get('student_registration_otp');
         if (! $pending) return redirect()->route('register',['role'=>'student']);
         if (now()->timestamp < ($pending['resend_at'] ?? 0)) return back()->withErrors(['otp'=>'Please wait before requesting another code.']);
-        $this->sendOtp($request, $pending['registration']);
+
+        try {
+            $this->sendOtp($request, $pending['registration']);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', 'We could not resend the verification code right now. Please try again in a moment.');
+        }
+
         return back()->with('success','A new verification code was sent to your Microsoft 365 email.');
     }
 

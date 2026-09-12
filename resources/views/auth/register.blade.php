@@ -116,6 +116,7 @@
 
             <div class="portal-card"><span class="portal-symbol {{ $departmentBrand ? '' : 'mcc-symbol' }}"><img src="{{ asset($registrationBrand['logo']) }}" alt="{{ $registrationBrand['logo_alt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ ucfirst($selectedRole) }} Portal @if($selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}#portals">Change</a></div>
             @if($errors->any())<div class="alert alert-error" role="alert">Please review the highlighted registration fields and try again.</div>@endif
+            @if(session('error'))<div class="alert alert-error" role="alert">{{ session('error') }}</div>@endif
 
             @php($openAccountStep = $errors->hasAny(['email', 'password', 'password_confirmation']))
             <form id="registrationForm" method="POST" action="{{ route('register') }}" data-initial-step="{{ $openAccountStep ? 2 : 1 }}">
