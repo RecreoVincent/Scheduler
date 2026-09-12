@@ -4,6 +4,7 @@ use App\Http\Middleware\AdminMiddleware;
 use App\Http\Middleware\DeanMiddleware;
 use App\Http\Middleware\GecMiddleware;
 use App\Http\Middleware\InstructorMiddleware;
+use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\StudentMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'instructor' => InstructorMiddleware::class,
             'student' => StudentMiddleware::class,
         ]);
+
+        $middleware->web(append: [SecurityHeaders::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

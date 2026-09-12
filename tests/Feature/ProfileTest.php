@@ -71,13 +71,13 @@ class ProfileTest extends TestCase
                 'name' => $user->name,
                 'email' => $user->email,
                 'current_password' => 'old-password',
-                'password' => 'new-password',
-                'password_confirmation' => 'new-password',
+                'password' => 'new-password1',
+                'password_confirmation' => 'new-password1',
             ]);
 
         $response->assertSessionHasNoErrors()->assertRedirect('/profile');
 
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('new-password', $user->refresh()->password));
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('new-password1', $user->refresh()->password));
     }
 
     public function test_password_is_unchanged_when_password_fields_are_left_blank(): void
@@ -109,8 +109,8 @@ class ProfileTest extends TestCase
                 'name' => $user->name,
                 'email' => $user->email,
                 'current_password' => 'wrong-password',
-                'password' => 'new-password',
-                'password_confirmation' => 'new-password',
+                'password' => 'new-password1',
+                'password_confirmation' => 'new-password1',
             ]);
 
         $response->assertSessionHasErrors('current_password')->assertRedirect('/profile');
@@ -130,7 +130,7 @@ class ProfileTest extends TestCase
                 'name' => $user->name,
                 'email' => $user->email,
                 'current_password' => 'old-password',
-                'password' => 'new-password',
+                'password' => 'new-password1',
                 'password_confirmation' => 'does-not-match',
             ]);
 

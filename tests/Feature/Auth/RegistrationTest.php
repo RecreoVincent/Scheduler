@@ -37,8 +37,8 @@ class RegistrationTest extends TestCase
             'first_name' => 'Test',
             'last_name' => 'User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'password1',
+            'password_confirmation' => 'password1',
             'role' => 'student',
             'course' => 'BSIT',
             'student_id' => '2026-0001',
@@ -65,7 +65,7 @@ class RegistrationTest extends TestCase
 
         $this->post('/login', [
             'email' => 'test@example.com',
-            'password' => 'password',
+            'password' => 'password1',
             'role' => 'student',
             'course' => 'BSIT',
         ])->assertRedirect(route('student.dashboard'));
@@ -75,7 +75,7 @@ class RegistrationTest extends TestCase
     {
         StudentRoster::create(['student_id'=>'2026-0002','full_name'=>'No Account']);
         $section = AcademicSection::create(['course'=>'BSIT','name'=>'1 - East','year_level'=>1,'academic_year'=>'2026-2027','semester'=>'All']);
-        $this->post('/register', ['first_name'=>'No','last_name'=>'Account','email'=>'outside@example.com','password'=>'password','password_confirmation'=>'password','role'=>'student','course'=>'BSIT','student_id'=>'2026-0002','year_level'=>1,'academic_section_id'=>$section->id])
+        $this->post('/register', ['first_name'=>'No','last_name'=>'Account','email'=>'outside@example.com','password'=>'password1','password_confirmation'=>'password1','role'=>'student','course'=>'BSIT','student_id'=>'2026-0002','year_level'=>1,'academic_section_id'=>$section->id])
             ->assertSessionHasErrors('email');
         $this->assertDatabaseMissing('users',['email'=>'outside@example.com']);
     }
@@ -84,7 +84,7 @@ class RegistrationTest extends TestCase
     {
         Ms365StudentAccount::create(['email'=>'notonroster@example.com','display_name'=>'Not On Roster']);
         $section = AcademicSection::create(['course'=>'BSIT','name'=>'1 - East','year_level'=>1,'academic_year'=>'2026-2027','semester'=>'All']);
-        $this->post('/register', ['first_name'=>'Not','last_name'=>'OnRoster','email'=>'notonroster@example.com','password'=>'password','password_confirmation'=>'password','role'=>'student','course'=>'BSIT','student_id'=>'2026-9999','year_level'=>1,'academic_section_id'=>$section->id])
+        $this->post('/register', ['first_name'=>'Not','last_name'=>'OnRoster','email'=>'notonroster@example.com','password'=>'password1','password_confirmation'=>'password1','role'=>'student','course'=>'BSIT','student_id'=>'2026-9999','year_level'=>1,'academic_section_id'=>$section->id])
             ->assertSessionHasErrors('student_id');
         $this->assertDatabaseMissing('users',['email'=>'notonroster@example.com']);
     }
@@ -97,14 +97,14 @@ class RegistrationTest extends TestCase
         StudentRoster::create(['student_id'=>'2026-0003','full_name'=>'First User']);
         $section = AcademicSection::create(['course'=>'BSIT','name'=>'1 - East','year_level'=>1,'academic_year'=>'2026-2027','semester'=>'All']);
 
-        $firstPayload = ['first_name'=>'First','last_name'=>'User','email'=>'first@example.com','password'=>'password','password_confirmation'=>'password','role'=>'student','course'=>'BSIT','student_id'=>'2026-0003','year_level'=>1,'academic_section_id'=>$section->id];
+        $firstPayload = ['first_name'=>'First','last_name'=>'User','email'=>'first@example.com','password'=>'password1','password_confirmation'=>'password1','role'=>'student','course'=>'BSIT','student_id'=>'2026-0003','year_level'=>1,'academic_section_id'=>$section->id];
         $this->post('/register', $firstPayload)->assertRedirect(route('register.otp'));
         $pending = session('student_registration_otp');
         $pending['otp_hash'] = Hash::make('123456');
         $this->withSession(['student_registration_otp'=>$pending])->post(route('register.otp.verify'), ['otp'=>'123456'])
             ->assertRedirect(route('login', ['role'=>'student','course'=>'BSIT']));
 
-        $secondPayload = ['first_name'=>'Second','last_name'=>'User','email'=>'second@example.com','password'=>'password','password_confirmation'=>'password','role'=>'student','course'=>'BSIT','student_id'=>'2026-0003','year_level'=>1,'academic_section_id'=>$section->id];
+        $secondPayload = ['first_name'=>'Second','last_name'=>'User','email'=>'second@example.com','password'=>'password1','password_confirmation'=>'password1','role'=>'student','course'=>'BSIT','student_id'=>'2026-0003','year_level'=>1,'academic_section_id'=>$section->id];
         $this->post('/register', $secondPayload)->assertSessionHasErrors('student_id');
         $this->assertDatabaseMissing('users',['email'=>'second@example.com']);
     }
@@ -122,8 +122,8 @@ class RegistrationTest extends TestCase
             'first_name' => 'Test',
             'last_name' => 'Student',
             'email' => 'student@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'password1',
+            'password_confirmation' => 'password1',
             'role' => 'student',
             'course' => 'BSIT',
             'student_id' => '2026-0004',
