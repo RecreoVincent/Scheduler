@@ -117,10 +117,20 @@ class ScheduleController extends GecController
         $rooms = Room::forDepartment($department)->orderBy('name')->get();
         $instructors = User::forDepartment('GEC')->where('role', 'instructor')->where('account_status', 'active')->get();
 
-        $assignedInstructors = $subjects->flatMap->instructors->where('account_status', 'active');
-
-        if ($subjects->isEmpty() || ($instructors->isEmpty() && $assignedInstructors->isEmpty())) {
+        if ($subjects->isEmpty() || $instructors->isEmpty()) {
             return $this->failureResponse('The schedule cannot be created because a required minor subject or active GEC instructor is missing.');
+        }
+
+        $subjectsWithoutInstructors = $subjects
+            ->filter(fn ($subject): bool => $subject->instructors->where('account_status', 'active')->isEmpty())
+            ->map(fn ($subject): string => "{$subject->course}: {$subject->code}")
+            ->values();
+
+        if ($subjectsWithoutInstructors->isNotEmpty()) {
+            return $this->failureResponse(
+                'The schedule cannot be created because these Minor subjects have no active assigned instructor: '.$subjectsWithoutInstructors->join(', ').'.',
+                'Open Subject Assignment and assign at least one active GEC instructor to every listed Minor subject before creating the schedule.',
+            );
         }
 
         try {

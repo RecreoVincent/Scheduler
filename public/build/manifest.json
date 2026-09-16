@@ -4,7 +4,7 @@
     "name": "rolldown-runtime"
   },
   "resources/css/app.css": {
-    "file": "assets/app-DAvyCJWW.css",
+    "file": "assets/app-DFll8ADf.css",
     "name": "app",
     "names": [
       "app.css"
@@ -28,7 +28,7 @@
     ]
   },
   "resources/js/room-scanner.js": {
-    "file": "assets/room-scanner-DRnkn946.js",
+    "file": "assets/room-scanner-DnLpbwUb.js",
     "name": "room-scanner",
     "src": "resources/js/room-scanner.js",
     "isEntry": true,

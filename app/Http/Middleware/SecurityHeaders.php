@@ -15,7 +15,10 @@ class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+        // The room scanner requests video only after the user selects Start
+        // Camera. Permit that request from this same site while retaining the
+        // privacy protections for location and microphone.
+        $response->headers->set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(self)');
 
         if ($request->secure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');

@@ -68,8 +68,7 @@
         }
     }
     $selectedRoleLabel=$selectedRole==='gec'?'GEC':ucfirst($selectedRole);
-    $useStudentIdStep=$selectedRole==='student';
-    $skipStudentIdStep=$useStudentIdStep&&($errors->any()||filled(old('email')));
+    $usesStudentRosterLogin=$selectedRole==='student';
     $isBrandedPortal=$portalBrand!==null;
     $usesMccLogo=$isBrandedPortal&&!$isDepartmentDean;
     $usesDepartmentLogo=$isDepartmentDean;
@@ -224,33 +223,33 @@
             <header class="heading"><span class="heading-kicker">Secure portal access</span><h1>{{ $portalBrand['welcome'] }}</h1><p>{{ $portalBrand['description'] }}</p></header>
 
             <div class="portal-card"><span @class(['portal-symbol','mcc-portal-symbol'=>$usesMccLogo,'department-portal-symbol'=>$usesDepartmentLogo,'bsit-portal-symbol'=>$usesBsitLogo,$departmentLogoClass=>$usesDepartmentLogo])><img src="{{ asset($portalBrand['logo']) }}" alt="{{ $portalBrand['logoAlt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ $selectedRoleLabel }} Portal @if($selectedRole==='dean'&&$selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}">Change</a></div>
-            @if($errors->any())<div class="alert alert-error" role="alert">@if($errors->has('student_id')){{ $errors->first('student_id') }}@else Please check your login information and try again.@endif</div>@endif
+            @if($errors->any())<div class="alert alert-error" role="alert">@if($errors->has('student_id')){{ $errors->first('student_id') }}@elseif($errors->has('last_name')){{ $errors->first('last_name') }}@else Please check your login information and try again.@endif</div>@endif
             @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
 
-            @if($useStudentIdStep)
-            <div id="studentIdStep" @if($skipStudentIdStep) style="display:none" @endif>
+            @if($usesStudentRosterLogin)
+            <form method="POST" action="{{ route('login.student') }}">
+                @csrf
                 <div class="form-group">
-                    <label for="student_id_lookup">Student ID</label>
+                    <label for="student_id">Student number</label>
                     <div class="input-wrap">
                         <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-                        <input id="student_id_lookup" class="form-control" type="text" placeholder="e.g. 2023-00123" autocomplete="off" autofocus>
+                        <input id="student_id" class="form-control" type="text" name="student_id" value="{{ old('student_id') }}" placeholder="e.g. 2023-00123" required autocomplete="username" autofocus>
                     </div>
-                    <p id="studentIdError" class="field-error" hidden></p>
+                    @error('student_id')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
-                <button id="studentIdContinue" class="login-button" type="button"><span id="studentIdContinueLabel">Continue</span> <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
-            </div>
-            @endif
-
-            <form id="loginForm" method="POST" action="{{ route('login') }}" @if($useStudentIdStep && ! $skipStudentIdStep) style="display:none" @endif>
+                <div class="form-group"><label for="last_name">Last name</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg><input id="last_name" class="form-control" type="text" name="last_name" value="{{ old('last_name') }}" placeholder="Enter your last name" required autocomplete="family-name"></div>@error('last_name')<p class="field-error">{{ $message }}</p>@enderror</div>
+                <button class="login-button" type="submit">Sign In to Student Portal <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+            </form>
+            @else
+            <form method="POST" action="{{ route('login') }}">
                 @csrf
                 <input type="hidden" name="role" value="{{ $selectedRole }}"><input type="hidden" name="course" value="{{ $selectedCourse }}">
-                <div class="form-group"><label for="email">Email address</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input id="email" class="form-control" type="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" required @if(! $useStudentIdStep) autofocus @endif autocomplete="username"></div>@error('email')<p class="field-error">{{ $message }}</p>@enderror</div>
+                <div class="form-group"><label for="email">Email address</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><input id="email" class="form-control" type="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" required autofocus autocomplete="username"></div>@error('email')<p class="field-error">{{ $message }}</p>@enderror</div>
                 <div class="form-group"><label for="password">Password</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></svg><input id="password" class="form-control" type="password" name="password" placeholder="Enter your password" required autocomplete="current-password"><button id="togglePassword" class="toggle-password" type="button">Show</button></div>@error('password')<p class="field-error">{{ $message }}</p>@enderror</div>
                 <div class="form-options"><label class="remember"><input type="checkbox" name="remember" @checked(old('remember'))>Remember me</label>@if(Route::has('password.request'))<a class="forgot" href="{{ route('password.request') }}">Forgot password?</a>@endif</div>
                 <button class="login-button" type="submit">Sign In to {{ $selectedRoleLabel }} Portal <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
-                @if($useStudentIdStep)<button id="backToStudentId" class="toggle-password" type="button" style="position:static;display:block;margin:10px auto 0;text-transform:none;font-size:11px">Use a different Student ID</button>@endif
             </form>
-            @if(in_array($selectedRole,['student'],true))<p class="register-prompt">Don't have an account? <a href="{{ route('register',['role'=>$selectedRole,'course'=>$selectedCourse]) }}">Register here</a></p>@endif
+            @endif
         </div>
     </section>
 
@@ -269,76 +268,6 @@
     </section>
 </main>
 
-<script>(()=>{const input=document.getElementById('password'),button=document.getElementById('togglePassword');button.addEventListener('click',()=>{const visible=input.type==='text';input.type=visible?'password':'text';button.textContent=visible?'Show':'Hide'})})();</script>
-@if($useStudentIdStep)
-<script>
-(() => {
-    const step = document.getElementById('studentIdStep');
-    const idInput = document.getElementById('student_id_lookup');
-    const continueButton = document.getElementById('studentIdContinue');
-    const continueLabel = document.getElementById('studentIdContinueLabel');
-    const errorEl = document.getElementById('studentIdError');
-    const loginForm = document.getElementById('loginForm');
-    const emailInput = document.getElementById('email');
-    const backButton = document.getElementById('backToStudentId');
-    if (!step || !idInput || !continueButton || !loginForm) return;
-
-    function showError(message) {
-        errorEl.textContent = message;
-        errorEl.hidden = false;
-    }
-
-    async function checkStudentId() {
-        const value = idInput.value.trim();
-        errorEl.hidden = true;
-        if (!value) { showError('Enter your Student ID.'); return; }
-
-        continueButton.disabled = true;
-        continueLabel.textContent = 'Checking...';
-
-        try {
-            const response = await fetch('{{ route('login.student-id') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-                body: JSON.stringify({ student_id: value }),
-            });
-            const data = await response.json();
-
-            if (!response.ok) {
-                showError(data.message || 'This Student ID was not found in the official student roster.');
-                return;
-            }
-
-            if (data.status === 'unregistered') {
-                window.location.href = '{{ route('register', ['role' => 'student']) }}&student_id=' + encodeURIComponent(value);
-                return;
-            }
-
-            step.style.display = 'none';
-            loginForm.style.display = '';
-            if (emailInput) emailInput.value = data.email || '';
-            document.getElementById('password')?.focus();
-        } catch (error) {
-            showError('Something went wrong. Please try again.');
-        } finally {
-            continueButton.disabled = false;
-            continueLabel.textContent = 'Continue';
-        }
-    }
-
-    continueButton.addEventListener('click', checkStudentId);
-    idInput.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); checkStudentId(); } });
-    backButton?.addEventListener('click', () => {
-        loginForm.style.display = 'none';
-        step.style.display = '';
-        idInput.focus();
-    });
-})();
-</script>
-@endif
+<script>(()=>{const input=document.getElementById('password'),button=document.getElementById('togglePassword');if(!input||!button)return;button.addEventListener('click',()=>{const visible=input.type==='text';input.type=visible?'password':'text';button.textContent=visible?'Show':'Hide'})})();</script>
 </body>
 </html>

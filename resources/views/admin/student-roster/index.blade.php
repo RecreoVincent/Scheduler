@@ -43,7 +43,7 @@
 </style>
 @endpush
 @section('content')
-<div class="page-header"><div><h2>Student ID Roster</h2><p>Only student IDs in this roster can be used to register a Student Portal account, and each ID can register once.</p></div></div>
+<div class="page-header"><div><h2>Student ID Roster</h2><p>Students can sign in to the Student Portal when their student number and last name match this roster.</p></div></div>
 <div class="roster-stats">
     <div class="roster-stat-card">
         <span class="roster-stat-icon"><x-icon name="users" /></span>
@@ -51,7 +51,7 @@
     </div>
     <div class="roster-stat-card">
         <span class="roster-stat-icon"><x-icon name="check" /></span>
-        <div class="roster-stat-body"><span>Already registered</span><strong>{{ $statistics['registered'] }}</strong></div>
+        <div class="roster-stat-body"><span>Portal accounts created</span><strong>{{ $statistics['registered'] }}</strong></div>
     </div>
 </div>
 <div class="card" style="margin-bottom:20px">
@@ -68,5 +68,5 @@
     </form>
     @if(session('error_note'))<p style="margin-top:12px;color:#b42318;font-size:12px">{{ session('error_note') }}</p>@endif
 </div>
-<div class="card"><form class="filters roster-search-form" method="GET"><input class="input" type="search" name="search" value="{{ $search }}" placeholder="Search student ID, name, or section"><button class="button" type="submit">Search</button></form><div class="table-wrap"><table class="roster-table"><thead><tr><th>Student ID</th><th>Name</th><th>Section</th><th>Status</th><th>Last imported</th></tr></thead><tbody>@forelse($roster as $entry)<tr><td><strong>{{ $entry->student_id }}</strong></td><td>{{ $entry->full_name }}</td><td>{{ $entry->section ?: '—' }}</td><td>@if(in_array($entry->student_id, $registeredStudentIds, true))<span class="badge">Registered</span>@else<span class="badge" style="color:#64748b">Not registered</span>@endif</td><td>{{ $entry->imported_at?->format('M d, Y g:i A') ?: '—' }}</td></tr>@empty<tr><td colspan="5">No student roster records have been imported.</td></tr>@endforelse</tbody></table></div><x-pagination :paginator="$roster" label="Student roster pages" /></div>
+<div class="card"><form class="filters roster-search-form" method="GET"><input class="input" type="search" name="search" value="{{ $search }}" placeholder="Search student ID, name, or section"><button class="button" type="submit">Search</button></form><div class="table-wrap"><table class="roster-table"><thead><tr><th>Student ID</th><th>Name</th><th>Section</th><th>Status</th><th>Last imported</th></tr></thead><tbody>@forelse($roster as $entry)<tr><td><strong>{{ $entry->student_id }}</strong></td><td>{{ $entry->full_name }}</td><td>{{ $entry->section ?: '—' }}</td><td>@if(in_array($entry->student_id, $registeredStudentIds, true))<span class="badge">Portal account created</span>@else<span class="badge" style="color:#64748b">Not signed in yet</span>@endif</td><td>{{ $entry->imported_at?->format('M d, Y g:i A') ?: '—' }}</td></tr>@empty<tr><td colspan="5">No student roster records have been imported.</td></tr>@endforelse</tbody></table></div><x-pagination :paginator="$roster" label="Student roster pages" /></div>
 @endsection

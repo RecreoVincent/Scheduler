@@ -32,6 +32,7 @@
     </div>
     <div class="actions">
         <button id="openInstructorImport" class="button button-secondary" type="button">Import Instructors</button>
+        <a class="button button-secondary" href="{{ route('dean.instructors.import-template') }}">Download CSV Template</a>
         <button id="openInstructorCreate" class="button" type="button">Add Instructor</button>
     </div>
 </div>

@@ -22,7 +22,7 @@
 <div class="welcome">
     <div>
         <h2>Welcome, {{ $student->first_name }}</h2>
-        <p>Here is an overview of your assigned class schedule and Study Load.</p>
+        <p>Year {{ $student->year_level ?? 'not assigned' }} · Section {{ $student->academicSection?->name ?? 'not assigned' }}. Here is an overview of your assigned class schedule and Study Load.</p>
     </div>
     <a class="button" href="{{ route('student.study-load.index') }}">View Full Study Load</a>
 </div>

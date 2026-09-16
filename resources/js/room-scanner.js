@@ -214,7 +214,7 @@ if (scanner) {
     }
 
     async function startCamera() {
-        if (! navigator.mediaDevices?.getUserMedia) {
+        if (! window.isSecureContext || ! navigator.mediaDevices?.getUserMedia) {
             placeholder.textContent = 'Camera access requires HTTPS or localhost. Open this system through a secure address, or use manual room lookup.';
             setFeedback('Camera access is not supported on this address.', 'error');
             return;
@@ -255,8 +255,8 @@ if (scanner) {
         } catch (error) {
             stopCamera({ resetMessage: false });
 
-            if (error?.name === 'NotAllowedError') {
-                placeholder.textContent = 'Camera permission was denied. Allow camera access in your browser settings, then try again.';
+            if (error?.name === 'NotAllowedError' || error?.name === 'SecurityError') {
+                placeholder.textContent = 'Camera access is blocked. Select the lock or camera icon beside the address, set Camera to Allow, then select Start Camera again.';
             } else if (error?.name === 'NotFoundError') {
                 placeholder.textContent = 'No camera was found on this device. Use manual room lookup below.';
             } else {

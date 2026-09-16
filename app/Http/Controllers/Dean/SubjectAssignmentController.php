@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Dean;
 
 use App\Models\AcademicSection;
+use App\Models\CrossDepartmentInstructorRequest;
 use App\Models\Subject;
 use App\Models\User;
 use App\Services\ClassScheduleGenerator;
+use App\Services\CrossDepartmentInstructorRequestNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +17,13 @@ use Illuminate\View\View;
 
 class SubjectAssignmentController extends DeanController
 {
+    /** @var array<int, string> */
     private const DEPARTMENTS = ['BSIT', 'BSBA', 'BSHM', 'BSED', 'BEED'];
 
-    public function __construct(private readonly ClassScheduleGenerator $generator) {}
+    public function __construct(
+        private readonly ClassScheduleGenerator $generator,
+        private readonly CrossDepartmentInstructorRequestNotifier $requestNotifier,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -146,7 +152,6 @@ class SubjectAssignmentController extends DeanController
         );
         $subjectAssignments = $subjectOptions->mapWithKeys(fn (Subject $subject): array => [
             (string) $subject->id => [
-                'department' => $subject->instructors->first()?->course ?? $course,
                 'instructor_ids' => $subject->instructors
                     ->pluck('id')
                     ->map(fn ($id): int => (int) $id)
@@ -154,6 +159,7 @@ class SubjectAssignmentController extends DeanController
                 'units' => (float) $subject->units,
                 'semester' => $subject->semester,
                 'year_level' => (int) $subject->year_level,
+                'department' => $subject->instructors->first()?->course ?? $course,
             ],
         ]);
 
@@ -164,8 +170,8 @@ class SubjectAssignmentController extends DeanController
             'selectedSemester',
             'selectedYearLevel',
             'departments',
-            'instructors',
             'selectedDepartment',
+            'instructors',
             'subjectAssignments',
             'scheduledInstructorLoads',
             'assignedInstructorLoads',
@@ -176,12 +182,16 @@ class SubjectAssignmentController extends DeanController
 
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->filled('instructor_department')) {
+            $request->merge(['instructor_department' => $this->course($request)]);
+        }
+
         $validated = $request->validate([
             'semester' => ['required', Rule::in($this->enabledSemesters($request))],
             'year_level' => ['nullable', 'integer', 'between:1,4'],
             'subject_id' => ['required', 'integer'],
             'instructor_department' => ['required', Rule::in(self::DEPARTMENTS)],
-            'instructor_ids' => ['required', 'array', 'min:1', 'max:4'],
+            'instructor_ids' => ['nullable', 'array', 'max:4'],
             'instructor_ids.*' => ['nullable', 'integer'],
             'return_search' => ['nullable', 'string', 'max:100'],
             'return_year_level' => ['nullable', 'integer', 'between:1,4'],
@@ -189,7 +199,47 @@ class SubjectAssignmentController extends DeanController
             'return_curriculum' => ['nullable', Rule::in(['New', 'Old'])],
             'return_assignment_status' => ['nullable', Rule::in(['assigned', 'unassigned'])],
         ]);
-        $priorityInstructorIds = collect($validated['instructor_ids'])
+        $course = $this->course($request);
+        $subjectQuery = Subject::query()
+            ->forDepartment($course)
+            ->where('managed_by_gec', false)
+            ->where('semester', $validated['semester']);
+
+        if (filled($validated['year_level'] ?? null)) {
+            $subjectQuery->where('year_level', $validated['year_level']);
+        }
+
+        $subject = $subjectQuery->findOrFail($validated['subject_id']);
+
+        if ($validated['instructor_department'] !== $course) {
+            $instructorRequest = CrossDepartmentInstructorRequest::query()
+                ->where('subject_id', $subject->id)
+                ->where('requesting_department', $course)
+                ->where('requested_department', $validated['instructor_department'])
+                ->where('status', 'pending')
+                ->first();
+
+            if ($instructorRequest === null) {
+                $instructorRequest = CrossDepartmentInstructorRequest::create([
+                    'subject_id' => $subject->id,
+                    'requesting_department' => $course,
+                    'requested_department' => $validated['instructor_department'],
+                    'requested_by' => $request->user()->id,
+                ]);
+                $recipientCount = $this->requestNotifier->notifyReceivingDeans($instructorRequest);
+                $message = $recipientCount > 0
+                    ? "A {$validated['instructor_department']} instructor was requested for {$subject->code}. The {$validated['instructor_department']} Dean was notified."
+                    : "A {$validated['instructor_department']} instructor was requested for {$subject->code}, but no active {$validated['instructor_department']} Dean account exists yet. The request is queued and will be delivered when that Dean account is created or activated.";
+            } else {
+                $message = "A {$validated['instructor_department']} instructor request for {$subject->code} is already pending.";
+            }
+
+            return redirect()
+                ->route('dean.subject-assignments.index', $this->returnFilters($validated))
+                ->with('success', $message);
+        }
+
+        $priorityInstructorIds = collect($validated['instructor_ids'] ?? [])
             ->filter(fn ($id): bool => filled($id))
             ->map(fn ($id): int => (int) $id)
             ->values();
@@ -200,26 +250,15 @@ class SubjectAssignmentController extends DeanController
             ]);
         }
 
-
         if ($priorityInstructorIds->unique()->count() !== $priorityInstructorIds->count()) {
             throw ValidationException::withMessages([
                 'instructor_ids' => 'Each instructor can only be selected once in the priority list.',
             ]);
         }
-        $subjectQuery = Subject::query()
-            ->forDepartment($this->course($request))
-            ->where('managed_by_gec', false)
-            ->where('semester', $validated['semester']);
-
-        if (filled($validated['year_level'] ?? null)) {
-            $subjectQuery->where('year_level', $validated['year_level']);
-        }
-
-        $subject = $subjectQuery->findOrFail($validated['subject_id']);
 
         $instructorsById = User::query()
             ->whereIn('id', $priorityInstructorIds)
-            ->forDepartment($validated['instructor_department'])
+            ->forDepartment($course)
             ->where('role', 'instructor')
             ->where('account_status', 'active')
             ->get()
@@ -235,7 +274,7 @@ class SubjectAssignmentController extends DeanController
             ->pluck('users.id')
             ->map(fn ($id): int => (int) $id);
         $activeAcademicYear = AcademicSection::query()
-            ->forDepartment($this->course($request))
+            ->forDepartment($course)
             ->max('academic_year');
         $scheduledLoads = $activeAcademicYear
             ? DB::table('class_schedules')
@@ -297,17 +336,22 @@ class SubjectAssignmentController extends DeanController
         $instructorCount = $instructors->count();
         $message = "{$instructorCount} ".str('instructor')->plural($instructorCount)." assigned to {$subject->code} successfully.";
 
-        $returnFilters = array_filter([
+        return redirect()
+            ->route('dean.subject-assignments.index', $this->returnFilters($validated))
+            ->with('success', $message);
+    }
+
+    /** @param array<string, mixed> $validated
+     *  @return array<string, mixed> */
+    private function returnFilters(array $validated): array
+    {
+        return array_filter([
             'search' => $validated['return_search'] ?? null,
             'year_level' => $validated['return_year_level'] ?? null,
             'semester' => $validated['return_semester'] ?? null,
             'curriculum' => $validated['return_curriculum'] ?? null,
             'assignment_status' => $validated['return_assignment_status'] ?? null,
         ], fn ($value): bool => filled($value));
-
-        return redirect()
-            ->route('dean.subject-assignments.index', $returnFilters)
-            ->with('success', $message);
     }
 
     public function destroy(Request $request, Subject $subject): RedirectResponse

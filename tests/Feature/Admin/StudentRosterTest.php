@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\AcademicSection;
 use App\Models\StudentRoster;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,5 +53,24 @@ class StudentRosterTest extends TestCase
 
         $this->assertSame(1, StudentRoster::where('student_id', '2026-0001')->count());
         $this->assertDatabaseHas('student_rosters', ['student_id' => '2026-0001', 'full_name' => 'Updated Name', 'section' => 'BSIT 1B']);
+    }
+
+    public function test_import_uses_the_matching_dean_section_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - East', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $file = UploadedFile::fake()->createWithContent('roster.csv', "Student ID,Name,Section\n2026-0001,Juan Dela Cruz,1-East\n");
+
+        $this->actingAs($admin)
+            ->post(route('admin.student-roster.import'), ['csv_file' => $file])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('student_rosters', [
+            'student_id' => '2026-0001',
+            'section' => '1 - East',
+        ]);
     }
 }

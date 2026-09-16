@@ -25,7 +25,10 @@ class TimetableController extends DeanController
     {
         $course = $this->course($request);
         $enabledSemesters = $this->enabledSemesters($request);
-        $query = ClassSchedule::query()->forDepartment($course)->whereIn('semester', $enabledSemesters);
+        $query = ClassSchedule::query()
+            ->forDepartment($course)
+            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'))
+            ->whereIn('semester', $enabledSemesters);
 
         foreach (['section_id', 'academic_year', 'semester', 'day'] as $filter) {
             if ($request->filled($filter)) {
@@ -63,11 +66,14 @@ class TimetableController extends DeanController
             ->get();
 
         $rooms = Room::forDepartment($course)->orderBy('name')->get();
-        $instructors = User::where('role', 'instructor')->where('account_status', 'active')->orderBy('course')->orderBy('first_name')->get();
+        $instructors = $this->eligibleInstructors($course)->get();
 
         $editingSchedule = null;
         if ($request->filled('edit')) {
-            $editingSchedule = ClassSchedule::with(['section', 'subject'])->forDepartment($course)->find($request->input('edit'));
+            $editingSchedule = ClassSchedule::with(['section', 'subject'])
+                ->forDepartment($course)
+                ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'))
+                ->find($request->input('edit'));
         }
 
         $scheduleHandoffs = ScheduleHandoff::forDepartment($course)->orderByDesc('majors_sent_at')->get();
@@ -107,9 +113,10 @@ class TimetableController extends DeanController
     public function edit(Request $request, ClassSchedule $timetable): View
     {
         $this->ensureCourse($request, $timetable);
+        $this->ensureMajorSchedule($timetable);
         $course = $this->course($request);
         $rooms = Room::forDepartment($course)->orderBy('name')->get();
-        $instructors = User::where('role', 'instructor')->where('account_status', 'active')->orderBy('course')->orderBy('first_name')->get();
+        $instructors = $this->eligibleInstructors($course)->get();
 
         return view('dean.timetable.edit', compact('course', 'timetable', 'rooms', 'instructors'));
     }
@@ -117,6 +124,7 @@ class TimetableController extends DeanController
     public function update(Request $request, ClassSchedule $timetable): RedirectResponse
     {
         $this->ensureCourse($request, $timetable);
+        $this->ensureMajorSchedule($timetable);
         $validated = $request->validate([
             'instructor_id' => ['required', 'integer'], 'room_id' => ['required', 'integer'],
             'day' => ['required', Rule::in(array_keys(ClassSchedule::DAY_PATTERNS))],
@@ -124,7 +132,19 @@ class TimetableController extends DeanController
         ]);
         $course = $this->course($request);
         abort_unless(Room::whereKey($validated['room_id'])->forDepartment($course)->exists(), 422);
-        abort_unless(User::whereKey($validated['instructor_id'])->where('role', 'instructor')->where('account_status', 'active')->exists(), 422);
+        abort_unless(
+            $this->eligibleInstructors($course)
+                ->whereKey($validated['instructor_id'])
+                ->whereHas('subjects', fn ($subjectQuery) => $subjectQuery->whereKey($timetable->subject_id))
+                ->exists()
+                || User::query()
+                    ->whereKey($validated['instructor_id'])
+                    ->forDepartment($course)
+                    ->where('role', 'instructor')
+                    ->where('account_status', 'active')
+                    ->exists(),
+            422,
+        );
 
         $room = Room::findOrFail($validated['room_id']);
         $instructor = User::findOrFail($validated['instructor_id']);
@@ -162,6 +182,7 @@ class TimetableController extends DeanController
     public function destroy(Request $request, ClassSchedule $timetable): RedirectResponse
     {
         $this->ensureCourse($request, $timetable);
+        $this->ensureMajorSchedule($timetable);
         $timetable->loadMissing(['section', 'subject', 'room']);
         $timetable->delete();
         $this->notifications->scheduleArchived($timetable);
@@ -174,6 +195,7 @@ class TimetableController extends DeanController
         $this->ensureCourse($request, $section);
 
         $schedules = ClassSchedule::forDepartment($this->course($request))
+            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'))
             ->where('section_id', $section->id)
             ->get();
         $deleted = $schedules->isEmpty()
@@ -198,7 +220,9 @@ class TimetableController extends DeanController
         ]);
 
         $course = $this->course($request);
-        $query = ClassSchedule::query()->forDepartment($course);
+        $query = ClassSchedule::query()
+            ->forDepartment($course)
+            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'));
 
         foreach (['section_id', 'academic_year', 'semester', 'day'] as $filter) {
             if (filled($validated[$filter] ?? null)) {
@@ -227,5 +251,27 @@ class TimetableController extends DeanController
             'success',
             "All matching schedules were moved to the archive successfully ({$entryCount} class ".str('entry')->plural($entryCount)." across {$sectionCount} ".str('section')->plural($sectionCount).').',
         );
+    }
+
+    private function eligibleInstructors(string $course)
+    {
+        return User::query()
+            ->where('role', 'instructor')
+            ->where('account_status', 'active')
+            ->where(function ($query) use ($course): void {
+                $query
+                    ->forDepartment($course)
+                    ->orWhereHas('subjects', fn ($subjectQuery) => $subjectQuery->forDepartment($course));
+            })
+            ->orderBy('course')
+            ->orderBy('first_name')
+            ->orderBy('last_name');
+    }
+
+    private function ensureMajorSchedule(ClassSchedule $schedule): void
+    {
+        $schedule->loadMissing('subject');
+
+        abort_unless(strcasecmp((string) $schedule->subject?->classification, 'Major') === 0, 404);
     }
 }

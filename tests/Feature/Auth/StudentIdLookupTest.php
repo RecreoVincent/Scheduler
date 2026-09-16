@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\AcademicSection;
 use App\Models\StudentRoster;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,40 +12,93 @@ class StudentIdLookupTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_an_unknown_student_id_is_reported_as_not_found(): void
+    public function test_roster_student_can_sign_in_using_student_number_and_last_name(): void
     {
-        $this->postJson(route('login.student-id'), ['student_id' => '2026-9999'])
-            ->assertStatus(404)
-            ->assertJson(['status' => 'not_found']);
-    }
-
-    public function test_a_roster_student_id_with_no_account_is_reported_as_unregistered(): void
-    {
-        StudentRoster::create(['student_id' => '2026-0001', 'full_name' => 'Juan Dela Cruz']);
-
-        $this->postJson(route('login.student-id'), ['student_id' => '2026-0001'])
-            ->assertOk()
-            ->assertJson(['status' => 'unregistered']);
-    }
-
-    public function test_a_roster_student_id_with_an_account_is_reported_as_registered_with_its_email(): void
-    {
-        StudentRoster::create(['student_id' => '2026-0001', 'full_name' => 'Juan Dela Cruz']);
-        User::factory()->create([
-            'role' => 'student',
+        $section = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - West', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        StudentRoster::create([
             'student_id' => '2026-0001',
-            'email' => 'juan@mcclawis.edu.ph',
+            'full_name' => 'Juan Dela Cruz',
+            'section' => '1 - West',
         ]);
 
-        $this->postJson(route('login.student-id'), ['student_id' => '2026-0001'])
+        $this->post(route('login.student'), [
+            'student_id' => '2026-0001',
+            'last_name' => 'dela cruz',
+        ])->assertRedirect(route('student.dashboard'));
+
+        $student = User::query()->where('student_id', '2026-0001')->firstOrFail();
+        $this->assertAuthenticatedAs($student, 'student');
+        $this->assertDatabaseHas('users', [
+            'id' => $student->id,
+            'role' => 'student',
+            'course' => 'BSIT',
+            'year_level' => 1,
+            'academic_section_id' => $section->id,
+            'account_status' => 'active',
+            'last_name' => 'Dela Cruz',
+        ]);
+        $this->get(route('student.dashboard'))
             ->assertOk()
-            ->assertJson(['status' => 'registered', 'email' => 'juan@mcclawis.edu.ph']);
+            ->assertSee('BSIT · Year 1')
+            ->assertSee('Section 1 - West');
     }
 
-    public function test_student_id_is_required(): void
+    public function test_student_cannot_sign_in_when_the_roster_entry_or_last_name_does_not_match(): void
     {
-        $this->postJson(route('login.student-id'), [])
-            ->assertStatus(422)
-            ->assertJsonPath('status', 'invalid');
+        StudentRoster::create(['student_id' => '2026-0001', 'full_name' => 'Juan Dela Cruz']);
+
+        $this->from(route('login', ['role' => 'student']))
+            ->post(route('login.student'), ['student_id' => '2026-0001', 'last_name' => 'Santos'])
+            ->assertRedirect(route('login', ['role' => 'student']))
+            ->assertSessionHasErrors('student_id');
+        $this->assertGuest('student');
+
+        $this->from(route('login', ['role' => 'student']))
+            ->post(route('login.student'), ['student_id' => '2026-9999', 'last_name' => 'Dela Cruz'])
+            ->assertRedirect(route('login', ['role' => 'student']))
+            ->assertSessionHasErrors('student_id');
+        $this->assertGuest('student');
+    }
+
+    public function test_existing_student_account_is_activated_after_roster_verification(): void
+    {
+        $section = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - West', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        StudentRoster::create(['student_id' => '2026-0001', 'full_name' => 'Juan Dela Cruz', 'section' => '1-west']);
+        $student = User::factory()->create([
+            'role' => 'student',
+            'student_id' => '2026-0001',
+            'course' => 'BSBA',
+            'year_level' => 4,
+            'academic_section_id' => null,
+            'account_status' => 'pending',
+        ]);
+
+        $this->post(route('login.student'), ['student_id' => '2026-0001', 'last_name' => 'Cruz'])
+            ->assertRedirect(route('student.dashboard'));
+
+        $this->assertAuthenticatedAs($student, 'student');
+        $this->assertDatabaseHas('users', [
+            'id' => $student->id,
+            'account_status' => 'active',
+            'course' => 'BSIT',
+            'year_level' => 1,
+            'academic_section_id' => $section->id,
+        ]);
+    }
+
+    public function test_student_login_screen_uses_roster_credentials_without_registration_or_password_fields(): void
+    {
+        $this->get(route('login', ['role' => 'student']))
+            ->assertOk()
+            ->assertSee('Student number')
+            ->assertSee('Last name')
+            ->assertSee('action="'.route('login.student').'"', false)
+            ->assertDontSee('Register here');
     }
 }

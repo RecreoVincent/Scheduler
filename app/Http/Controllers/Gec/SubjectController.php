@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Gec;
 
 use App\Models\ClassSchedule;
 use App\Models\Subject;
+use App\Services\SubjectImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SubjectController extends GecController
 {
@@ -72,6 +75,46 @@ class SubjectController extends GecController
         }
 
         return redirect()->route('gec.subjects.index')->with('success', 'Minor subject added successfully.');
+    }
+
+    public function import(Request $request, SubjectImporter $importer): RedirectResponse
+    {
+        $validated = $request->validate([
+            'import_course' => ['required', Rule::in(self::REAL_DEPARTMENTS)],
+            'csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120'],
+        ]);
+
+        try {
+            $result = $importer->import($request->file('csv_file')->getRealPath(), $validated['import_course'], true);
+        } catch (RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $response = back()->with('success', "Import complete: {$result['imported']} minor subject(s) created, {$result['skipped']} skipped.");
+
+        if ($result['errors'] !== []) {
+            $shown = array_slice($result['errors'], 0, 15);
+            $note = implode(' | ', $shown);
+            if (count($result['errors']) > 15) {
+                $note .= ' | +'.(count($result['errors']) - 15).' more.';
+            }
+            $response->with('error_note', $note);
+        }
+
+        return $response;
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        $headers = ['code', 'name', 'subject_type', 'classification', 'year_level', 'semester', 'curriculum', 'units'];
+        $sample = ['GE101', 'Understanding the Self', 'Lecture', 'Minor', '1', '1st', 'New', '3'];
+
+        return response()->streamDownload(function () use ($headers, $sample) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            fputcsv($out, $sample);
+            fclose($out);
+        }, 'gec-subject-import-template.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function edit(Subject $subject): RedirectResponse

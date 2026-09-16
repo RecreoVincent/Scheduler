@@ -559,6 +559,11 @@
             color:#fff !important;
         }
 
+        body.gec-institution-portal .content .report-card .report-symbol,
+        body.gec-institution-portal .content .report-card .button span {
+            color:#fff !important;
+        }
+
         body.gec-institution-portal .content .card tbody tr:hover {
             background:rgba(255,255,255,.46);
         }
@@ -658,7 +663,8 @@
 <body class="gec-institution-portal" style="--gec-institution-logo:url('{{ asset('images/mcc-college-logo.png') }}')">
 <div class="app">
 
-    <aside id="portalSidebar" class="sidebar">
+    <aside id="portalSidebar" class="sidebar portal-sidebar">
+        <div class="portal-sidebar-navigation">
         <a href="{{ route('gec.dashboard') }}" class="brand">
             <span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span>
             <span class="brand-copy"><strong>MCC | Scheduler</strong><small>GEC Portal</small></span>
@@ -686,7 +692,8 @@
         <a class="menu-link {{ request()->routeIs('gec.timetable.*') ? 'active' : '' }}" href="{{ route('gec.timetable.index') }}"><span class="menu-icon"><x-icon name="calendar-grid" /></span>Timetable</a>
         <a class="menu-link {{ request()->routeIs('gec.archive.*') ? 'active' : '' }}" href="{{ route('gec.archive.index') }}"><span class="menu-icon"><x-icon name="archive" /></span>Archive</a>
         <a class="menu-link {{ request()->routeIs('gec.print.*') ? 'active' : '' }}" href="{{ route('gec.print.index') }}"><span class="menu-icon"><x-icon name="printer" /></span>Print Reports</a>
-
+        </div>
+        @include('layouts.partials.portal-sidebar-logout')
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
 
@@ -737,11 +744,6 @@
                     </summary>
                     <div class="profile-dropdown">
                         <button id="openGecProfileModal" type="button" class="profile-dropdown-action">Edit Profile</button>
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <input type="hidden" name="role" value="gec">
-                            <button type="submit" class="profile-dropdown-action">Logout</button>
-                        </form>
                     </div>
                 </details>
             </div>
@@ -837,6 +839,22 @@
 @stack('scripts')
 @include('layouts.partials.sidebar-toggle-script')
 @include('layouts.partials.auto-filter-script')
+
+<script>
+    (() => {
+        const semesterSettings = document.querySelector('.topbar-settings-menu');
+
+        if (!semesterSettings) return;
+
+        document.addEventListener('click', event => {
+            if (!semesterSettings.contains(event.target)) semesterSettings.removeAttribute('open');
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') semesterSettings.removeAttribute('open');
+        });
+    })();
+</script>
 
 <script>
     (() => {

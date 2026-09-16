@@ -36,7 +36,7 @@
 </style>
 @endpush
 @section('content')
-<div class="page-header"><div><h2>{{ $course }} Rooms</h2><p>Manage department rooms and view their scheduled usage.</p></div><div class="actions"><button id="openRoomImport" class="button button-secondary" type="button">Import Rooms</button><button id="openRoomCreate" class="button" type="button">Add Room</button></div></div>
+<div class="page-header"><div><h2>{{ $course }} Rooms</h2><p>Manage department rooms and view their scheduled usage.</p></div><div class="actions"><button id="openRoomImport" class="button button-secondary" type="button">Import Rooms</button><a class="button button-secondary" href="{{ route('dean.rooms.import-template') }}">Download CSV Template</a><button id="openRoomCreate" class="button" type="button">Add Room</button></div></div>
 
 <div class="card">
     <form class="filters" style="grid-template-columns:1fr 1fr;" method="GET" data-auto-filter>
@@ -106,7 +106,7 @@
 
 @include('dean.partials.delete-confirmation', [
     'title' => 'Delete Room?',
-    'message' => 'This room will be permanently deleted. Rooms with existing class schedules cannot be deleted.',
+    'message' => 'This room will be permanently deleted. Its active and archived schedules will be kept, but their room assignment will become TBA.',
     'confirmLabel' => 'Delete Room',
 ])
 @endsection

@@ -17,6 +17,7 @@
     </div>
     <div class="actions">
         <button id="openStudentImport" class="button button-secondary" type="button">Import Students</button>
+        <a class="button button-secondary" href="{{ route('dean.students.import-template') }}">Download CSV Template</a>
         <button id="openStudentCreate" class="button" type="button">Add Student</button>
     </div>
 </div>

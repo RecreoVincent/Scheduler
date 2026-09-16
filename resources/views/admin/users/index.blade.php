@@ -69,6 +69,13 @@
         gap: 7px;
     }
 
+    .page-header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        justify-content: flex-end;
+    }
+
     .small-button {
         padding: 7px 10px;
         font-size: 12px;
@@ -192,6 +199,11 @@
         .filters {
             grid-template-columns: 1fr;
         }
+
+        .page-header-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
     }
 
 </style>
@@ -205,15 +217,17 @@
         <p>Create and manage dean, instructor, and student accounts.</p>
     </div>
 
-    <button id="openUserCreate" type="button" class="button">
-        ＋ Create Account
-    </button>
+    <div class="page-header-actions">
+        <button id="openUserImport" type="button" class="button button-secondary">Import Accounts</button>
+        <a class="button button-secondary" href="{{ route('admin.users.import-template') }}">Download CSV Template</a>
+        <button id="openUserCreate" type="button" class="button">＋ Create Account</button>
+    </div>
 </div>
 
 <div class="card">
 
     <form method="GET"
-          action="{{ route('admin.users.index') }}"
+          action="{{ route('admin.users.index', absolute: false) }}"
           class="filters"
           data-auto-filter>
 
@@ -457,6 +471,44 @@
     </section>
 </div>
 
+<div id="userImportModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="userImportTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="userImportTitle">Import User Accounts</h2>
+                <p>Bulk-create dean, instructor, and student accounts from a CSV file.</p>
+            </div>
+            <button class="admin-profile-close" type="button" data-close-user-import aria-label="Close user account import">&times;</button>
+        </header>
+
+        <form method="POST" action="{{ route('admin.users.import') }}" enctype="multipart/form-data">
+            @csrf
+            <div class="admin-profile-form-grid">
+                <div class="admin-profile-field full">
+                    <label for="user_import_csv_file">CSV file</label>
+                    <input id="user_import_csv_file" class="input" type="file" name="csv_file" accept=".csv,text/csv" required>
+                    @error('csv_file')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field full">
+                    <p style="margin:0;color:var(--muted);font-size:12px;line-height:1.6">
+                        Required columns for every row: <strong>first_name</strong>, <strong>last_name</strong>, <strong>email</strong>, <strong>role</strong> (dean, instructor, or student), and <strong>course</strong>.
+                        Instructor rows also require employment_type (full_time, industry_part_time, or flexible_part_time); outside_work_end_time is required for industry part-time instructors (HH:MM).
+                        Student rows require year_level and student_id; section is optional but must match the course and year level. The student ID must already be in the Student Roster.
+                        Optional columns: middle_name, suffix, account_status (active or pending), and password. A temporary password is generated when password is blank.
+                        <a href="{{ route('admin.users.import-template') }}">Download a CSV template</a>.
+                    </p>
+                    @if(session('user_import_error_note'))<p style="margin:12px 0 0;color:var(--danger);font-size:12px;line-height:1.55">{{ session('user_import_error_note') }}</p>@endif
+                </div>
+            </div>
+
+            <footer class="admin-profile-actions">
+                <button class="button button-secondary" type="button" data-close-user-import>Cancel</button>
+                <button class="button" type="submit">Import Accounts</button>
+            </footer>
+        </form>
+    </section>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -538,6 +590,38 @@
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
 
         @if($errors->hasAny(['first_name', 'last_name', 'middle_name', 'suffix', 'email', 'role', 'course', 'year_level', 'academic_section_id', 'employment_type', 'outside_work_end_time', 'account_status', 'password']) || $editingUser)
+            openModal();
+        @endif
+    })();
+</script>
+@endpush
+
+@push('scripts')
+<script>
+    (() => {
+        const modal = document.getElementById('userImportModal');
+        const openButton = document.getElementById('openUserImport');
+        const closeButtons = [...modal.querySelectorAll('[data-close-user-import]')];
+        const fileInput = document.getElementById('user_import_csv_file');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => fileInput.focus(), 0);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            openButton.focus();
+        }
+
+        openButton.addEventListener('click', openModal);
+        closeButtons.forEach(button => button.addEventListener('click', closeModal));
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        @if($errors->has('csv_file') || session('user_import_error_note'))
             openModal();
         @endif
     })();

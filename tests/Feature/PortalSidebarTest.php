@@ -93,4 +93,21 @@ class PortalSidebarTest extends TestCase
             }
         }
     }
+
+    public function test_admin_portal_no_longer_exposes_ms365_account_management(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'admin',
+            'account_status' => 'active',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('MS365 Accounts');
+
+        $this->actingAs($admin)
+            ->get('/admin/ms365-accounts')
+            ->assertNotFound();
+    }
 }

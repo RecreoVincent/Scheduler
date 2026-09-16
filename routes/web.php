@@ -1,10 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\Ms365StudentAccountController;
 use App\Http\Controllers\Admin\StudentRosterController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Dean\DashboardController as DeanDashboardController;
+use App\Http\Controllers\Dean\CrossDepartmentInstructorRequestController as DeanCrossDepartmentInstructorRequestController;
 use App\Http\Controllers\Dean\InstructorController as DeanInstructorController;
 use App\Http\Controllers\Dean\InstructorUnitController as DeanInstructorUnitController;
 use App\Http\Controllers\Dean\PrintController as DeanPrintController;
@@ -92,9 +92,6 @@ Route::middleware('admin')
         Route::patch('/profile', [ProfileController::class, 'update'])
             ->name('profile.update');
 
-        Route::get('/ms365-accounts', [Ms365StudentAccountController::class, 'index'])->name('ms365-accounts.index');
-        Route::post('/ms365-accounts/import', [Ms365StudentAccountController::class, 'import'])->name('ms365-accounts.import');
-
         Route::get('/student-roster', [StudentRosterController::class, 'index'])->name('student-roster.index');
         Route::post('/student-roster/import', [StudentRosterController::class, 'import'])->name('student-roster.import');
 
@@ -108,6 +105,9 @@ Route::middleware('admin')
         Route::delete('/users/{user}/force-delete', [UserController::class, 'forceDelete'])
             ->whereNumber('user')
             ->name('users.force-delete');
+
+        Route::post('/users/import', [UserController::class, 'import'])->name('users.import');
+        Route::get('/users/import-template', [UserController::class, 'importTemplate'])->name('users.import-template');
 
         Route::resource('users', UserController::class)
             ->except(['show']);
@@ -139,6 +139,8 @@ Route::middleware('gec')
         Route::patch('/instructor-units/defaults', [GecInstructorUnitController::class, 'updateDefaults'])->name('instructor-units.defaults');
         Route::patch('/instructor-units/{instructor}', [GecInstructorUnitController::class, 'update'])->name('instructor-units.update');
         Route::delete('/instructor-units/{instructor}', [GecInstructorUnitController::class, 'destroy'])->name('instructor-units.destroy');
+        Route::post('/subjects/import', [GecSubjectController::class, 'import'])->name('subjects.import');
+        Route::get('/subjects/import-template', [GecSubjectController::class, 'importTemplate'])->name('subjects.import-template');
         Route::resource('subjects', GecSubjectController::class)->except(['show']);
         Route::get('/subject-assignments', [GecSubjectAssignmentController::class, 'index'])->name('subject-assignments.index');
         Route::get('/subject-assignments/create', [GecSubjectAssignmentController::class, 'create'])->name('subject-assignments.create');
@@ -203,6 +205,8 @@ Route::middleware('dean')
         Route::post('/subject-assignments', [DeanSubjectAssignmentController::class, 'store'])->name('subject-assignments.store');
         Route::delete('/subject-assignments/remove-all', [DeanSubjectAssignmentController::class, 'destroyAll'])->name('subject-assignments.destroy-all');
         Route::delete('/subject-assignments/{subject}', [DeanSubjectAssignmentController::class, 'destroy'])->name('subject-assignments.destroy');
+        Route::get('/instructor-requests', [DeanCrossDepartmentInstructorRequestController::class, 'index'])->name('instructor-requests.index');
+        Route::post('/instructor-requests/{instructorRequest}/fulfill', [DeanCrossDepartmentInstructorRequestController::class, 'fulfill'])->name('instructor-requests.fulfill');
         Route::post('/subjects/import', [DeanSubjectController::class, 'import'])->name('subjects.import');
         Route::get('/subjects/import-template', [DeanSubjectController::class, 'importTemplate'])->name('subjects.import-template');
         Route::resource('subjects', DeanSubjectController::class)->except(['show']);

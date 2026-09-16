@@ -67,7 +67,7 @@ class AuthenticationTest extends TestCase
         ];
 
         foreach ($roles as $role => [$welcome, $label]) {
-            $this->get(route('login', ['role' => $role]))
+            $response = $this->get(route('login', ['role' => $role]))
                 ->assertOk()
                 ->assertSee('class="branded-portal-login"', false)
                 ->assertSee('images/mcc-college-logo.png')
@@ -75,8 +75,16 @@ class AuthenticationTest extends TestCase
                 ->assertSee('mcc-logo-wrap')
                 ->assertSee('mcc-portal-symbol')
                 ->assertSee($welcome)
-                ->assertSee($label)
-                ->assertSee('value="'.$role.'"', false);
+                ->assertSee($label);
+
+            if ($role === 'student') {
+                $response
+                    ->assertSee('Student number')
+                    ->assertSee('Last name')
+                    ->assertDontSee('value="student"', false);
+            } else {
+                $response->assertSee('value="'.$role.'"', false);
+            }
         }
     }
 

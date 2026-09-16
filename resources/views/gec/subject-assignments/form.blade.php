@@ -1,19 +1,20 @@
 @push('styles')
 <style>
     .assignment-form-card { width:100%; padding:0 !important; background:transparent !important; border:0 !important; border-radius:0; box-shadow:none !important; }
-    #priorityAssignmentForm { width:100%; margin:0 auto; }
-    .assignment-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 15px; }
-    .assignment-fields > .assignment-control-group { width:100%; }
-    .assignment-priority-group { grid-column:1 / -1; }
+    #priorityAssignmentForm { width:100%; min-width:0; margin:0 auto; }
+    .assignment-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 15px; min-width:0; }
+    .assignment-fields > .assignment-control-group { width:100%; min-width:0; }
+    .assignment-priority-group { grid-column:1 / -1; min-width:0; }
     .assignment-fields label { margin-bottom:5px; }
-    .assignment-fields .input { min-height:38px !important; height:38px; padding:7px 10px !important; font-size:11px !important; }
+    .assignment-fields .input { width:100%; min-width:0 !important; max-width:100%; box-sizing:border-box; min-height:38px !important; height:38px; padding:7px 10px !important; font-size:11px !important; }
     .assignment-field-note { min-height:0; margin-top:4px; color:var(--muted); font-size:9px; line-height:1.4; }
-    .priority-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; padding:8px; background:rgba(255,255,255,.38); border:1px solid rgba(69,6,147,.13); border-radius:10px; }
-    .priority-row { display:grid; grid-template-columns:105px 1fr; align-items:center; gap:9px; padding:7px; background:rgba(255,255,255,.72); border:1px solid rgba(69,6,147,.1); border-radius:8px; }
-    .priority-label { display:flex; align-items:center; gap:8px; color:var(--navy); font-size:11px; font-weight:800; }
+    .priority-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; max-width:100%; min-width:0; box-sizing:border-box; gap:7px; padding:8px; background:rgba(255,255,255,.38); border:1px solid rgba(69,6,147,.13); border-radius:10px; }
+    .priority-row { display:grid; grid-template-columns:105px minmax(0,1fr); min-width:0; align-items:center; gap:9px; padding:7px; background:rgba(255,255,255,.72); border:1px solid rgba(69,6,147,.1); border-radius:8px; }
+    .priority-label { display:flex; min-width:0; align-items:center; gap:8px; color:var(--navy); font-size:11px; font-weight:800; white-space:nowrap; }
     .priority-number { width:25px; height:25px; display:grid; place-items:center; color:white; background:var(--primary); border-radius:7px; }
     .priority-row:first-child { border-color:rgba(69,6,147,.34); box-shadow:0 7px 18px rgba(69,6,147,.07); }
     .priority-row:first-child .priority-number { background:linear-gradient(135deg,var(--primary),var(--primary-light)); }
+    .priority-select { width:100%; min-width:0 !important; max-width:100%; }
     .priority-select option[hidden] { display:none; }
     .priority-empty { display:none; margin:0; padding:14px; color:var(--muted); text-align:center; font-size:10px; background:rgba(255,255,255,.66); border-radius:8px; }
     .priority-explanation { margin-top:7px; padding:9px 11px; color:#584663; background:#f7f1fb; border-left:3px solid var(--primary); border-radius:7px; font-size:9px; line-height:1.5; }
@@ -103,7 +104,7 @@
             <div class="assignment-priority-group">
                 <label>Instructor Priorities</label>
                 <div class="priority-list">
-                    @for($priority=1;$priority<=4;$priority++)
+                    @for($priority=1;$priority<=10;$priority++)
                         <div class="priority-row">
                             <span class="priority-label"><span class="priority-number">{{ $priority }}</span>Priority {{ $priority }}</span>
                             <select class="input priority-select" name="instructor_ids[]" data-priority="{{ $priority }}" @required($priority===1)>
@@ -122,7 +123,7 @@
                     <p id="noDepartmentInstructors" class="priority-empty" role="status" aria-live="polite"></p>
                 </div>
                 <div class="priority-explanation">
-                    Priority 1 receives sections first. When that instructor reaches the configured unit limit or has no conflict-free time, the scheduler tries Priority 2, followed by Priority 3 and Priority 4. The same instructor cannot occupy two priority positions.
+                    Priority 1 receives sections first. When that instructor reaches the configured unit limit or has no conflict-free time, the scheduler continues through the selected backup priorities, up to Priority 10. The same instructor cannot occupy two priority positions.
                     Instructors who cannot accept the selected subject without exceeding their unit limit are hidden.
                     @if($activeAcademicYear) Current generated loads are checked against A.Y. {{ $activeAcademicYear }}. @endif
                 </div>

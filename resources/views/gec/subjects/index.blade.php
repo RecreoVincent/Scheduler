@@ -5,6 +5,17 @@
 @push('styles')
 <style>
     .subjects-filters { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    /* Keep the department label content-sized instead of giving it a share of a
+       wide, horizontally scrollable subjects table. */
+    .subjects-table th:first-child,
+    .subjects-table td:first-child { width:1%; white-space:nowrap; }
+    .subjects-table .department-badge {
+        display:inline-flex !important;
+        width:auto !important;
+        max-width:100%;
+        align-items:center;
+        white-space:nowrap;
+    }
     @media(max-width:900px) { .subjects-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media(max-width:560px) { .subjects-filters { grid-template-columns:1fr; } }
 </style>
@@ -14,6 +25,8 @@
 <div class="page-header">
     <div><h2>General Education (Minor) Subjects</h2><p>Minor subjects across BSIT, BSBA, BSHM, BSED, and BEED, managed centrally by GEC.</p></div>
     <div class="actions">
+        <button id="openSubjectImport" class="button button-secondary" type="button">Import Subjects</button>
+        <a class="button button-secondary" href="{{ route('gec.subjects.import-template') }}">Download CSV Template</a>
         <button id="openSubjectCreate" class="button" type="button">Add Subject</button>
     </div>
 </div>
@@ -56,12 +69,12 @@
 
 <div class="card">
     <div class="table-wrap">
-        <table>
+        <table class="subjects-table">
             <thead><tr><th>Department</th><th>Code</th><th>Description</th><th>Type</th><th>Year</th><th>Semester</th><th>Curriculum</th><th>Units</th><th>Instructors</th><th>Actions</th></tr></thead>
             <tbody>
                 @forelse($subjects as $subject)
                     <tr>
-                        <td><span class="badge">{{ $subject->course }}</span></td>
+                        <td><span class="badge department-badge">{{ $subject->course }}</span></td>
                         <td><strong>{{ $subject->code }}</strong></td>
                         <td>{{ $subject->name }}</td>
                         <td>{{ $subject->subject_type }}</td>
@@ -159,6 +172,54 @@
 </div>
 @endpush
 
+@push('portal-profile-overlay')
+<div id="subjectImportModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="subjectImportTitle">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="subjectImportTitle">Import Minor Subjects</h2>
+                <p>Choose the department, then bulk-create its General Education subjects from a CSV file.</p>
+            </div>
+            <button class="admin-profile-close" type="button" data-close-subject-import aria-label="Close subject import">&times;</button>
+        </header>
+
+        <form method="POST" action="{{ route('gec.subjects.import') }}" enctype="multipart/form-data">
+            @csrf
+            <input type="hidden" name="subject_import_modal" value="1">
+            <div class="admin-profile-form-grid">
+                <div class="admin-profile-field full">
+                    <label for="import_subject_course">Department</label>
+                    <select id="import_subject_course" class="input" name="import_course" required>
+                        <option value="">Choose a department</option>
+                        @foreach(App\Http\Controllers\Gec\GecController::REAL_DEPARTMENTS as $department)
+                            <option value="{{ $department }}" @selected(old('import_course') === $department)>{{ $department }}</option>
+                        @endforeach
+                    </select>
+                    @error('import_course')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field full">
+                    <label for="subject_csv_file">CSV file</label>
+                    <input id="subject_csv_file" class="input" type="file" name="csv_file" accept=".csv,text/csv" required>
+                    @error('csv_file')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                </div>
+                <div class="admin-profile-field full">
+                    <p style="margin:0;color:var(--muted);font-size:12px;line-height:1.6">
+                        Required columns: <strong>code</strong>, <strong>name</strong>, <strong>subject_type</strong> (Lecture or Laboratory), <strong>year_level</strong> (1â€“4), <strong>semester</strong> (1st, 2nd, or Summer), <strong>units</strong> (0.5â€“12).
+                        Optional columns: classification and curriculum (New/Old). Imported subjects are always saved as GEC-managed Minor subjects.
+                        <a href="{{ route('gec.subjects.import-template') }}">Download a CSV template</a>.
+                    </p>
+                </div>
+            </div>
+
+            <footer class="admin-profile-actions">
+                <button class="button button-secondary" type="button" data-close-subject-import>Cancel</button>
+                <button class="button" type="submit">Import Subjects</button>
+            </footer>
+        </form>
+    </section>
+</div>
+@endpush
+
 @push('scripts')
 <script>
     (() => {
@@ -189,6 +250,34 @@
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
 
         @if($errors->hasAny(['course', 'code', 'name', 'subject_type', 'year_level', 'curriculum', 'units']) || $editingSubject)
+            openModal();
+        @endif
+    })();
+
+    (() => {
+        const modal = document.getElementById('subjectImportModal');
+        const openButton = document.getElementById('openSubjectImport');
+        const closeButtons = [...modal.querySelectorAll('[data-close-subject-import]')];
+        const firstInput = document.getElementById('import_subject_course');
+
+        function openModal() {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            window.setTimeout(() => firstInput.focus(), 0);
+        }
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            openButton.focus();
+        }
+
+        openButton.addEventListener('click', openModal);
+        closeButtons.forEach(button => button.addEventListener('click', closeModal));
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        @if($errors->hasAny(['import_course', 'csv_file']))
             openModal();
         @endif
     })();

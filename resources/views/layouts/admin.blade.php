@@ -594,7 +594,8 @@
 <body class="admin-institution-portal" style="--admin-institution-logo:url('{{ asset('images/mcc-college-logo.png') }}');--admin-portal-background:url('{{ asset('images/admin-portal-background.png') }}')">
 <div class="app">
 
-    <aside id="portalSidebar" class="sidebar">
+    <aside id="portalSidebar" class="sidebar portal-sidebar">
+        <div class="portal-sidebar-navigation">
         <a href="{{ route('admin.dashboard') }}" class="brand">
             <span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span>
             <span class="brand-copy"><strong>MCC | Scheduler</strong><small>Admin Portal</small></span>
@@ -623,16 +624,12 @@
             Deleted Accounts
         </a>
 
-        <a href="{{ route('admin.ms365-accounts.index') }}" class="menu-link {{ request()->routeIs('admin.ms365-accounts.*') ? 'active' : '' }}">
-            <span class="menu-icon"><x-icon name="at-sign" /></span>
-            MS365 Accounts
-        </a>
-
         <a href="{{ route('admin.student-roster.index') }}" class="menu-link {{ request()->routeIs('admin.student-roster.*') ? 'active' : '' }}">
             <span class="menu-icon"><x-icon name="users" /></span>
             Student Roster
         </a>
-
+        </div>
+        @include('layouts.partials.portal-sidebar-logout')
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
 
@@ -654,11 +651,6 @@
                 </summary>
                 <div class="profile-dropdown">
                     <button id="openAdminProfileModal" type="button" class="profile-dropdown-action">Edit Profile</button>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <input type="hidden" name="role" value="admin">
-                        <button type="submit" class="profile-dropdown-action">Logout</button>
-                    </form>
                 </div>
             </details>
         </header>

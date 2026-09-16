@@ -5,24 +5,33 @@
 @push('styles')
 <style>
     .assignment-table { table-layout:fixed; width:100%; }
-    .assignment-table th, .assignment-table td { padding:16px 22px; }
-    .assignment-table td { vertical-align:middle; word-wrap:break-word; }
-    .assignment-table th:nth-child(1), .assignment-table td:nth-child(1) { width:10%; }
-    .assignment-table th:nth-child(2), .assignment-table td:nth-child(2) { width:11%; }
-    .assignment-table th:nth-child(3), .assignment-table td:nth-child(3) { width:18%; }
-    .assignment-table th:nth-child(4), .assignment-table td:nth-child(4) { width:9%; }
-    .assignment-table th:nth-child(5), .assignment-table td:nth-child(5) { width:10%; }
-    .assignment-table th:nth-child(6), .assignment-table td:nth-child(6) { width:13%; }
-    .assignment-table th:nth-child(7), .assignment-table td:nth-child(7) { width:17%; }
-    .assignment-table th:nth-child(8), .assignment-table td:nth-child(8) { width:12%; }
+    .assignment-table th, .assignment-table td { padding:10px 9px; }
+    .assignment-table th { font-size:8.5px; }
+    .assignment-table td { font-size:10px; vertical-align:middle; word-wrap:break-word; }
+    .assignment-table th:nth-child(1), .assignment-table td:nth-child(1) { width:7%; white-space:nowrap; }
+    .assignment-table th:nth-child(2), .assignment-table td:nth-child(2) { width:8%; }
+    .assignment-table th:nth-child(3), .assignment-table td:nth-child(3) { width:16%; }
+    .assignment-table th:nth-child(4), .assignment-table td:nth-child(4) { width:7%; }
+    .assignment-table th:nth-child(5), .assignment-table td:nth-child(5) { width:8%; }
+    .assignment-table th:nth-child(6), .assignment-table td:nth-child(6) { width:12%; }
+    .assignment-table th:nth-child(7), .assignment-table td:nth-child(7) { width:25%; }
+    .assignment-table th:nth-child(8), .assignment-table td:nth-child(8) { width:17%; }
     .assignment-instructors { display:flex; flex-wrap:wrap; gap:5px; }
-    .assignment-instructors .badge { text-transform:none; }
+    .assignment-instructors .badge { max-width:100%; padding:4px 10px; overflow:hidden; font-size:8.5px; line-height:1.2; text-overflow:ellipsis; text-transform:none; white-space:nowrap; }
+    .assignment-table .department-badge {
+        display:inline-flex !important;
+        width:auto !important;
+        max-width:100%;
+        align-items:center;
+        white-space:nowrap;
+    }
     .assignment-actions { width:1%; white-space:nowrap; text-align:right; }
     .assignment-actions .actions { justify-content:flex-end; flex-wrap:nowrap; }
     .assignment-actions .button { min-width:100px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }
     .assignment-filters { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    @media(max-width:1100px) { .assignment-table { min-width:940px; } }
     @media(max-width:900px) { .assignment-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media(max-width:560px) { .assignment-filters { grid-template-columns:1fr; } }
 </style>
@@ -109,7 +118,7 @@
             <tbody>
                 @forelse($subjects as $subject)
                     <tr>
-                        <td><span class="badge">{{ $subject->course }}</span></td>
+                        <td><span class="badge department-badge">{{ $subject->course }}</span></td>
                         <td><strong>{{ $subject->code }}</strong></td>
                         <td>{{ $subject->name }}</td>
                         <td>Year {{ $subject->year_level }}</td>

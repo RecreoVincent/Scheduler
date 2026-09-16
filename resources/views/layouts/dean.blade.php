@@ -233,6 +233,11 @@
             color:#fff !important;
         }
 
+        body.dean-department-portal .content .report-card .report-symbol,
+        body.dean-department-portal .content .report-card .button span {
+            color:#fff !important;
+        }
+
         body.dean-department-portal .content .card .instructor-mark {
             display:grid;
             place-items:center;
@@ -265,7 +270,8 @@
 </head>
 <body class="dean-department-portal" style="--dean-department-logo:url('{{ asset($deanDepartmentLogo) }}')">
 <div class="app">
-    <aside id="portalSidebar" class="sidebar">
+    <aside id="portalSidebar" class="sidebar portal-sidebar">
+        <div class="portal-sidebar-navigation">
         <a href="{{ route('dean.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Dean Portal</small></span></a>
         <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} Department</div>
 
@@ -282,13 +288,15 @@
         <a class="menu-link {{ request()->routeIs('dean.instructors.*') ? 'active' : '' }}" href="{{ route('dean.instructors.index') }}"><span class="menu-icon"><x-icon name="cap" /></span>Instructor List</a>
         <a class="menu-link {{ request()->routeIs('dean.instructor-units.*') ? 'active' : '' }}" href="{{ route('dean.instructor-units.index') }}"><span class="menu-icon"><x-icon name="clipboard" /></span>Instructor Units</a>
         <a class="menu-link {{ request()->routeIs('dean.subject-assignments.*') ? 'active' : '' }}" href="{{ route('dean.subject-assignments.index') }}"><span class="menu-icon"><x-icon name="link" /></span>Subject Assignment</a>
+        <a class="menu-link {{ request()->routeIs('dean.instructor-requests.*') ? 'active' : '' }}" href="{{ route('dean.instructor-requests.index') }}"><span class="menu-icon"><x-icon name="users" /></span>Instructor Requests</a>
 
         <p class="menu-label">Scheduling</p>
         <a class="menu-link {{ request()->routeIs('dean.schedules.*') ? 'active' : '' }}" href="{{ route('dean.schedules.create') }}"><span class="menu-icon"><x-icon name="calendar-plus" /></span>Create Schedule</a>
         <a class="menu-link {{ request()->routeIs('dean.timetable.*') ? 'active' : '' }}" href="{{ route('dean.timetable.index') }}"><span class="menu-icon"><x-icon name="calendar-grid" /></span>Timetable</a>
         <a class="menu-link {{ request()->routeIs('dean.archive.*') ? 'active' : '' }}" href="{{ route('dean.archive.index') }}"><span class="menu-icon"><x-icon name="archive" /></span>Archive</a>
         <a class="menu-link {{ request()->routeIs('dean.print.*') ? 'active' : '' }}" href="{{ route('dean.print.index') }}"><span class="menu-icon"><x-icon name="printer" /></span>Print Reports</a>
-
+        </div>
+        @include('layouts.partials.portal-sidebar-logout')
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
 
@@ -351,6 +359,21 @@
 @stack('scripts')
 @include('layouts.partials.sidebar-toggle-script')
 @include('layouts.partials.auto-filter-script')
+<script>
+    (() => {
+        const semesterSettings = document.querySelector('.topbar-settings-menu');
+
+        if (!semesterSettings) return;
+
+        document.addEventListener('click', event => {
+            if (!semesterSettings.contains(event.target)) semesterSettings.removeAttribute('open');
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') semesterSettings.removeAttribute('open');
+        });
+    })();
+</script>
 @if($hasNotice)<script>(()=>{const m=document.getElementById('deanNotice'),b=document.getElementById('closeDeanNotice');document.body.classList.add('modal-open');const close=()=>{m.remove();document.body.classList.remove('modal-open')};b.focus();b.onclick=close;m.onclick=e=>{if(e.target===m)close()};document.addEventListener('keydown',e=>{if(e.key==='Escape')close()})})();</script>@endif
 </body>
 </html>

@@ -38,7 +38,7 @@
     <header class="admin-profile-header">
         <div>
             <h2 id="assignmentFormTitle">Assign Instructor to a Subject</h2>
-            <p>Select the semester, year level, subject, instructor department, and teaching priority in order.</p>
+            <p>Select the semester, year level, subject, and instructor department. Selecting another department sends its Dean an instructor request.</p>
         </div>
         <button id="closeAssignmentForm" class="admin-profile-close" type="button" aria-label="Close assignment form">&times;</button>
     </header>
@@ -107,10 +107,11 @@
                         <option value="{{ $department }}" @selected($selectedDepartment===$department)>{{ $department }}</option>
                     @endforeach
                 </select>
+                <p id="instructorDepartmentNote" class="assignment-field-note">Choose your department to set instructor priorities directly.</p>
                 @error('instructor_department')<div class="error">{{ $message }}</div>@enderror
             </div>
 
-            <div class="assignment-priority-group">
+            <div id="priorityAssignmentGroup" class="assignment-priority-group">
                 <label>Instructor Priorities</label>
                 <div class="priority-list">
                     @for($priority=1;$priority<=4;$priority++)
@@ -144,7 +145,7 @@
 
         <footer class="admin-profile-actions">
             <button id="cancelAssignmentForm" class="button button-secondary" type="button">Cancel</button>
-            <button class="button" type="submit" @disabled($subjectOptions->isEmpty())>Submit Assignment</button>
+            <button id="assignmentSubmitButton" class="button" type="submit" @disabled($subjectOptions->isEmpty())>Submit Assignment</button>
         </footer>
     </form>
 </div>
@@ -166,12 +167,16 @@
         const subjectOptions=[...subject.querySelectorAll('option[data-semester]')];
         const subjectGroups=[...subject.querySelectorAll('optgroup[data-year-group]')];
         const prioritySelects=[...document.querySelectorAll('.priority-select')];
+        const priorityAssignmentGroup=document.getElementById('priorityAssignmentGroup');
+        const submitButton=document.getElementById('assignmentSubmitButton');
+        const departmentNote=document.getElementById('instructorDepartmentNote');
         const emptyMessage=document.getElementById('noDepartmentInstructors');
         const subjectAvailability=document.getElementById('subjectAvailability');
         const assignments=@json($subjectAssignments);
         const scheduledLoads=@json($scheduledInstructorLoads);
         const assignedLoads=@json($assignedInstructorLoads);
         const instructorLimits=@json($instructorLimits);
+        const localDepartment=@json($course);
         const shouldOpen=@json(request()->boolean('open_assignment_modal') || $errors->any());
 
         function openModal(){
@@ -207,6 +212,26 @@
             return prioritySelects.map(select=>Number(select.value)).filter(Boolean);
         }
 
+        function isExternalDepartment(){
+            return department.value!==localDepartment;
+        }
+
+        function updateAssignmentMode(){
+            const external=isExternalDepartment();
+            priorityAssignmentGroup.hidden=external;
+            prioritySelects.forEach((select,index)=>{
+                select.disabled=external;
+                select.required=!external&&index===0;
+                if(external)select.value='';
+            });
+            submitButton.textContent=external
+                ?`Request ${department.value} Instructor`
+                :'Submit Assignment';
+            departmentNote.textContent=external
+                ?`Submitting will notify the ${department.value} Dean, who will assign an instructor from their department.`
+                :'Choose your department to set instructor priorities directly.';
+        }
+
         function refreshInstructorOptions(){
             const assignment=assignments[subject.value]??{instructor_ids:[],units:0,semester:semester.value};
             const alreadyAssigned=assignment.instructor_ids.map(Number);
@@ -218,15 +243,15 @@
                 [...select.options].forEach(option=>{
                     if(!option.value)return;
                     const id=Number(option.value);
+                    const correctDepartment=option.dataset.department===department.value;
                     const scheduledUnits=Number(scheduledLoads[id]?.[semester.value]??0);
                     const subjectUnits=Number(assignedLoads[id]?.[semester.value]??0);
                     const currentUnits=Math.max(scheduledUnits,subjectUnits);
                     const limit=Number(instructorLimits[id]??0);
                     const hasCapacity=currentUnits+Number(assignment.units||0)<=limit||alreadyAssigned.includes(id);
-                    const correctDepartment=option.dataset.department===department.value;
                     const duplicate=selectedIds.includes(id)&&id!==ownValue;
                     option.hidden=!correctDepartment;
-                    option.disabled=!hasCapacity||duplicate;
+                    option.disabled=!correctDepartment||!hasCapacity||duplicate;
                     option.textContent=`${option.dataset.instructorName} · ${option.dataset.employment} · ${currentUnits}/${limit} units`;
                     if(correctDepartment&&hasCapacity&&!duplicate)availableCount++;
                 });
@@ -235,24 +260,26 @@
 
             emptyMessage.style.display=availableCount===0?'block':'none';
             emptyMessage.textContent=availableCount===0
-                ?`No ${department.value} instructor currently has enough available units for this subject.`:'';
+                ?'No department instructor currently has enough available units for this subject.':'';
         }
 
         function loadSubjectAssignment(){
             const assignment=assignments[subject.value];
             if(assignment){
-                department.value=assignment.department;
+                department.value=assignment.department??localDepartment;
                 prioritySelects.forEach((select,index)=>{select.value=String(assignment.instructor_ids[index]??'');});
             }else{
+                department.value=localDepartment;
                 prioritySelects.forEach(select=>{select.value='';});
             }
+            updateAssignmentMode();
             refreshInstructorOptions();
         }
 
         semester.addEventListener('change',()=>{filterSubjects();loadSubjectAssignment();});
         yearLevel.addEventListener('change',()=>{filterSubjects();loadSubjectAssignment();});
         subject.addEventListener('change',loadSubjectAssignment);
-        department.addEventListener('change',()=>{prioritySelects.forEach(select=>select.value='');refreshInstructorOptions();});
+        department.addEventListener('change',()=>{updateAssignmentMode();refreshInstructorOptions();});
         prioritySelects.forEach(select=>select.addEventListener('change',refreshInstructorOptions));
         openButtons.forEach(button=>button.addEventListener('click',openModal));
         closeButton.addEventListener('click',closeModal);
@@ -261,6 +288,7 @@
         document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!modal.hidden)closeModal();});
 
         filterSubjects(false);
+        updateAssignmentMode();
         refreshInstructorOptions();
         if(shouldOpen)openModal();
     })();

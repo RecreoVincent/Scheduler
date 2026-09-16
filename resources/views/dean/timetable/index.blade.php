@@ -74,9 +74,9 @@
     </div>
     <div class="timetable-header-actions">
         <a class="button" href="{{ route('dean.schedules.create') }}">Generate Schedule</a>
-        <form method="POST" action="{{ route('dean.timetable.send-to-gec') }}" onsubmit="return confirm('Send all class schedules to GEC?\n\nThis notifies GEC that your department\'s Major-subject schedules are ready to reference while creating Minor-subject schedules.');">
+        <form id="sendSchedulesToGecForm" method="POST" action="{{ route('dean.timetable.send-to-gec') }}">
             @csrf
-            <button type="submit" class="button button-secondary" @disabled($filteredScheduleCount === 0)>Send to GEC</button>
+            <button id="openSendSchedulesToGecConfirmation" type="button" class="button button-secondary" @disabled($filteredScheduleCount === 0)>Send to GEC</button>
         </form>
         <button
             type="button"
@@ -297,6 +297,22 @@
         </form>
     </section>
 </div>
+
+<div id="sendSchedulesToGecModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="sendSchedulesToGecTitle" aria-describedby="sendSchedulesToGecMessage">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="sendSchedulesToGecTitle">Send Schedules to GEC?</h2>
+                <p id="sendSchedulesToGecMessage">This notifies GEC that your department's Major-subject schedules are ready to reference while creating Minor-subject schedules.</p>
+            </div>
+            <button id="closeSendSchedulesToGecConfirmation" class="admin-profile-close" type="button" aria-label="Close confirmation">&times;</button>
+        </header>
+        <footer class="admin-profile-actions">
+            <button id="cancelSendSchedulesToGec" type="button" class="button button-secondary">Cancel</button>
+            <button id="confirmSendSchedulesToGec" type="submit" form="sendSchedulesToGecForm" class="button">Send to GEC</button>
+        </footer>
+    </section>
+</div>
 @endpush
 
 @push('scripts')
@@ -343,6 +359,35 @@
         @if($editingSchedule || $errors->hasAny(['instructor_id', 'room_id', 'day', 'start_time', 'end_time']))
             openModal();
         @endif
+    })();
+
+    (() => {
+        const form = document.getElementById('sendSchedulesToGecForm');
+        const trigger = document.getElementById('openSendSchedulesToGecConfirmation');
+        const modal = document.getElementById('sendSchedulesToGecModal');
+        const closeButton = document.getElementById('closeSendSchedulesToGecConfirmation');
+        const cancelButton = document.getElementById('cancelSendSchedulesToGec');
+        const confirmButton = document.getElementById('confirmSendSchedulesToGec');
+
+        function closeModal() {
+            modal.hidden = true;
+            document.body.classList.remove('modal-open');
+            trigger.focus();
+        }
+
+        trigger.addEventListener('click', () => {
+            modal.hidden = false;
+            document.body.classList.add('modal-open');
+            cancelButton.focus();
+        });
+        closeButton.addEventListener('click', closeModal);
+        cancelButton.addEventListener('click', closeModal);
+        modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+        form.addEventListener('submit', () => {
+            confirmButton.disabled = true;
+            confirmButton.textContent = 'Sending...';
+        });
     })();
 </script>
 @endpush

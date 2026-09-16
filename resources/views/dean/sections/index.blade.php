@@ -8,6 +8,7 @@
     <div><h2>{{ $course }} Sections</h2><p>Organize sections by year level and academic period.</p></div>
     <div class="actions">
         <button id="openSectionImport" class="button button-secondary" type="button">Import Sections</button>
+        <a class="button button-secondary" href="{{ route('dean.sections.import-template') }}">Download CSV Template</a>
         <button id="openSectionCreate" class="button" type="button">Add Section</button>
     </div>
 </div>

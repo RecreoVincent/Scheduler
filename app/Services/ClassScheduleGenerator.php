@@ -186,7 +186,7 @@ class ClassScheduleGenerator
                         // Subject instructors are stored in the Dean's chosen
                         // priority order. Preserve that order so Priority 1
                         // receives sections until unavailable or at capacity,
-                        // followed by Priority 2, Priority 3, and Priority 4.
+                        // followed by each selected backup priority.
                         if ($preferred->isEmpty()) {
                             $candidates = $candidates->sortByDesc(
                                 fn (User $instructor): float => $this->targetUnits($instructor) - ($workloads[$instructor->id] ?? 0.0),

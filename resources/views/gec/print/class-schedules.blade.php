@@ -21,10 +21,12 @@
         .brand-mark img { display:block; width:100%; height:100%; object-fit:contain; }
         .brand-mark.department-mark { width:82px!important; height:82px!important; }
         .brand-mark.department-mark img { width:82px!important; height:82px!important; border-radius:50%; transform:none!important; }
-        .school-copy { padding:0 14px 9px; border-bottom:2px solid #333; font-family:Georgia, 'Times New Roman', serif; }
-        .school-name { margin:0; font-size:25px; line-height:1.05; font-weight:700; }
-        .department-name { margin:2px 0 0; font-size:21px; line-height:1.08; font-weight:700; }
-        .school-address,.school-email { margin:3px 0 0; font-size:13px; line-height:1.15; }
+        .school-copy { padding:0 14px 9px; border-bottom:2px solid #333; font-family:Arial, Helvetica, sans-serif; }
+        .school-government,.school-region,.school-commission,.school-name,.school-address { margin:0; line-height:1.05; }
+        .school-government { font-size:14px; font-weight:700; }
+        .school-region,.school-commission { font-size:12px; font-weight:600; }
+        .school-name { margin-top:1px; font-size:17px; line-height:1.05; font-weight:850; letter-spacing:.2px; }
+        .school-address { margin-top:1px; font-size:12px; font-weight:600; }
         .report-heading { padding:9px 24px 12px; text-align:center; text-transform:uppercase; }
         .report-heading h1 { margin:0; font-size:20px; line-height:1.15; }
         .report-heading p { margin:4px 0 0; font-size:16px; line-height:1.15; }
@@ -89,12 +91,13 @@
                 <header class="school-header">
                     <div class="brand-mark" aria-label="Madridejos Community College seal"><img src="{{ asset('images/mcc-college-logo.png') }}" alt="Madridejos Community College logo"></div>
                     <div class="school-copy">
-                        <p class="school-name">Madridejos Community College</p>
-                        <p class="department-name">{{ $department }}</p>
+                        <p class="school-government">Republic of the Philippines</p>
+                        <p class="school-region">Region VII, Central Visayas</p>
+                        <p class="school-commission">Commission on Higher Education</p>
+                        <p class="school-name">MADRIDEJOS COMMUNITY COLLEGE</p>
                         <p class="school-address">Crossing Bunakan, Madridejos, Cebu</p>
-                        <p class="school-email">Email: collegeofinfotech2023@gmail.com</p>
                     </div>
-                    <div class="brand-mark department-mark" aria-label="Information Technology Department seal"><img src="{{ asset('images/bsit-department-logo.jpg') }}" alt="Information Technology Department logo"></div>
+                    <div class="brand-mark department-mark" aria-label="Bayan ng Madridejos seal"><img src="{{ asset('images/madridejos-municipality-seal.png') }}" alt="Bayan ng Madridejos municipal seal"></div>
                 </header>
 
                 <section class="report-heading">

@@ -28,12 +28,9 @@ class DashboardController extends Controller
 
             $total = (clone $query)->count();
             $active = (clone $query)->where('account_status', 'active')->count();
-            $pending = (clone $query)->where('account_status', 'pending')->count();
-
             return [
                 'total' => $total,
                 'active' => $active,
-                'pending' => $pending,
                 'active_percentage' => $total > 0 ? (int) round(($active / $total) * 100) : 0,
             ];
         };

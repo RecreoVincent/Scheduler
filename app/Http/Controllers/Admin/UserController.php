@@ -7,11 +7,16 @@ use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
 use App\Models\Department;
 use App\Models\User;
+use App\Services\AdminUserAccountImporter;
+use App\Services\CrossDepartmentInstructorRequestNotifier;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
@@ -91,7 +96,7 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, CrossDepartmentInstructorRequestNotifier $requestNotifier)
     {
         $validated = $request->validate([
             'first_name' => [
@@ -135,7 +140,7 @@ class UserController extends Controller
         ]);
 
         try {
-            User::create([
+            $user = User::create([
                 'first_name' => $validated['first_name'],
                 'middle_name' => $validated['middle_name'] ?? null,
                 'last_name' => $validated['last_name'],
@@ -159,9 +164,74 @@ class UserController extends Controller
                 ->with('error', 'The account could not be created. Please try again.');
         }
 
+        $requestNotifier->notifyPendingRequestsForDean($user);
+
         return redirect()
             ->route('admin.users.index')
             ->with('success', 'Account created successfully.');
+    }
+
+    public function import(
+        Request $request,
+        AdminUserAccountImporter $importer,
+        CrossDepartmentInstructorRequestNotifier $requestNotifier,
+    ): RedirectResponse {
+        $request->validate(['csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:5120']]);
+
+        try {
+            $result = $importer->import($request->file('csv_file')->getRealPath());
+        } catch (RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        User::query()
+            ->whereIn('id', $result['created_user_ids'])
+            ->where('role', 'dean')
+            ->where('account_status', 'active')
+            ->each(fn (User $dean) => $requestNotifier->notifyPendingRequestsForDean($dean));
+
+        $message = "Import complete: {$result['imported']} ".str('account')->plural($result['imported'])." created, {$result['skipped']} skipped.";
+        if ($result['generated'] !== []) {
+            $credentials = collect($result['generated'])
+                ->map(fn (array $entry): string => "{$entry['email']} (temporary password: {$entry['password']})")
+                ->implode('; ');
+            $message .= " A temporary password was generated for rows without one: {$credentials}";
+        }
+
+        $response = back()->with('success', $message);
+        if ($result['errors'] !== []) {
+            $shown = array_slice($result['errors'], 0, 15);
+            $note = implode(' | ', $shown);
+            if (count($result['errors']) > 15) {
+                $note .= ' | +'.(count($result['errors']) - 15).' more.';
+            }
+            $response->with('user_import_error_note', $note);
+        }
+
+        return $response;
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        $headers = [
+            'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'role', 'course',
+            'employment_type', 'outside_work_end_time', 'year_level', 'section', 'student_id',
+            'account_status', 'password',
+        ];
+        $samples = [
+            ['Ana', '', 'Reyes', '', 'ana.reyes@example.com', 'dean', 'BSIT', '', '', '', '', '', 'active', ''],
+            ['Ivan', '', 'Cruz', '', 'ivan.cruz@example.com', 'instructor', 'BSIT', 'full_time', '', '', '', '', 'active', ''],
+            ['Mia', '', 'Santos', '', 'mia.santos@example.com', 'student', 'BSIT', '', '', '1', '1 - East', '2026-0001', 'active', ''],
+        ];
+
+        return response()->streamDownload(function () use ($headers, $samples): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            foreach ($samples as $sample) {
+                fputcsv($out, $sample);
+            }
+            fclose($out);
+        }, 'user-account-import-template.csv', ['Content-Type' => 'text/csv']);
     }
 
     public function edit(User $user)
@@ -176,9 +246,11 @@ class UserController extends Controller
         ]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user, CrossDepartmentInstructorRequestNotifier $requestNotifier)
     {
         abort_if($user->role === 'admin', 403);
+
+        $wasActiveDean = $user->role === 'dean' && $user->account_status === 'active';
 
         $validated = $request->validate([
             'first_name' => [
@@ -247,6 +319,10 @@ class UserController extends Controller
             return back()
                 ->withInput($request->except(['password', 'password_confirmation']))
                 ->with('error', 'The account could not be updated. Please try again.');
+        }
+
+        if (! $wasActiveDean && $user->role === 'dean' && $user->account_status === 'active') {
+            $requestNotifier->notifyPendingRequestsForDean($user);
         }
 
         return redirect()

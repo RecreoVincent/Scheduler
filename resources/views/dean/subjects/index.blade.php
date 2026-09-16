@@ -23,6 +23,7 @@
     <div><h2>{{ $course }} Subjects by Year Level</h2><p>Each year level has a separate curriculum table.</p></div>
     <div class="actions">
         <button id="openSubjectImport" class="button button-secondary" type="button">Import Subjects</button>
+        <a class="button button-secondary" href="{{ route('dean.subjects.import-template') }}">Download CSV Template</a>
         <button id="openSubjectCreate" class="button" type="button">Add Subject</button>
     </div>
 </div>

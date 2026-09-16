@@ -19,15 +19,16 @@
     ];
     $studentDepartmentLogo=$studentDepartmentLogos[strtoupper((string)auth()->user()->course)]??'images/mcc-college-logo.png';
 @endphp
-<body class="student-department-portal" style="--user-department-logo:url('{{ asset($studentDepartmentLogo) }}')"><div class="app"><aside id="portalSidebar" class="sidebar">
+<body class="student-department-portal" style="--user-department-logo:url('{{ asset($studentDepartmentLogo) }}')"><div class="app"><aside id="portalSidebar" class="sidebar portal-sidebar"><div class="portal-sidebar-navigation">
     <a href="{{ route('student.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Student Portal</small></span></a>
-    <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} · Year {{ auth()->user()->year_level }}</div>
+    <div class="department-chip student-department-chip"><span class="department-dot"></span><span class="student-department-line">{{ auth()->user()->course ?: 'Course not assigned' }} · Year {{ auth()->user()->year_level ?? 'Not assigned' }}</span><span class="student-section-line">Section {{ auth()->user()->academicSection?->name ?? 'Not assigned' }}</span></div>
     <p class="menu-label">Overview</p>
     <a class="menu-link {{ request()->routeIs('student.dashboard')?'active':'' }}" href="{{ route('student.dashboard') }}"><span class="menu-icon"><x-icon name="home" /></span>Dashboard</a>
     <a class="menu-link {{ request()->routeIs('student.study-load.*')?'active':'' }}" href="{{ route('student.study-load.index') }}"><span class="menu-icon"><x-icon name="clipboard" /></span>Study Load</a>
     <a class="menu-link {{ request()->routeIs('student.scanner.*')?'active':'' }}" href="{{ route('student.scanner.index') }}"><span class="menu-icon"><x-icon name="qrcode" /></span>Scan Room</a>
     <p class="menu-label">Account</p>
     <a class="menu-link {{ request()->routeIs('student.print.*')?'active':'' }}" target="_blank" href="{{ route('student.print.study-load') }}"><span class="menu-icon"><x-icon name="printer" /></span>Print Study Load</a>
+    </div>@include('layouts.partials.portal-sidebar-logout')
 </aside><button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button><main class="main"><header class="topbar"><div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Student workspace</span><h1>@yield('page-title','Student Portal')</h1></div></div><div class="topbar-actions">@include('layouts.partials.schedule-notifications')@include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Student'])</div></header><section class="content">@yield('content')</section></main></div>
 @stack('portal-profile-overlay')
 @php $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')); @endphp

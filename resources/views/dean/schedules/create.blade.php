@@ -6,6 +6,7 @@
 @push('styles')
 <style>
     #scheduleForm .form-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    #scheduleForm .form-grid .input { width:100%; }
     @media(max-width:900px) { #scheduleForm .form-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media(max-width:560px) { #scheduleForm .form-grid { grid-template-columns:1fr; } }
     .section-preview { grid-column:1/-1; margin-top:4px; padding:18px; background:#faf8fb; border:1px solid var(--border); border-radius:11px; }
@@ -51,7 +52,7 @@
     <div><h2>Generate {{ $course }} Class Schedules</h2><p>Use the first existing sections for the selected year level and academic year.</p></div>
 </div>
 
-<div class="card" style="max-width:920px;margin-left:auto;margin-right:auto">
+<div class="card">
 
     <form id="scheduleForm" method="POST" action="{{ route('dean.schedules.store') }}">
         @csrf
@@ -88,7 +89,7 @@
             </div>
 
             <div class="section-preview">
-                <div class="section-preview-head"><div><h3>Sections the Generator Will Use</h3><p>Automatically selected from the existing Sections list.</p></div><span id="sectionCountStatus" class="section-count-status">0 sections available</span></div>
+                <div class="section-preview-head"><div><h3>Sections the Generator Will Use</h3><p>Automatically selected from {{ $course }}'s existing Sections list.</p></div><span id="sectionCountStatus" class="section-count-status">0 sections available</span></div>
                 <div id="sectionList" class="section-list">
                     @foreach($sections as $section)
                         <div class="section-item" data-academic-year="{{ $section->academic_year }}" data-year-level="{{ $section->year_level }}" data-name="{{ $section->name }}"><strong>{{ $section->name }}</strong><small>Year {{ $section->year_level }} · {{ $section->academic_year }}</small></div>

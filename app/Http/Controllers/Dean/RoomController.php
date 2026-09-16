@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Services\RoomImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
@@ -17,7 +18,12 @@ class RoomController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $query = Room::with(['schedules' => fn ($query) => $query->with(['section', 'subject'])->orderByRaw(ClassSchedule::dayOrderSql())->orderBy('start_time')])
+        $enabledSemesters = $this->enabledSemesters($request);
+        $query = Room::with(['schedules' => fn ($query) => $query
+            ->whereIn('semester', $enabledSemesters)
+            ->with(['section', 'subject'])
+            ->orderByRaw(ClassSchedule::dayOrderSql())
+            ->orderBy('start_time')])
             ->forDepartment($course);
 
         if ($request->filled('search')) {
@@ -110,8 +116,11 @@ class RoomController extends DeanController
     public function destroy(Request $request, Room $room): RedirectResponse
     {
         $this->ensureCourse($request, $room);
-        abort_if(ClassSchedule::withTrashed()->where('room_id', $room->id)->exists(), 422, 'Remove the active and archived room schedules before deleting this room.');
-        $room->delete();
+        DB::transaction(function () use ($room): void {
+            // Keep active and archived schedule records, but make them TBA once their room is removed.
+            ClassSchedule::withTrashed()->where('room_id', $room->id)->update(['room_id' => null]);
+            $room->delete();
+        });
 
         return back()->with('success', 'Room deleted successfully.');
     }

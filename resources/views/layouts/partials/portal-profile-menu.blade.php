@@ -3,17 +3,13 @@
     $portalRoleValue = strtolower((string) auth()->user()->role);
     $portalProfileInitial = strtoupper(substr(auth()->user()->first_name ?: auth()->user()->name ?: 'U', 0, 1));
 @endphp
-<details class="portal-profile-menu">
-    <summary class="profile"><span class="portal-profile-trigger">
+<div class="portal-profile-menu">
+    <div class="profile"><span class="portal-profile-trigger">
         <span class="portal-profile-avatar">@if(auth()->user()->profile_photo_path)<img src="{{ asset('storage/'.auth()->user()->profile_photo_path) }}" alt="{{ auth()->user()->name }} profile photo">@else{{ $portalProfileInitial }}@endif</span>
         <span class="portal-profile-copy"><strong>{{ auth()->user()->name }}</strong><small>{{ $portalRoleLabel }} · {{ auth()->user()->course }}@if($portalRoleValue === 'student' && auth()->user()->academicSection) · {{ auth()->user()->academicSection->name }}@endif</small></span>
     </span>
-    </summary>
-    <div class="portal-profile-dropdown">
-        <button class="portal-profile-action" type="button" data-open-portal-profile>Edit Profile</button>
-        <form method="POST" action="{{ route('logout') }}">@csrf<input type="hidden" name="role" value="{{ $portalRoleValue }}"><button class="portal-profile-action" type="submit">Logout</button></form>
     </div>
-</details>
+</div>
 
 @push('portal-profile-overlay')
 <div class="admin-profile-modal" data-portal-profile-modal hidden>

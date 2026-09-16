@@ -8,7 +8,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\StudentIdLookupController;
+use App\Http\Controllers\Auth\StudentRosterLoginController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,9 +40,9 @@ Route::get('login', [AuthenticatedSessionController::class, 'create'])
 
 Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
-Route::post('login/student-id', [StudentIdLookupController::class, 'check'])
-    ->name('login.student-id')
-    ->middleware('throttle:20,1');
+Route::post('login/student', [StudentRosterLoginController::class, 'store'])
+    ->name('login.student')
+    ->middleware('throttle:5,1');
 
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)

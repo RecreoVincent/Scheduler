@@ -90,6 +90,39 @@ class GecPortalTest extends TestCase
         $this->assertDatabaseMissing('subjects', ['id' => $subject->id]);
     }
 
+    public function test_gec_can_import_minor_subjects_and_download_the_csv_template(): void
+    {
+        $gec = $this->gecUser();
+        $file = UploadedFile::fake()->createWithContent('subjects.csv', "code,name,subject_type,classification,year_level,semester,curriculum,units\nGE101,Understanding the Self,Lecture,Major,1,1st,New,3\n");
+
+        $this->actingAs($gec)
+            ->post(route('gec.subjects.import'), [
+                'import_course' => 'BSIT',
+                'csv_file' => $file,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('subjects', [
+            'course' => 'BSIT',
+            'code' => 'GE101',
+            'classification' => 'Minor',
+            'managed_by_gec' => true,
+            'semester' => '1st',
+        ]);
+
+        $this->actingAs($gec)
+            ->get(route('gec.subjects.import-template'))
+            ->assertOk()
+            ->assertDownload('gec-subject-import-template.csv');
+
+        $this->actingAs($gec)
+            ->get(route('gec.subjects.index'))
+            ->assertOk()
+            ->assertSee('Import Subjects')
+            ->assertSee('Download CSV Template');
+    }
+
     public function test_gec_cannot_manage_a_major_subject_via_minor_subjects_page(): void
     {
         $gec = $this->gecUser();
@@ -168,6 +201,34 @@ class GecPortalTest extends TestCase
         ]);
     }
 
+    public function test_gec_can_assign_up_to_ten_instructor_priorities_to_a_minor_subject(): void
+    {
+        $gec = $this->gecUser();
+        $instructors = User::factory()->count(10)->create([
+            'role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active',
+            'employment_type' => 'full_time',
+        ]);
+        $subject = Subject::create([
+            'course' => 'BSED', 'code' => 'GE 110', 'name' => 'Art Appreciation',
+            'subject_type' => 'Lecture', 'classification' => 'Minor',
+            'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+
+        $this->actingAs($gec)->post(route('gec.subject-assignments.store'), [
+            'semester' => '1st',
+            'year_level' => 1,
+            'subject_id' => $subject->id,
+            'instructor_ids' => $instructors->modelKeys(),
+        ])->assertRedirect();
+
+        $this->assertSame(10, $subject->fresh('instructors')->instructors->count());
+        $this->assertDatabaseHas('subject_instructor', [
+            'subject_id' => $subject->id,
+            'instructor_id' => $instructors->last()->id,
+            'priority' => 10,
+        ]);
+    }
+
     public function test_gec_can_generate_minor_subject_schedule_for_a_department_using_gec_instructors(): void
     {
         $gec = $this->gecUser();
@@ -200,6 +261,37 @@ class GecPortalTest extends TestCase
         $this->assertSame('BEED', $schedule->course);
         $this->assertSame($gecInstructor->id, $schedule->instructor_id);
         $this->assertNull($schedule->room_id, 'Minor subjects should always land as TBA, never claim a real room.');
+    }
+
+    public function test_gec_cannot_generate_a_minor_subject_schedule_without_an_assigned_instructor(): void
+    {
+        $gec = $this->gecUser();
+        User::factory()->create([
+            'role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active',
+            'employment_type' => 'full_time',
+        ]);
+        AcademicSection::create([
+            'course' => 'BSIT', 'name' => '2 - Alpha', 'year_level' => 2,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $subject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 104', 'name' => 'Art Appreciation',
+            'subject_type' => 'Lecture', 'classification' => 'Minor',
+            'year_level' => 2, 'semester' => '1st', 'units' => 3,
+        ]);
+
+        $this->actingAs($gec)->post(route('gec.schedules.store'), [
+            'department' => 'BSIT',
+            'academic_year' => '2026-2027',
+            'semester' => '1st',
+            'curriculum' => 'New',
+            'year_levels' => ['2'],
+            'number_of_sections' => 1,
+        ])->assertRedirect()
+            ->assertSessionHas('error', "The schedule cannot be created because these Minor subjects have no active assigned instructor: BSIT: {$subject->code}.")
+            ->assertSessionHas('error_note', fn (string $note): bool => str_contains($note, 'Subject Assignment'));
+
+        $this->assertDatabaseMissing('class_schedules', ['subject_id' => $subject->id]);
     }
 
     public function test_gec_timetable_and_archive_list_schedules_across_departments(): void

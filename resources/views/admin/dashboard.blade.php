@@ -131,7 +131,6 @@
     }
 
     .status-dot.active { background: #22c55e; }
-    .status-dot.pending { background: #f59e0b; }
 
     .stat-progress {
         display: block;
@@ -495,7 +494,6 @@
             <span class="stat-card-metrics">
                 <span class="stat-metric"><span class="stat-metric-label">{{ $card['total_label'] }}</span><span class="stat-metric-value">{{ $summary['total'] }}</span></span>
                 <span class="stat-metric"><span class="stat-metric-label">Active</span><span class="stat-metric-value">{{ $summary['active'] }} <span class="status-dot active" aria-hidden="true"></span></span></span>
-                <span class="stat-metric"><span class="stat-metric-label">Pending</span><span class="stat-metric-value">{{ $summary['pending'] }} <span class="status-dot pending" aria-hidden="true"></span></span></span>
             </span>
 
             <span class="stat-progress" aria-label="{{ $summary['active_percentage'] }} percent active">

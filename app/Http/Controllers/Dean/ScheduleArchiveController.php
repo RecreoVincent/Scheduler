@@ -25,7 +25,10 @@ class ScheduleArchiveController extends DeanController
     {
         $course = $this->course($request);
         $enabledSemesters = $this->enabledSemesters($request);
-        $archiveQuery = ClassSchedule::onlyTrashed()->forDepartment($course)->whereIn('semester', $enabledSemesters);
+        $archiveQuery = ClassSchedule::onlyTrashed()
+            ->forDepartment($course)
+            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'))
+            ->whereIn('semester', $enabledSemesters);
         $academicYears = (clone $archiveQuery)
             ->select('academic_year')
             ->distinct()
@@ -193,6 +196,7 @@ class ScheduleArchiveController extends DeanController
         try {
             $deleted = ClassSchedule::onlyTrashed()
                 ->forDepartment($this->course($request))
+                ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'))
                 ->where('section_id', $section->id)
                 ->where('academic_year', $validated['academic_year'])
                 ->where('semester', $validated['semester'])
@@ -337,6 +341,7 @@ class ScheduleArchiveController extends DeanController
     {
         return ClassSchedule::onlyTrashed()
             ->forDepartment($this->course($request))
+            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'))
             ->findOrFail($schedule);
     }
 }

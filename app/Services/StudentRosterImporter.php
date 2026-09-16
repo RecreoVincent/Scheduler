@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AcademicSection;
 use App\Models\StudentRoster;
 use RuntimeException;
 
@@ -18,6 +19,9 @@ class StudentRosterImporter
     private const LAST_NAME_HEADERS = ['last name', 'lastname', 'surname', 'family name'];
 
     private const SECTION_HEADERS = ['section', 'section name', 'block', 'block name'];
+
+    /** @var array<string, string>|null */
+    private ?array $canonicalSectionNames = null;
 
     /** @return array{imported:int, skipped:int, errors:array<int,string>} */
     public function import(string $path): array
@@ -72,7 +76,7 @@ class StudentRosterImporter
                     $middleNameColumn !== null ? $this->clean($row[$middleNameColumn] ?? null) : null,
                     $lastNameColumn !== null ? $this->clean($row[$lastNameColumn] ?? null) : null,
                 );
-            $section = $sectionColumn !== null ? $this->clean($row[$sectionColumn] ?? null) : null;
+            $section = $sectionColumn !== null ? $this->canonicalSectionName($this->clean($row[$sectionColumn] ?? null)) : null;
 
             if ($studentId === null || $fullName === null) {
                 $skipped++;
@@ -123,5 +127,33 @@ class StudentRosterImporter
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function canonicalSectionName(?string $section): ?string
+    {
+        if ($section === null) {
+            return null;
+        }
+
+        if ($this->canonicalSectionNames === null) {
+            $this->canonicalSectionNames = [];
+
+            AcademicSection::query()
+                ->orderByDesc('academic_year')
+                ->orderBy('id')
+                ->pluck('name')
+                ->each(function (string $name): void {
+                    $this->canonicalSectionNames[$this->sectionKey($name)] ??= $name;
+                });
+        }
+
+        return $this->canonicalSectionNames[$this->sectionKey($section)] ?? $section;
+    }
+
+    private function sectionKey(string $section): string
+    {
+        $section = preg_replace('/[\s-]+/', '', trim($section)) ?? '';
+
+        return strtolower($section);
     }
 }

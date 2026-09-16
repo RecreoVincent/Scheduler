@@ -1208,7 +1208,7 @@
                 </div>
                 <div class="contact-panel">
                     <h3>Need portal access?</h3>
-                    <p>Administrators, deans, instructors, and students can register directly from the portal login page. Reach out to the college if your account needs approval or troubleshooting.</p>
+                    <p>Administrators, deans, and instructors can register directly from the portal login page. Students sign in using their student number and last name from the official roster.</p>
                     <a class="button-link" href="#portals">Go to portal login <span aria-hidden="true">&rarr;</span></a>
                 </div>
             </div>

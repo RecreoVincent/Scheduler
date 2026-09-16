@@ -59,7 +59,8 @@
 @endphp
 <body class="instructor-department-portal" style="--user-department-logo:url('{{ asset($instructorDepartmentLogo) }}')">
 <div class="app">
-    <aside id="portalSidebar" class="sidebar">
+    <aside id="portalSidebar" class="sidebar portal-sidebar">
+        <div class="portal-sidebar-navigation">
         <a href="{{ route('instructor.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Instructor Portal</small></span></a>
         <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} Department</div>
         <p class="menu-label">Overview</p>
@@ -68,6 +69,8 @@
         <a class="menu-link {{ request()->routeIs('instructor.scanner.*') ? 'active' : '' }}" href="{{ route('instructor.scanner.index') }}"><span class="menu-icon"><x-icon name="qrcode" /></span>QR Scanner</a>
         <p class="menu-label">Account</p>
         <a class="menu-link {{ request()->routeIs('instructor.print.*') ? 'active' : '' }}" target="_blank" href="{{ route('instructor.print.workload') }}"><span class="menu-icon"><x-icon name="printer" /></span>Print Workload</a>
+        </div>
+        @include('layouts.partials.portal-sidebar-logout')
     </aside>
     <button id="sidebarBackdrop" class="sidebar-backdrop" type="button" aria-label="Close navigation menu"></button>
     <main class="main">

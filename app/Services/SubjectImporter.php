@@ -33,7 +33,7 @@ class SubjectImporter
     ];
 
     /** @return array{imported:int, skipped:int, errors:array<int,string>} */
-    public function import(string $path, string $course): array
+    public function import(string $path, string $course, bool $managedByGec = false): array
     {
         $handle = fopen($path, 'rb');
         if (! $handle) {
@@ -77,7 +77,7 @@ class SubjectImporter
             $subjectTypeRaw = strtolower((string) $this->clean($data['subject_type'] ?? null));
             $subjectType = self::SUBJECT_TYPE_ALIASES[$subjectTypeRaw] ?? null;
             $classificationRaw = strtolower((string) ($this->clean($data['classification'] ?? null) ?? 'major'));
-            $classification = self::CLASSIFICATION_ALIASES[$classificationRaw] ?? null;
+            $classification = $managedByGec ? 'Minor' : (self::CLASSIFICATION_ALIASES[$classificationRaw] ?? null);
             $yearLevel = $this->clean($data['year_level'] ?? null);
             $semesterRaw = strtolower((string) $this->clean($data['semester'] ?? null));
             $semester = self::SEMESTER_ALIASES[$semesterRaw] ?? null;
@@ -135,6 +135,7 @@ class SubjectImporter
                 'semester' => $semester,
                 'curriculum' => $curriculum,
                 'units' => (float) $units,
+                'managed_by_gec' => $managedByGec,
             ]);
 
             $imported++;
