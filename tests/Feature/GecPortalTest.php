@@ -468,9 +468,7 @@ class GecPortalTest extends TestCase
         $gec = $this->gecUser();
 
         $this->actingAs($gec)->patch(route('gec.settings.semesters'), [
-            'semester_first_enabled' => '1',
-            'semester_second_enabled' => '0',
-            'semester_summer_enabled' => '0',
+            'active_semester' => 'first',
         ])->assertRedirect();
 
         $gecDepartment = Department::where('code', 'GEC')->firstOrFail();

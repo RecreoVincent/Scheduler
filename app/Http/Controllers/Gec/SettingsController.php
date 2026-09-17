@@ -11,11 +11,28 @@ class SettingsController extends GecController
     public function updateSemesters(Request $request): RedirectResponse
     {
         $department = Department::where('code', $this->course($request))->firstOrFail();
-        $settings = [
-            'semester_first_enabled' => $request->boolean('semester_first_enabled'),
-            'semester_second_enabled' => $request->boolean('semester_second_enabled'),
-            'semester_summer_enabled' => $request->boolean('semester_summer_enabled'),
-        ];
+        $activeSemester = $request->input('active_semester');
+
+        if ($activeSemester !== null) {
+            if (! in_array($activeSemester, ['first', 'second', 'summer'], true)) {
+                return back()->withErrors([
+                    'semester_availability' => 'Choose a valid active semester before saving.',
+                ]);
+            }
+
+            $settings = [
+                'semester_first_enabled' => $activeSemester === 'first',
+                'semester_second_enabled' => $activeSemester === 'second',
+                'semester_summer_enabled' => $activeSemester === 'summer',
+            ];
+        } else {
+            // Retain support for existing checkbox submissions.
+            $settings = [
+                'semester_first_enabled' => $request->boolean('semester_first_enabled'),
+                'semester_second_enabled' => $request->boolean('semester_second_enabled'),
+                'semester_summer_enabled' => $request->boolean('semester_summer_enabled'),
+            ];
+        }
 
         if (collect($settings)->filter()->count() !== 1) {
             return back()->withErrors([

@@ -560,6 +560,25 @@ class DeanPortalTest extends TestCase
         $this->assertFalse($department->semester_summer_enabled);
     }
 
+    public function test_dean_active_semester_selector_automatically_replaces_the_previous_semester(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+
+        $this->actingAs($dean)->patch(route('dean.settings.semesters'), [
+            'active_semester' => 'second',
+        ])->assertRedirect();
+
+        $department = Department::where('code', 'BSIT')->firstOrFail();
+        $this->assertFalse($department->semester_first_enabled);
+        $this->assertTrue($department->semester_second_enabled);
+        $this->assertFalse($department->semester_summer_enabled);
+
+        $this->actingAs($dean)->get(route('dean.dashboard'))
+            ->assertOk()
+            ->assertSee('type="radio" name="active_semester"', false)
+            ->assertSee('Selecting a semester automatically turns the other semesters off.');
+    }
+
     public function test_dean_instructor_edit_modal_omits_password_fields(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);

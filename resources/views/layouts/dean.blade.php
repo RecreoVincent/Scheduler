@@ -309,21 +309,21 @@
                     <summary class="topbar-settings-trigger" aria-label="Semester settings" title="Semester settings"><x-icon name="gear" /></summary>
                     <div class="topbar-settings-dropdown">
                         <strong>Active Semester</strong>
-                        <p>Choose exactly one semester. The other semesters are hidden from dean-portal filters and cannot generate new schedules.</p>
+                        <p>Choose one active semester. Selecting a semester automatically turns the other semesters off.</p>
                         <form method="POST" action="{{ route('dean.settings.semesters') }}">
                             @csrf
                             @method('PATCH')
                             <label class="switch-row">
                                 <span>1st Semester</span>
-                                <span class="switch"><input type="checkbox" name="semester_first_enabled" value="1" @checked($deanDepartment?->semester_first_enabled ?? true)><span class="switch-track"></span></span>
+                                <span class="switch"><input type="radio" name="active_semester" value="first" @checked($deanDepartment?->semester_first_enabled ?? true)><span class="switch-track"></span></span>
                             </label>
                             <label class="switch-row">
                                 <span>2nd Semester</span>
-                                <span class="switch"><input type="checkbox" name="semester_second_enabled" value="1" @checked($deanDepartment?->semester_second_enabled ?? true)><span class="switch-track"></span></span>
+                                <span class="switch"><input type="radio" name="active_semester" value="second" @checked($deanDepartment?->semester_second_enabled ?? true)><span class="switch-track"></span></span>
                             </label>
                             <label class="switch-row">
                                 <span>Summer</span>
-                                <span class="switch"><input type="checkbox" name="semester_summer_enabled" value="1" @checked($deanDepartment?->semester_summer_enabled ?? true)><span class="switch-track"></span></span>
+                                <span class="switch"><input type="radio" name="active_semester" value="summer" @checked($deanDepartment?->semester_summer_enabled ?? true)><span class="switch-track"></span></span>
                             </label>
                             @error('semester_availability')<p class="error" style="margin:10px 0 0">{{ $message }}</p>@enderror
                             <button class="button" type="submit" style="width:100%;margin-top:12px">Save</button>
