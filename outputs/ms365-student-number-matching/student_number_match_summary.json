@@ -1,0 +1,10 @@
+﻿{
+    "UsersInMs365Export":  7173,
+    "StudentsInBsitMasterlist":  1267,
+    "StudentNumbersMatched":  1077,
+    "AmbiguousNameMatches":  3,
+    "DuplicateMs365AccountAssignments":  24,
+    "Unmatched":  6096,
+    "OutputCsv":  "C:\\wamp64\\www\\scheduler\\outputs\\ms365-student-number-matching\\users_with_student_numbers.csv",
+    "UnmatchedReportCsv":  "C:\\wamp64\\www\\scheduler\\outputs\\ms365-student-number-matching\\users_without_student_number_match.csv"
+}
