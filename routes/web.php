@@ -210,6 +210,7 @@ Route::middleware('dean')
         Route::delete('/subject-assignments/remove-all', [DeanSubjectAssignmentController::class, 'destroyAll'])->name('subject-assignments.destroy-all');
         Route::delete('/subject-assignments/{subject}', [DeanSubjectAssignmentController::class, 'destroy'])->name('subject-assignments.destroy');
         Route::get('/instructor-requests', [DeanCrossDepartmentInstructorRequestController::class, 'index'])->name('instructor-requests.index');
+        Route::post('/instructor-requests/clear-history', [DeanCrossDepartmentInstructorRequestController::class, 'clearOutgoingHistory'])->name('instructor-requests.clear-history');
         Route::post('/instructor-requests/{instructorRequest}/fulfill', [DeanCrossDepartmentInstructorRequestController::class, 'fulfill'])->name('instructor-requests.fulfill');
         Route::post('/subjects/import', [DeanSubjectController::class, 'import'])->name('subjects.import');
         Route::get('/subjects/import-template', [DeanSubjectController::class, 'importTemplate'])->name('subjects.import-template');

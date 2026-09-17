@@ -22,10 +22,18 @@ class CrossDepartmentInstructorRequestController extends DeanController
             ->where('requested_department', $course)
             ->latest()
             ->get();
-        $outgoing = CrossDepartmentInstructorRequest::query()
+        $outgoingActive = CrossDepartmentInstructorRequest::query()
             ->with(['subject', 'assignedInstructors'])
             ->where('requesting_department', $course)
+            ->where('status', 'pending')
             ->latest()
+            ->get();
+        $outgoingHistory = CrossDepartmentInstructorRequest::query()
+            ->with(['subject', 'assignedInstructors'])
+            ->where('requesting_department', $course)
+            ->where('status', 'fulfilled')
+            ->whereNull('archived_at')
+            ->orderByDesc('fulfilled_at')
             ->get();
         $instructors = User::query()
             ->forDepartment($course)
@@ -35,7 +43,7 @@ class CrossDepartmentInstructorRequestController extends DeanController
             ->orderBy('last_name')
             ->get();
 
-        return view('dean.instructor-requests.index', compact('course', 'incoming', 'outgoing', 'instructors'));
+        return view('dean.instructor-requests.index', compact('course', 'incoming', 'outgoingActive', 'outgoingHistory', 'instructors'));
     }
 
     public function fulfill(Request $request, CrossDepartmentInstructorRequest $instructorRequest): RedirectResponse
@@ -129,5 +137,20 @@ class CrossDepartmentInstructorRequestController extends DeanController
         $instructorCount = $instructors->count();
 
         return back()->with('success', "{$instructorCount} ".str('instructor')->plural($instructorCount)." assigned to {$instructorRequest->subject->code}: {$instructorNames}.");
+    }
+
+    public function clearOutgoingHistory(Request $request): RedirectResponse
+    {
+        $archivedCount = CrossDepartmentInstructorRequest::query()
+            ->where('requesting_department', $this->course($request))
+            ->where('status', 'fulfilled')
+            ->whereNull('archived_at')
+            ->update(['archived_at' => now()]);
+
+        if ($archivedCount === 0) {
+            return back()->with('error', 'There is no completed request history to clear.');
+        }
+
+        return back()->with('success', "{$archivedCount} completed ".str('request')->plural($archivedCount).' archived from this page.');
     }
 }

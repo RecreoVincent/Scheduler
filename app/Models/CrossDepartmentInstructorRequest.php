@@ -8,12 +8,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['subject_id', 'requesting_department', 'requested_department', 'requested_by', 'status', 'assigned_instructor_id', 'fulfilled_by', 'fulfilled_at'])]
+#[Fillable(['subject_id', 'requesting_department', 'requested_department', 'requested_by', 'status', 'assigned_instructor_id', 'fulfilled_by', 'fulfilled_at', 'archived_at'])]
 class CrossDepartmentInstructorRequest extends Model
 {
     protected function casts(): array
     {
-        return ['fulfilled_at' => 'datetime'];
+        return [
+            'fulfilled_at' => 'datetime',
+            'archived_at' => 'datetime',
+        ];
     }
 
     public function subject(): BelongsTo

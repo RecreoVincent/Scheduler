@@ -2188,6 +2188,59 @@ class DeanPortalTest extends TestCase
         Notification::assertSentTo($dean, \App\Notifications\CrossDepartmentInstructorAssignedNotification::class);
     }
 
+    public function test_dean_can_clear_only_its_fulfilled_outgoing_instructor_request_history(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT', 'account_status' => 'active']);
+        $fulfilledSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 310', 'name' => 'Completed External Request',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 3,
+            'semester' => '1st', 'curriculum' => 'New', 'units' => 3,
+        ]);
+        $pendingSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 311', 'name' => 'Pending External Request',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 3,
+            'semester' => '1st', 'curriculum' => 'New', 'units' => 3,
+        ]);
+        $fulfilledRequest = CrossDepartmentInstructorRequest::create([
+            'subject_id' => $fulfilledSubject->id,
+            'requesting_department' => 'BSIT',
+            'requested_department' => 'BSBA',
+            'requested_by' => $dean->id,
+            'status' => 'fulfilled',
+            'fulfilled_at' => now(),
+        ]);
+        $pendingRequest = CrossDepartmentInstructorRequest::create([
+            'subject_id' => $pendingSubject->id,
+            'requesting_department' => 'BSIT',
+            'requested_department' => 'BSBA',
+            'requested_by' => $dean->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($dean)
+            ->get(route('dean.instructor-requests.index'))
+            ->assertOk()
+            ->assertSee('Active Requests You Sent')
+            ->assertSee('Request History')
+            ->assertSee('ITE 310')
+            ->assertSee('ITE 311')
+            ->assertSee('Clear History');
+
+        $this->actingAs($dean)
+            ->post(route('dean.instructor-requests.clear-history'))
+            ->assertRedirect();
+
+        $this->assertNotNull($fulfilledRequest->fresh()->archived_at);
+        $this->assertNull($pendingRequest->fresh()->archived_at);
+
+        $this->actingAs($dean)
+            ->get(route('dean.instructor-requests.index'))
+            ->assertOk()
+            ->assertDontSee('ITE 310')
+            ->assertSee('ITE 311')
+            ->assertDontSee('Clear History');
+    }
+
     public function test_pending_request_is_delivered_when_the_requested_department_dean_is_created(): void
     {
         $itDean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT', 'account_status' => 'active']);

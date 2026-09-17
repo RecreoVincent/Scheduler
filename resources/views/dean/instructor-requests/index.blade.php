@@ -9,6 +9,10 @@
     .request-priority-row { display:grid; grid-template-columns:72px minmax(0,1fr); align-items:center; gap:7px; }
     .request-priority-label { color:var(--navy); font-size:10px; font-weight:800; }
     .request-priority-form .button { width:100%; margin-top:9px; }
+    .request-section-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px; }
+    .request-section-header h3 { margin:0 0 4px; }
+    .request-section-header p { max-width:690px; font-size:11px; line-height:1.5; color:var(--muted); }
+    @media(max-width:600px) { .request-section-header { align-items:stretch; flex-direction:column; } .request-section-header .button { width:100%; } }
 </style>
 @endpush
 
@@ -62,12 +66,17 @@
     </table></div>
 </section>
 
-<section class="card">
-    <h3 style="margin:0 0 14px">Requests You Sent</h3>
+<section class="card" style="margin-bottom:20px">
+    <div class="request-section-header">
+        <div>
+            <h3>Active Requests You Sent</h3>
+            <p>These requests are awaiting a response from the requested department.</p>
+        </div>
+    </div>
     <div class="table-wrap"><table>
         <thead><tr><th>Requested Department</th><th>Subject</th><th>Status</th><th>Assigned Instructors</th></tr></thead>
         <tbody>
-        @forelse($outgoing as $instructorRequest)
+        @forelse($outgoingActive as $instructorRequest)
             <tr>
                 <td><span class="badge">{{ $instructorRequest->requested_department }}</span></td>
                 <td><strong>{{ $instructorRequest->subject?->code }}</strong> &middot; {{ $instructorRequest->subject?->name }}</td>
@@ -75,11 +84,60 @@
                 <td>{{ $instructorRequest->assignedInstructors->pluck('name')->join(', ') ?: 'Awaiting response' }}</td>
             </tr>
         @empty
-            <tr><td colspan="4">No outgoing instructor requests.</td></tr>
+            <tr><td colspan="4">No active outgoing instructor requests.</td></tr>
         @endforelse
         </tbody>
     </table></div>
 </section>
+
+<section class="card">
+    <div class="request-section-header">
+        <div>
+            <h3>Request History</h3>
+            <p>Completed requests remain here until you clear them. Clearing history hides them from this page without deleting the assignment record.</p>
+        </div>
+        @if($outgoingHistory->isNotEmpty())
+            <button id="openClearRequestHistory" type="button" class="button button-danger">Clear History</button>
+        @endif
+    </div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Requested Department</th><th>Subject</th><th>Status</th><th>Assigned Instructors</th><th>Completed</th></tr></thead>
+        <tbody>
+        @forelse($outgoingHistory as $instructorRequest)
+            <tr>
+                <td><span class="badge">{{ $instructorRequest->requested_department }}</span></td>
+                <td><strong>{{ $instructorRequest->subject?->code }}</strong> &middot; {{ $instructorRequest->subject?->name }}</td>
+                <td><span class="badge">{{ str($instructorRequest->status)->title() }}</span></td>
+                <td>{{ $instructorRequest->assignedInstructors->pluck('name')->join(', ') ?: 'No instructor assigned' }}</td>
+                <td>{{ $instructorRequest->fulfilled_at?->format('M j, Y g:i A') ?? '—' }}</td>
+            </tr>
+        @empty
+            <tr><td colspan="5">No completed instructor request history.</td></tr>
+        @endforelse
+        </tbody>
+    </table></div>
+</section>
+
+@if($outgoingHistory->isNotEmpty())
+<div id="clearRequestHistoryModal" class="admin-profile-modal" hidden>
+    <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="clearRequestHistoryTitle" aria-describedby="clearRequestHistoryMessage">
+        <header class="admin-profile-header">
+            <div>
+                <h2 id="clearRequestHistoryTitle">Clear fulfilled request history?</h2>
+                <p id="clearRequestHistoryMessage">Completed requests will be removed from this page. Active requests and instructor assignments will not be affected.</p>
+            </div>
+            <button id="closeClearRequestHistory" class="admin-profile-close" type="button" aria-label="Close confirmation">&times;</button>
+        </header>
+        <form id="clearRequestHistoryForm" method="POST" action="{{ route('dean.instructor-requests.clear-history') }}">
+            @csrf
+        </form>
+        <footer class="admin-profile-actions">
+            <button id="cancelClearRequestHistory" type="button" class="button button-secondary">Cancel</button>
+            <button id="confirmClearRequestHistory" type="submit" form="clearRequestHistoryForm" class="button button-danger">Clear History</button>
+        </footer>
+    </section>
+</div>
+@endif
 @endsection
 
 @push('scripts')
@@ -99,6 +157,36 @@
                 });
             };
             selects.forEach(select=>select.addEventListener('change',refresh));
+        });
+    })();
+
+    (()=>{
+        const trigger=document.getElementById('openClearRequestHistory');
+        const modal=document.getElementById('clearRequestHistoryModal');
+        if(!trigger||!modal)return;
+
+        const closeButton=document.getElementById('closeClearRequestHistory');
+        const cancelButton=document.getElementById('cancelClearRequestHistory');
+        const confirmButton=document.getElementById('confirmClearRequestHistory');
+        const form=document.getElementById('clearRequestHistoryForm');
+        const close=()=>{
+            modal.hidden=true;
+            document.body.classList.remove('modal-open');
+            trigger.focus();
+        };
+
+        trigger.addEventListener('click',()=>{
+            modal.hidden=false;
+            document.body.classList.add('modal-open');
+            cancelButton.focus();
+        });
+        closeButton.addEventListener('click',close);
+        cancelButton.addEventListener('click',close);
+        modal.addEventListener('click',event=>{if(event.target===modal)close();});
+        document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!modal.hidden)close();});
+        form.addEventListener('submit',()=>{
+            confirmButton.disabled=true;
+            confirmButton.textContent='Clearing...';
         });
     })();
 </script>
