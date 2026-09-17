@@ -6,6 +6,7 @@ use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
 use App\Models\CrossDepartmentInstructorRequest;
 use App\Models\Department;
+use App\Models\Ms365StudentAccount;
 use App\Models\Room;
 use App\Models\Subject;
 use App\Models\User;
@@ -17,6 +18,70 @@ use Tests\TestCase;
 class DeanPortalTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_dean_student_list_displays_the_unique_active_ms365_email(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        User::factory()->create([
+            'role' => 'student', 'course' => 'BSIT', 'account_status' => 'active',
+            'first_name' => 'Maria', 'last_name' => 'Santos',
+            'email' => 'student-record@roster.mcc.local',
+        ]);
+        Ms365StudentAccount::create([
+            'email' => 'maria.santos@mcc.edu.ph',
+            'display_name' => 'Maria Santos',
+            'first_name' => 'Maria',
+            'last_name' => 'Santos',
+        ]);
+
+        $this->actingAs($dean)
+            ->get(route('dean.students.index'))
+            ->assertOk()
+            ->assertSee('MS365 Email')
+            ->assertSee('maria.santos@mcc.edu.ph')
+            ->assertDontSee('student-record@roster.mcc.local');
+    }
+
+    public function test_dean_student_list_prefers_the_ms365_student_number_match(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        User::factory()->create([
+            'role' => 'student', 'course' => 'BSIT', 'account_status' => 'active',
+            'student_id' => '2026-0019', 'first_name' => 'Roster', 'last_name' => 'Student',
+        ]);
+        Ms365StudentAccount::create([
+            'email' => 'student.official@mcc.edu.ph',
+            'student_number' => '2026-0019',
+            'display_name' => 'Different MS365 Name',
+            'first_name' => 'Different',
+            'last_name' => 'Name',
+        ]);
+
+        $this->actingAs($dean)
+            ->get(route('dean.students.index'))
+            ->assertOk()
+            ->assertSee('student.official@mcc.edu.ph');
+    }
+
+    public function test_dean_student_list_matches_an_ms365_first_name_that_includes_the_students_middle_name(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        User::factory()->create([
+            'role' => 'student', 'course' => 'BSIT', 'account_status' => 'active',
+            'first_name' => 'Ralf', 'middle_name' => 'Francisco', 'last_name' => 'Cueva',
+        ]);
+        Ms365StudentAccount::create([
+            'email' => 'ralf.cueva@mcc.edu.ph',
+            'display_name' => 'Ralf Francisco Cueva',
+            'first_name' => 'Ralf Francisco',
+            'last_name' => 'Cueva',
+        ]);
+
+        $this->actingAs($dean)
+            ->get(route('dean.students.index'))
+            ->assertOk()
+            ->assertSee('ralf.cueva@mcc.edu.ph');
+    }
 
     public function test_dean_can_delete_all_student_accounts_in_its_department(): void
     {
@@ -473,6 +538,42 @@ class DeanPortalTest extends TestCase
             ->assertDontSee('ITE 111');
     }
 
+    public function test_dean_cannot_save_multiple_active_semesters(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $department = Department::where('code', 'BSIT')->firstOrFail();
+        $department->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => false,
+            'semester_summer_enabled' => false,
+        ]);
+
+        $this->actingAs($dean)->patch(route('dean.settings.semesters'), [
+            'semester_first_enabled' => '1',
+            'semester_second_enabled' => '1',
+            'semester_summer_enabled' => '1',
+        ])->assertRedirect()->assertSessionHasErrors('semester_availability');
+
+        $department->refresh();
+        $this->assertTrue($department->semester_first_enabled);
+        $this->assertFalse($department->semester_second_enabled);
+        $this->assertFalse($department->semester_summer_enabled);
+    }
+
+    public function test_dean_instructor_edit_modal_omits_password_fields(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $instructor = User::factory()->create([
+            'role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active',
+        ]);
+
+        $this->actingAs($dean)
+            ->get(route('dean.instructors.index', ['edit' => $instructor->id]))
+            ->assertOk()
+            ->assertDontSee('name="password"', false)
+            ->assertDontSee('name="password_confirmation"', false);
+    }
+
     public function test_dean_can_delete_a_room_without_deleting_its_active_or_archived_schedules(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
@@ -907,6 +1008,7 @@ class DeanPortalTest extends TestCase
             ->assertOk()
             ->assertSee('Instructor Unit Management')
             ->assertSee('Emily')
+            ->assertDontSee('Reset to Default')
             ->assertDontSee($otherDepartmentInstructor->email);
 
         $this->actingAs($dean)

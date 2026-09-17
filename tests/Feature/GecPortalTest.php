@@ -479,4 +479,40 @@ class GecPortalTest extends TestCase
         $this->assertFalse($gecDepartment->semester_summer_enabled);
         $this->assertSame(['1st'], $gecDepartment->enabledSemesterCodes());
     }
+
+    public function test_gec_cannot_save_multiple_active_semesters(): void
+    {
+        $gec = $this->gecUser();
+        $department = Department::where('code', 'GEC')->firstOrFail();
+        $department->update([
+            'semester_first_enabled' => false,
+            'semester_second_enabled' => true,
+            'semester_summer_enabled' => false,
+        ]);
+
+        $this->actingAs($gec)->patch(route('gec.settings.semesters'), [
+            'semester_first_enabled' => '1',
+            'semester_second_enabled' => '1',
+            'semester_summer_enabled' => '0',
+        ])->assertRedirect()->assertSessionHasErrors('semester_availability');
+
+        $department->refresh();
+        $this->assertFalse($department->semester_first_enabled);
+        $this->assertTrue($department->semester_second_enabled);
+        $this->assertFalse($department->semester_summer_enabled);
+    }
+
+    public function test_gec_instructor_edit_modal_omits_password_fields(): void
+    {
+        $gec = $this->gecUser();
+        $instructor = User::factory()->create([
+            'role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active',
+        ]);
+
+        $this->actingAs($gec)
+            ->get(route('gec.instructors.index', ['edit' => $instructor->id]))
+            ->assertOk()
+            ->assertDontSee('name="password"', false)
+            ->assertDontSee('name="password_confirmation"', false);
+    }
 }

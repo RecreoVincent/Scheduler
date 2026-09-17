@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Dean;
 
 use App\Models\AcademicSection;
+use App\Models\Ms365StudentAccount;
 use App\Models\User;
 use App\Services\StudentAccountImporter;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
@@ -45,6 +47,7 @@ class StudentController extends DeanController
         };
 
         $students = $query->with('academicSection')->paginate(15)->withQueryString();
+        $this->attachMs365Emails($students->getCollection());
 
         $sections = AcademicSection::forDepartment($course)
             ->when($request->filled('year_level'), fn ($q) => $q->where('year_level', $request->input('year_level')))
@@ -196,6 +199,115 @@ class StudentController extends DeanController
             ->orderBy('year_level')
             ->orderBy('name')
             ->get(['id', 'name', 'year_level']);
+    }
+
+    /**
+     * Prefer a unique active MS365 account with the same student number. When
+     * a legacy student account has no number, use a unique name match instead.
+     * MS365 exports can store a student's middle name with their first name,
+     * so that combined form is considered before a first-and-last-name match.
+     * Ambiguous matches deliberately remain unavailable to avoid exposing
+     * another student's email address.
+     *
+     * @param Collection<int, User> $students
+     */
+    private function attachMs365Emails(Collection $students): void
+    {
+        if ($students->isEmpty()) {
+            return;
+        }
+
+        $emailsByName = Ms365StudentAccount::query()
+            ->where('is_blocked', false)
+            ->whereNull('soft_deleted_at')
+            ->get(['email', 'student_number', 'display_name', 'first_name', 'last_name']);
+
+        $emailsByStudentNumber = $emailsByName
+            ->filter(fn (Ms365StudentAccount $account): bool => filled($account->student_number))
+            ->mapToGroups(fn (Ms365StudentAccount $account): array => [
+                $this->studentNumberKey($account->student_number) => $account->email,
+            ])
+            ->map(function (Collection $emails): ?string {
+                $uniqueEmails = collect($emails->all())->unique()->values();
+
+                return $uniqueEmails->count() === 1 ? $uniqueEmails->first() : null;
+            });
+
+        $emailsByName = $emailsByName
+            ->mapToGroups(function (Ms365StudentAccount $account): array {
+                $key = $this->ms365NameKey($account->first_name, $account->last_name)
+                    ?? $this->displayNameKey($account->display_name);
+
+                return $key === null ? [] : [$key => $account->email];
+            })
+            ->map(function (Collection $emails): ?string {
+                $uniqueEmails = collect($emails->all())->unique()->values();
+
+                return $uniqueEmails->count() === 1 ? $uniqueEmails->first() : null;
+            });
+
+        $students->each(function (User $student) use ($emailsByStudentNumber, $emailsByName): void {
+            $studentNumberKey = $this->studentNumberKey($student->student_id);
+            if ($studentNumberKey !== null && $emailsByStudentNumber->has($studentNumberKey)) {
+                $ms365Email = $emailsByStudentNumber->get($studentNumberKey);
+            } else {
+                $nameKeys = [
+                    $this->ms365NameKey(
+                        Str::squish("{$student->first_name} {$student->middle_name}"),
+                        $student->last_name,
+                    ),
+                    $this->ms365NameKey($student->first_name, $student->last_name),
+                ];
+
+                $ms365Email = null;
+                foreach (array_filter($nameKeys) as $nameKey) {
+                    if ($emailsByName->has($nameKey)) {
+                        $ms365Email = $emailsByName->get($nameKey);
+                        break;
+                    }
+                }
+            }
+
+            $student->setAttribute(
+                'ms365_email',
+                $ms365Email,
+            );
+        });
+    }
+
+    private function studentNumberKey(?string $studentNumber): ?string
+    {
+        $studentNumber = Str::upper(Str::squish((string) $studentNumber));
+
+        return $studentNumber === '' ? null : $studentNumber;
+    }
+
+    private function ms365NameKey(?string $firstName, ?string $lastName): ?string
+    {
+        $firstName = Str::lower(Str::squish((string) $firstName));
+        $lastName = Str::lower(Str::squish((string) $lastName));
+
+        return $firstName !== '' && $lastName !== '' ? "{$firstName}|{$lastName}" : null;
+    }
+
+    private function displayNameKey(?string $displayName): ?string
+    {
+        $displayName = Str::squish((string) $displayName);
+
+        if ($displayName === '') {
+            return null;
+        }
+
+        if (str_contains($displayName, ',')) {
+            [$lastName, $firstNames] = array_map('trim', explode(',', $displayName, 2));
+            $firstName = Str::before($firstNames, ' ');
+
+            return $this->ms365NameKey($firstName, $lastName);
+        }
+
+        $parts = preg_split('/\s+/', $displayName) ?: [];
+
+        return $this->ms365NameKey($parts[0] ?? null, $parts[count($parts) - 1] ?? null);
     }
 
     private function validated(Request $request, ?User $student = null): array

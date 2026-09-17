@@ -628,6 +628,11 @@
             <span class="menu-icon"><x-icon name="users" /></span>
             Student Roster
         </a>
+
+        <a href="{{ route('admin.ms365-accounts.index') }}" class="menu-link {{ request()->routeIs('admin.ms365-accounts.*') ? 'active' : '' }}">
+            <span class="menu-icon"><x-icon name="at-sign" /></span>
+            MS365 Accounts
+        </a>
         </div>
         @include('layouts.partials.portal-sidebar-logout')
     </aside>

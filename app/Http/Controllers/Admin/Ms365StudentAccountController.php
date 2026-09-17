@@ -16,7 +16,10 @@ class Ms365StudentAccountController extends Controller
     {
         $search = trim((string) $request->query('search'));
         $accounts = Ms365StudentAccount::query()
-            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query->where('email','like',"%{$search}%")->orWhere('display_name','like',"%{$search}%")))
+            ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
+                ->where('email','like',"%{$search}%")
+                ->orWhere('student_number','like',"%{$search}%")
+                ->orWhere('display_name','like',"%{$search}%")))
             ->orderBy('display_name')->paginate(20)->withQueryString();
         $statistics = ['total'=>Ms365StudentAccount::count(),'eligible'=>Ms365StudentAccount::where('is_blocked',false)->whereNull('soft_deleted_at')->count(),'blocked'=>Ms365StudentAccount::where('is_blocked',true)->count()];
         return view('admin.ms365-accounts.index', compact('accounts','statistics','search'));

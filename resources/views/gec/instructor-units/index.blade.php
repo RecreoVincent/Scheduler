@@ -7,7 +7,10 @@
     .unit-filters { grid-template-columns:2fr 1fr; align-items:end; }
     #unitSearch, #unitAcademicYear { width:100%; border:1.5px solid var(--primary-light); }
     #unitSearch:focus, #unitAcademicYear:focus { border-color:var(--primary); }
-    .unit-table td { vertical-align:middle; }
+    .unit-table { min-width:980px; }
+    .unit-table th,.unit-table td { padding:11px 12px; vertical-align:middle; }
+    .unit-table th:last-child,.unit-table td:last-child { width:145px; text-align:center; white-space:nowrap; }
+    .unit-table td:last-child .actions { justify-content:center; flex-wrap:nowrap; }
     .instructor-cell { display:flex; align-items:center; gap:10px; min-width:210px; }
     .instructor-mark { width:38px; height:38px; display:grid; place-items:center; flex:0 0 38px; font-weight:850; color:white; background:var(--primary); border-radius:10px; }
     .instructor-cell strong,.instructor-cell span { display:block; }
@@ -128,17 +131,6 @@
                                         data-unit-limit="{{ $unitLimit }}"
                                         data-unit-note="{{ $instructor->unit_limit_note }}"
                                     >Adjust Units</button>
-                                    @if($instructor->teaching_unit_limit !== null)
-                                        <button
-                                            type="button"
-                                            class="button button-danger delete-confirmation-trigger"
-                                            data-delete-url="{{ route('gec.instructor-units.destroy',$instructor) }}"
-                                            data-delete-name="{{ $instructor->name }}"
-                                            data-delete-title="Reset Teaching-Unit Limit?"
-                                            data-delete-message="This clears the custom unit limit and reverts this instructor to the department default."
-                                            data-delete-confirm-label="Reset to Default"
-                                        >Reset to Default</button>
-                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -221,11 +213,6 @@
 </div>
 @endpush
 
-@include('dean.partials.delete-confirmation', [
-    'title' => 'Reset Teaching-Unit Limit?',
-    'message' => 'This clears the custom unit limit and reverts this instructor to the department default.',
-    'confirmLabel' => 'Reset to Default',
-])
 @endsection
 
 @push('scripts')

@@ -305,11 +305,11 @@
             <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Dean workspace</span><h1>@yield('page-title','Dean Portal')</h1></div></div>
             <div class="topbar-actions">
                 @php $deanDepartment = auth()->user()->department; @endphp
-                <details class="topbar-settings-menu">
+                <details class="topbar-settings-menu" @if($errors->has('semester_availability')) open @endif>
                     <summary class="topbar-settings-trigger" aria-label="Semester settings" title="Semester settings"><x-icon name="gear" /></summary>
                     <div class="topbar-settings-dropdown">
-                        <strong>Semester Availability</strong>
-                        <p>Turn a semester off to hide it from dean-portal filters and block new schedule generation for it.</p>
+                        <strong>Active Semester</strong>
+                        <p>Choose exactly one semester. The other semesters are hidden from dean-portal filters and cannot generate new schedules.</p>
                         <form method="POST" action="{{ route('dean.settings.semesters') }}">
                             @csrf
                             @method('PATCH')
@@ -325,6 +325,7 @@
                                 <span>Summer</span>
                                 <span class="switch"><input type="checkbox" name="semester_summer_enabled" value="1" @checked($deanDepartment?->semester_summer_enabled ?? true)><span class="switch-track"></span></span>
                             </label>
+                            @error('semester_availability')<p class="error" style="margin:10px 0 0">{{ $message }}</p>@enderror
                             <button class="button" type="submit" style="width:100%;margin-top:12px">Save</button>
                         </form>
                     </div>

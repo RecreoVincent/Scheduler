@@ -11,13 +11,20 @@ class SettingsController extends DeanController
     public function updateSemesters(Request $request): RedirectResponse
     {
         $department = Department::where('code', $this->course($request))->firstOrFail();
-
-        $department->update([
+        $settings = [
             'semester_first_enabled' => $request->boolean('semester_first_enabled'),
             'semester_second_enabled' => $request->boolean('semester_second_enabled'),
             'semester_summer_enabled' => $request->boolean('semester_summer_enabled'),
-        ]);
+        ];
 
-        return back()->with('success', 'Semester availability updated successfully.');
+        if (collect($settings)->filter()->count() !== 1) {
+            return back()->withErrors([
+                'semester_availability' => 'Choose exactly one active semester before saving.',
+            ]);
+        }
+
+        $department->update($settings);
+
+        return back()->with('success', 'Active semester updated successfully.');
     }
 }

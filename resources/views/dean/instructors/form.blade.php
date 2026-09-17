@@ -18,7 +18,7 @@
 </div>
 <div class="card" style="max-width:800px">
 <form method="POST" action="{{ $editing ? route('dean.instructors.update', $instructor) : route('dean.instructors.store') }}">
-    @csrf @if($editing) @method('PUT') @endif
+    @csrf @if($editing) @method('PATCH') @endif
     <div class="form-grid">
         <div><label for="first_name">First Name</label><input id="first_name" class="input" name="first_name" value="{{ old('first_name', $instructor->first_name) }}" required></div>
         <div><label for="last_name">Last Name</label><input id="last_name" class="input" name="last_name" value="{{ old('last_name', $instructor->last_name) }}" required></div>
@@ -38,8 +38,10 @@
             <input id="outside_work_end_time" type="time" class="input" name="outside_work_end_time" value="{{ old('outside_work_end_time', $instructor->outside_work_end_time) }}">
             <small style="display:block;margin-top:5px;color:var(--muted)">Required only for Industry Part-Time instructors.</small>
         </div>
-        <div><label for="password">Password</label><input id="password" type="password" class="input" name="password" placeholder="{{ $editing ? 'Leave blank to keep current password' : '' }}" @if(!$editing) required @endif></div>
-        <div><label for="password_confirmation">Confirm Password</label><input id="password_confirmation" type="password" class="input" name="password_confirmation" @if(!$editing) required @endif></div>
+        @if (! $editing)
+            <div><label for="password">Password</label><input id="password" type="password" class="input" name="password" required></div>
+            <div><label for="password_confirmation">Confirm Password</label><input id="password_confirmation" type="password" class="input" name="password_confirmation" required></div>
+        @endif
     </div>
     <div class="form-actions"><button class="button">{{ $editing ? 'Save Changes' : 'Add Instructor' }}</button><a class="button button-secondary" href="{{ route('dean.instructors.index') }}">Cancel</a></div>
 </form>

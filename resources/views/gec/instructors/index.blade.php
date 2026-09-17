@@ -132,7 +132,7 @@
 
         <form id="instructorCreateForm" method="POST" action="{{ $editingInstructor ? route('gec.instructors.update', $editingInstructor) : route('gec.instructors.store') }}">
             @csrf
-            @if($editingInstructor) @method('PUT') @endif
+            @if($editingInstructor) @method('PATCH') @endif
             <input type="hidden" name="instructor_modal" value="1">
             <div class="admin-profile-form-grid">
                 <div class="admin-profile-field">
@@ -175,15 +175,17 @@
                     <small style="display:block;margin-top:5px;color:var(--muted)">Required only for Industry Part-Time instructors.</small>
                     @error('outside_work_end_time')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
-                <div class="admin-profile-field">
-                    <label for="modal_password">Password</label>
-                    <input id="modal_password" type="password" class="input" name="password" placeholder="{{ $editingInstructor ? 'Leave blank to keep current password' : '' }}" @if(!$editingInstructor) required @endif>
-                    @error('password')<span class="admin-profile-error">{{ $message }}</span>@enderror
-                </div>
-                <div class="admin-profile-field">
-                    <label for="modal_password_confirmation">Confirm Password</label>
-                    <input id="modal_password_confirmation" type="password" class="input" name="password_confirmation" @if(!$editingInstructor) required @endif>
-                </div>
+                @if (! $editingInstructor)
+                    <div class="admin-profile-field">
+                        <label for="modal_password">Password</label>
+                        <input id="modal_password" type="password" class="input" name="password" required>
+                        @error('password')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="admin-profile-field">
+                        <label for="modal_password_confirmation">Confirm Password</label>
+                        <input id="modal_password_confirmation" type="password" class="input" name="password_confirmation" required>
+                    </div>
+                @endif
             </div>
 
             <footer class="admin-profile-actions">

@@ -60,12 +60,12 @@
 <div class="card">
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Year Level</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Name</th><th>MS365 Email</th><th>Year Level</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
             @forelse ($students as $student)
                 <tr>
                     <td>{{ $student->name }}</td>
-                    <td>{{ $student->email }}</td>
+                    <td>{{ $student->ms365_email ?: 'No active MS365 email found' }}</td>
                     <td>{{ $student->year_level ? 'Year '.$student->year_level : '—' }}</td>
                     <td>{{ $student->academicSection?->name ?? '—' }}</td>
                     <td><span class="badge">{{ $student->account_status === 'active' ? 'Active' : str($student->account_status)->title() }}</span></td>
@@ -153,15 +153,17 @@
                     <small style="display:block;margin-top:5px;color:var(--muted)">Only sections matching the selected year level can be assigned.</small>
                     @error('academic_section_id')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
-                <div class="admin-profile-field">
-                    <label for="modal_password">Password</label>
-                    <input id="modal_password" type="password" class="input" name="password" placeholder="{{ $editingStudent ? 'Leave blank to keep current password' : '' }}" @if(!$editingStudent) required @endif>
-                    @error('password')<span class="admin-profile-error">{{ $message }}</span>@enderror
-                </div>
-                <div class="admin-profile-field">
-                    <label for="modal_password_confirmation">Confirm Password</label>
-                    <input id="modal_password_confirmation" type="password" class="input" name="password_confirmation" @if(!$editingStudent) required @endif>
-                </div>
+                @if (! $editingStudent)
+                    <div class="admin-profile-field">
+                        <label for="modal_password">Password</label>
+                        <input id="modal_password" type="password" class="input" name="password" required>
+                        @error('password')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="admin-profile-field">
+                        <label for="modal_password_confirmation">Confirm Password</label>
+                        <input id="modal_password_confirmation" type="password" class="input" name="password_confirmation" required>
+                    </div>
+                @endif
             </div>
 
             <footer class="admin-profile-actions">

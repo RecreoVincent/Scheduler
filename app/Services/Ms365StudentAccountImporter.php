@@ -16,8 +16,13 @@ class Ms365StudentAccountImporter
         $headers = fgetcsv($handle);
         if (! $headers) throw new RuntimeException('The CSV file is empty.');
         $headers = array_map(fn ($value) => trim((string) $value, "\xEF\xBB\xBF \t\n\r\0\x0B"), $headers);
+        // Some exports start with a UTF-8 BOM before the opening CSV quote.
+        // fgetcsv then retains that opening quote in the first header only.
+        $headers[0] = trim($headers[0], '"');
         $required = ['User principal name', 'Display name'];
         foreach ($required as $column) if (! in_array($column, $headers, true)) throw new RuntimeException("Missing required CSV column: {$column}");
+        $studentNumberColumn = collect(['Student Number', 'Student ID'])
+            ->first(fn (string $column): bool => in_array($column, $headers, true));
 
         $imported = 0; $skipped = 0;
         while (($row = fgetcsv($handle)) !== false) {
@@ -26,7 +31,7 @@ class Ms365StudentAccountImporter
             $email = strtolower(ltrim(trim((string) ($data['User principal name'] ?? '')), '`'));
             if (! filter_var($email, FILTER_VALIDATE_EMAIL)) { $skipped++; continue; }
 
-            Ms365StudentAccount::updateOrCreate(['email'=>$email], [
+            $attributes = [
                 'display_name'=>$this->clean($data['Display name'] ?? null),
                 'first_name'=>$this->clean($data['First name'] ?? null),
                 'last_name'=>$this->clean($data['Last name'] ?? null),
@@ -36,7 +41,13 @@ class Ms365StudentAccountImporter
                 'soft_deleted_at'=>$this->date($data['Soft deletion time stamp'] ?? null),
                 'ms365_created_at'=>$this->date($data['When created'] ?? null),
                 'last_imported_at'=>now(),
-            ]);
+            ];
+
+            if ($studentNumberColumn !== null) {
+                $attributes['student_number'] = $this->clean($data[$studentNumberColumn] ?? null);
+            }
+
+            Ms365StudentAccount::updateOrCreate(['email'=>$email], $attributes);
             $imported++;
         }
         fclose($handle);

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\Ms365StudentAccountController;
 use App\Http\Controllers\Admin\StudentRosterController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Dean\DashboardController as DeanDashboardController;
@@ -94,6 +95,9 @@ Route::middleware('admin')
 
         Route::get('/student-roster', [StudentRosterController::class, 'index'])->name('student-roster.index');
         Route::post('/student-roster/import', [StudentRosterController::class, 'import'])->name('student-roster.import');
+
+        Route::get('/ms365-accounts', [Ms365StudentAccountController::class, 'index'])->name('ms365-accounts.index');
+        Route::post('/ms365-accounts/import', [Ms365StudentAccountController::class, 'import'])->name('ms365-accounts.import');
 
         Route::get('/deleted-accounts', [UserController::class, 'deleted'])
             ->name('users.deleted');

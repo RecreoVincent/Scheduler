@@ -43,8 +43,10 @@
             </select>
             <small style="display:block;margin-top:5px;color:var(--muted)">Only sections matching the selected year level can be assigned.</small>
         </div>
-        <div><label for="password">Password</label><input id="password" type="password" class="input" name="password" placeholder="{{ $editing ? 'Leave blank to keep current password' : '' }}" @if(!$editing) required @endif></div>
-        <div><label for="password_confirmation">Confirm Password</label><input id="password_confirmation" type="password" class="input" name="password_confirmation" @if(!$editing) required @endif></div>
+        @if (! $editing)
+            <div><label for="password">Password</label><input id="password" type="password" class="input" name="password" required></div>
+            <div><label for="password_confirmation">Confirm Password</label><input id="password_confirmation" type="password" class="input" name="password_confirmation" required></div>
+        @endif
     </div>
     <div class="form-actions"><button class="button">{{ $editing ? 'Save Changes' : 'Add Student' }}</button><a class="button button-secondary" href="{{ route('dean.students.index') }}">Cancel</a></div>
 </form>
