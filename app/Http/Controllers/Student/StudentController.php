@@ -25,9 +25,22 @@ abstract class StudentController extends Controller
 
         return ClassSchedule::query()->when(
             $sectionId,
-            fn (Builder $query) => $query->where('section_id', $sectionId),
+            fn (Builder $query) => $query
+                ->where('section_id', $sectionId)
+                ->where('semester', $this->viewingSemester($request)),
             fn (Builder $query) => $query->whereRaw('1 = 0'),
         );
+    }
+
+    protected function viewingSemester(Request $request): string
+    {
+        $selectedSemester = $request->session()->get('student_viewing_semester');
+
+        if (in_array($selectedSemester, ['1st', '2nd', 'Summer'], true)) {
+            return $selectedSemester;
+        }
+
+        return $this->student($request)->department?->enabledSemesterCodes()[0] ?? '1st';
     }
 
     protected function weeklyMinutes(Builder $query): int

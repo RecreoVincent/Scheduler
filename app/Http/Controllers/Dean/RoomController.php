@@ -125,6 +125,28 @@ class RoomController extends DeanController
         return back()->with('success', 'Room deleted successfully.');
     }
 
+    public function destroyAll(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $roomIds = Room::query()->forDepartment($course)->pluck('id');
+
+        if ($roomIds->isEmpty()) {
+            return back()->with('error', "There are no {$course} rooms to remove.");
+        }
+
+        DB::transaction(function () use ($roomIds): void {
+            // Preserve schedules, including archived ones, and mark their room as TBA.
+            ClassSchedule::withTrashed()->whereIn('room_id', $roomIds)->update(['room_id' => null]);
+            Room::query()->whereIn('id', $roomIds)->delete();
+        });
+
+        $count = $roomIds->count();
+
+        return redirect()
+            ->route('dean.rooms.index')
+            ->with('success', "Removed all {$count} {$course} ".str('room')->plural($count).'. Existing schedules now show TBA for their room.');
+    }
+
     private function validated(Request $request, ?Room $room = null): array
     {
         return $request->validate([

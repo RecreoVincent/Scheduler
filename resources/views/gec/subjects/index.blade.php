@@ -70,7 +70,7 @@
 <div class="card">
     <div class="table-wrap">
         <table class="subjects-table">
-            <thead><tr><th>Department</th><th>Code</th><th>Description</th><th>Type</th><th>Year</th><th>Semester</th><th>Curriculum</th><th>Units</th><th>Instructors</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Department</th><th>Code</th><th>Description</th><th>Type</th><th>Year</th><th>Semester</th><th>Units</th><th>Instructors</th><th>Actions</th></tr></thead>
             <tbody>
                 @forelse($subjects as $subject)
                     <tr>
@@ -80,7 +80,6 @@
                         <td>{{ $subject->subject_type }}</td>
                         <td>Year {{ $subject->year_level }}</td>
                         <td>{{ $subject->semester }}</td>
-                        <td>{{ $subject->curriculum }} Curriculum</td>
                         <td>{{ number_format((float) $subject->units, 0) }}</td>
                         <td>{{ $subject->instructors->pluck('name')->join(', ') ?: 'Unassigned' }}</td>
                         <td>
@@ -91,7 +90,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="10">No minor subjects match the current filters.</td></tr>
+                    <tr><td colspan="9">No minor subjects match the current filters.</td></tr>
                 @endforelse
             </tbody>
         </table>

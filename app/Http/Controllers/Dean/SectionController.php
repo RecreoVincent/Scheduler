@@ -7,6 +7,7 @@ use App\Models\ClassSchedule;
 use App\Services\SectionImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
@@ -109,6 +110,27 @@ class SectionController extends DeanController
         $section->delete();
 
         return back()->with('success', 'Section deleted successfully.');
+    }
+
+    public function destroyAll(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $sectionIds = AcademicSection::query()->forDepartment($course)->pluck('id');
+
+        if ($sectionIds->isEmpty()) {
+            return back()->with('error', "There are no {$course} sections to remove.");
+        }
+
+        DB::transaction(function () use ($sectionIds): void {
+            ClassSchedule::withTrashed()->whereIn('section_id', $sectionIds)->forceDelete();
+            AcademicSection::query()->whereIn('id', $sectionIds)->delete();
+        });
+
+        $count = $sectionIds->count();
+
+        return redirect()
+            ->route('dean.sections.index')
+            ->with('success', "Removed all {$count} {$course} ".str('section')->plural($count).' and their schedules.');
     }
 
     private function validated(Request $request, ?AcademicSection $section = null): array

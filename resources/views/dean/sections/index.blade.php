@@ -24,6 +24,15 @@
         <input class="input" name="academic_year" value="{{ request('academic_year') }}" placeholder="2026-2027">
     </form>
 
+    <div style="display:flex;justify-content:flex-end;margin:14px 0">
+        <button type="button" class="button button-danger delete-confirmation-trigger"
+            data-delete-url="{{ route('dean.sections.destroy-all') }}"
+            data-delete-name="All {{ $course }} sections"
+            data-delete-title="Delete All Sections?"
+            data-delete-message="This permanently removes every {{ $course }} section and every schedule linked to those sections. This cannot be undone."
+            data-delete-confirm-label="Delete All Sections">Delete All Sections</button>
+    </div>
+
     <div class="table-wrap">
         <table>
             <thead><tr><th>Section</th><th>Year</th><th>Academic Year</th><th>Actions</th></tr></thead>

@@ -238,6 +238,25 @@
     .topbar-label { display:block; margin-bottom:2px; color:rgba(255,255,255,.68); font-size:7px; font-weight:850; letter-spacing:1.1px; text-transform:uppercase; }
     .topbar h1 { color:#fff; font-size:19px; font-weight:800; letter-spacing:-.45px; }
 
+    .personal-semester-menu { position:relative; }
+    .personal-semester-menu summary { list-style:none; cursor:pointer; user-select:none; }
+    .personal-semester-menu summary::-webkit-details-marker { display:none; }
+    .personal-semester-trigger { width:42px; height:42px; display:grid; place-items:center; color:var(--primary); background:rgba(255,255,255,.9); border:1px solid rgba(255,255,255,.62); border-radius:11px; font-size:18px; box-shadow:0 7px 18px rgba(25,2,47,.16); transition:.2s; }
+    .personal-semester-trigger svg { width:19px; height:19px; }
+    .personal-semester-menu[open] .personal-semester-trigger,.personal-semester-trigger:hover { color:#fff; background:var(--primary); }
+    .personal-semester-dropdown { position:absolute; z-index:1300; top:calc(100% + 10px); right:0; width:290px; padding:18px; color:#302638; background:#fff; border:1px solid rgba(69,6,147,.16); border-radius:14px; box-shadow:0 18px 45px rgba(31,5,57,.24); }
+    .personal-semester-dropdown strong { display:block; margin-bottom:5px; color:var(--navy); font-size:13px; }
+    .personal-semester-dropdown p { margin:0 0 12px; color:var(--muted); font-size:11px; line-height:1.5; }
+    .personal-semester-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; color:#302638; font-size:12px; font-weight:700; border-top:1px solid #f0eaf4; cursor:pointer; }
+    .personal-semester-row:first-of-type { border-top:0; }
+    .personal-semester-switch { position:relative; display:inline-block; width:38px; height:22px; flex:0 0 38px; }
+    .personal-semester-switch input { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:1; }
+    .personal-semester-track { position:absolute; inset:0; background:#d8cedf; border-radius:999px; transition:.2s; }
+    .personal-semester-track::before { content:''; position:absolute; width:16px; height:16px; top:3px; left:3px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.25); transition:.2s; }
+    .personal-semester-switch input:checked + .personal-semester-track { background:var(--primary); }
+    .personal-semester-switch input:checked + .personal-semester-track::before { transform:translateX(16px); }
+    .personal-semester-switch input:focus-visible + .personal-semester-track { box-shadow:0 0 0 3px rgba(69,6,147,.25); }
+
     .profile {
         display:flex;
         align-items:center;

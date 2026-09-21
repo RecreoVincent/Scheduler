@@ -35,6 +35,15 @@
     </form>
 </div>
 
+<div style="display:flex;justify-content:flex-end;margin:14px 0">
+    <button type="button" class="button button-danger delete-confirmation-trigger"
+        data-delete-url="{{ route('dean.subjects.destroy-all') }}"
+        data-delete-name="All {{ $course }} subjects"
+        data-delete-title="Delete All Subjects?"
+        data-delete-message="This permanently removes every subject managed by the {{ $course }} Dean, including its schedules and instructor assignments. This cannot be undone."
+        data-delete-confirm-label="Delete All Subjects">Delete All Subjects</button>
+</div>
+
 @php($visibleYears = request()->filled('year_level') ? [(int) request('year_level')] : range(1, 4))
 <div class="subject-year-list">
     @foreach($visibleYears as $yearLevel)
@@ -50,7 +59,7 @@
 
             <div class="table-wrap">
                 <table>
-                    <thead><tr><th>Subject Code</th><th>Subject Description</th><th>Type</th><th>Classification</th><th>Semester</th><th>Curriculum</th><th>Unit</th><th>Instructors</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Subject Code</th><th>Subject Description</th><th>Type</th><th>Classification</th><th>Semester</th><th>Unit</th><th>Instructors</th><th>Actions</th></tr></thead>
                     <tbody>
                         @forelse($yearSubjects as $subject)
                             <tr>
@@ -59,7 +68,6 @@
                                 <td>{{ $subject->subject_type }}</td>
                                 <td>{{ $subject->classification }}</td>
                                 <td>{{ $subject->semester }}</td>
-                                <td>{{ $subject->curriculum }} Curriculum</td>
                                 <td>{{ number_format((float) $subject->units, 0) }}</td>
                                 <td>{{ $subject->instructors->map(fn ($instructor) => $instructor->name.' ('.$instructor->course.')')->join(', ') ?: 'Unassigned' }}</td>
                                 <td>
@@ -70,7 +78,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td class="subject-empty" colspan="9">No {{ strtolower($yearLabel) }} subjects match the current filters.</td></tr>
+                            <tr><td class="subject-empty" colspan="8">No {{ strtolower($yearLabel) }} subjects match the current filters.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

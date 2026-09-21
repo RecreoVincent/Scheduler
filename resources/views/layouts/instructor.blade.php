@@ -77,6 +77,7 @@
         <header class="topbar">
             <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Instructor workspace</span><h1>@yield('page-title','Instructor Portal')</h1></div></div>
             <div class="topbar-actions">
+                @include('layouts.partials.personal-semester-selector')
                 @include('layouts.partials.schedule-notifications')
                 @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Instructor'])
             </div>
@@ -98,6 +99,14 @@
 @stack('scripts')
 @include('layouts.partials.sidebar-toggle-script')
 @include('layouts.partials.auto-filter-script')
+<script>
+    (() => {
+        const semesterMenu = document.querySelector('.personal-semester-menu');
+        if (!semesterMenu) return;
+        document.addEventListener('click', event => { if (!semesterMenu.contains(event.target)) semesterMenu.removeAttribute('open'); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') semesterMenu.removeAttribute('open'); });
+    })();
+</script>
 @if($hasNotice)<script>(()=>{const m=document.getElementById('instructorNotice'),b=document.getElementById('closeInstructorNotice');document.body.classList.add('modal-open');const close=()=>{m.remove();document.body.classList.remove('modal-open')};b.focus();b.onclick=close;m.onclick=e=>{if(e.target===m)close()};document.addEventListener('keydown',e=>{if(e.key==='Escape')close()})})();</script>@endif
 </body>
 </html>

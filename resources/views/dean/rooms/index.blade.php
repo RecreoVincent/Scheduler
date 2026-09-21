@@ -50,6 +50,15 @@
     </form>
 </div>
 
+<div style="display:flex;justify-content:flex-end;margin:14px 0">
+    <button type="button" class="button button-danger delete-confirmation-trigger"
+        data-delete-url="{{ route('dean.rooms.destroy-all') }}"
+        data-delete-name="All {{ $course }} rooms"
+        data-delete-title="Delete All Rooms?"
+        data-delete-message="This permanently removes every {{ $course }} room. Existing schedules will remain, but their room assignment will become TBA. This cannot be undone."
+        data-delete-confirm-label="Delete All Rooms">Delete All Rooms</button>
+</div>
+
 @forelse($rooms as $room)
 <div class="card room-card">
     <div class="room-head">

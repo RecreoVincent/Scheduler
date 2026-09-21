@@ -31,23 +31,6 @@ class ClassScheduleGenerator
 
     private const MAX_INSTRUCTOR_SCHEDULES_PER_DAY_PATTERN = 3;
 
-    private const BSHM_KITCHEN_KEYWORDS = [
-        'cook',
-        'cookery',
-        'culinary',
-        'kitchen',
-        'food preparation',
-        'food production',
-        'baking',
-        'bakery',
-        'pastry',
-        'beverage',
-        'drink',
-        'bartend',
-        'bar service',
-        'mixology',
-    ];
-
     private const TIME_SLOTS = [
         ['08:30', '11:00'],
         ['13:00', '15:30'],
@@ -168,13 +151,11 @@ class ClassScheduleGenerator
                     );
 
                     foreach ($phaseSubjects as $subject) {
-                        $roomMustBeTba = $course === 'BSIT' && $this->isMinor($subject);
-                        $roomFallbackIsTba = $this->subjectCanUseTba($course, $subject);
-                        $matchingRooms = $roomMustBeTba
-                            ? collect([null])
-                            : $rooms
-                                ->filter(fn (Room $room): bool => $this->roomIsCompatible($course, $subject, $room))
-                                ->values();
+                        // Try only the room type required by the subject. TBA
+                        // is used only when no compatible room is available.
+                        $matchingRooms = $rooms
+                            ->filter(fn (Room $room): bool => $this->roomIsCompatible($course, $subject, $room))
+                            ->values();
 
                         $preferred = $subject->instructors->where('account_status', 'active')->values();
                         $instructorPool = ($preferred->isNotEmpty() ? $preferred : $fallbackInstructors)
@@ -208,7 +189,7 @@ class ClassScheduleGenerator
                             );
                         }
 
-                        $allowTbaFallback = $roomFallbackIsTba && ! $roomMustBeTba;
+                        $allowTbaFallback = $this->subjectCanUseTba($course, $subject);
                         // First Year sections have a hard requirement to cover
                         // every meeting pattern, so for them a still-needed
                         // pattern filled via TBA beats a real room in a
@@ -307,46 +288,23 @@ class ClassScheduleGenerator
 
     public function roomIsCompatible(string $course, Subject $subject, Room $room): bool
     {
-        // Minor subjects never claim a real room, in any department — they
-        // always fall back to TBA so they can't compete with that
-        // department's own Major-subject room bookings (e.g. GEC-generated
-        // schedules for BSBA/BSED/BEED/BSHM must not contend with that
-        // department's Major-subject scheduling for the same rooms).
-        if ($this->isMinor($subject)) {
-            return false;
-        }
-
-        return match (strtoupper($course)) {
-            'BSIT' => $this->isLaboratoryRoom($room),
-            'BSBA', 'BSED', 'BEED' => true,
-            'BSHM' => $this->isBshmKitchenSubject($subject)
-                ? $this->isKitchenLaboratoryRoom($room)
-                : $this->isLectureRoom($room),
+        // A Minor or Major subject may use a real room when its type matches.
+        // Compatibility is determined solely by the subject's room type.
+        return match (strtolower((string) $subject->subject_type)) {
+            'laboratory' => $this->isLaboratoryRoom($room),
+            'lecture' => $this->isLectureRoom($room),
             default => strcasecmp((string) $room->room_type, (string) $subject->subject_type) === 0,
         };
     }
 
     public function roomRequirementLabel(string $course, Subject $subject): string
     {
-        return match (strtoupper($course)) {
-            'BSIT' => $this->isMinor($subject) ? 'TBA room' : 'laboratory room',
-            'BSBA', 'BSED', 'BEED' => 'department room',
-            'BSHM' => ! $this->isMinor($subject) && $this->isBshmKitchenSubject($subject) ? 'kitchen laboratory room' : 'lecture room',
-            default => strtolower((string) $subject->subject_type).' room',
-        };
+        return strtolower((string) $subject->subject_type).' room';
     }
 
     private function isMinor(Subject $subject): bool
     {
         return strcasecmp((string) $subject->classification, 'Minor') === 0;
-    }
-
-    private function isBshmKitchenSubject(Subject $subject): bool
-    {
-        $description = strtolower(trim((string) $subject->code.' '.(string) $subject->name));
-
-        return collect(self::BSHM_KITCHEN_KEYWORDS)
-            ->contains(fn (string $keyword): bool => str_contains($description, $keyword));
     }
 
     private function isLaboratoryRoom(Room $room): bool
@@ -356,19 +314,9 @@ class ClassScheduleGenerator
         return str_contains($description, 'laboratory') || preg_match('/\blab\b/', $description) === 1;
     }
 
-    private function isKitchenLaboratoryRoom(Room $room): bool
-    {
-        $description = strtolower(trim((string) $room->room_type.' '.(string) $room->name));
-
-        return $this->isLaboratoryRoom($room)
-            || str_contains($description, 'kitchen')
-            || str_contains($description, 'bar');
-    }
-
     private function isLectureRoom(Room $room): bool
     {
-        return ! $this->isKitchenLaboratoryRoom($room)
-            && strcasecmp((string) $room->room_type, 'Lecture') === 0;
+        return strcasecmp((string) $room->room_type, 'Lecture') === 0;
     }
 
     private function normalizedSubjectCode(Subject $subject): string

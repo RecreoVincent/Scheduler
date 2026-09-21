@@ -53,6 +53,33 @@ class InstructorPortalTest extends TestCase
             ->assertDontSee('IT999');
     }
 
+    public function test_instructor_can_switch_the_viewed_schedule_semester(): void
+    {
+        [$instructor, $section, $firstSemesterSubject, $room] = $this->scheduleFixtures();
+        $this->createSchedule($instructor, $section, $firstSemesterSubject, $room, 'Monday', '08:00', '09:30');
+        $secondSemesterSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'IT201', 'name' => 'Second Semester Subject',
+            'subject_type' => 'Lecture', 'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+        ClassSchedule::create([
+            'course' => 'BSIT', 'section_id' => $section->id, 'subject_id' => $secondSemesterSubject->id,
+            'instructor_id' => $instructor->id, 'room_id' => $room->id,
+            'academic_year' => '2026-2027', 'semester' => '2nd', 'day' => 'Tuesday',
+            'start_time' => '08:00', 'end_time' => '09:30',
+        ]);
+
+        $this->actingAs($instructor)
+            ->post(route('instructor.settings.semester'), ['semester' => '2nd'])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Now viewing Second Semester schedules.');
+
+        $this->actingAs($instructor)->get(route('instructor.workload.index'))
+            ->assertOk()
+            ->assertSee('Viewing Semester')
+            ->assertSee('IT201')
+            ->assertDontSee('IT101');
+    }
+
     public function test_room_scanner_reports_a_room_currently_in_use(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-07-13 09:00:00'));

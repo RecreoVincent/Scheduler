@@ -7,6 +7,7 @@ use App\Models\Subject;
 use App\Services\SubjectImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -128,6 +129,31 @@ class SubjectController extends DeanController
         $subject->delete();
 
         return back()->with('success', 'Subject deleted successfully.');
+    }
+
+    public function destroyAll(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $subjectIds = Subject::query()
+            ->forDepartment($course)
+            ->where('managed_by_gec', false)
+            ->pluck('id');
+
+        if ($subjectIds->isEmpty()) {
+            return back()->with('error', "There are no {$course} subjects to remove.");
+        }
+
+        DB::transaction(function () use ($subjectIds): void {
+            ClassSchedule::withTrashed()->whereIn('subject_id', $subjectIds)->forceDelete();
+            DB::table('subject_instructor')->whereIn('subject_id', $subjectIds)->delete();
+            Subject::query()->whereIn('id', $subjectIds)->delete();
+        });
+
+        $count = $subjectIds->count();
+
+        return redirect()
+            ->route('dean.subjects.index')
+            ->with('success', "Removed all {$count} {$course} ".str('subject')->plural($count).'.');
     }
 
     /**

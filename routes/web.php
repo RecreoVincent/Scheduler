@@ -203,6 +203,7 @@ Route::middleware('dean')
         Route::delete('/students/{student}', [DeanStudentController::class, 'destroy'])->name('students.destroy');
         Route::post('/sections/import', [DeanSectionController::class, 'import'])->name('sections.import');
         Route::get('/sections/import-template', [DeanSectionController::class, 'importTemplate'])->name('sections.import-template');
+        Route::delete('/sections/destroy-all', [DeanSectionController::class, 'destroyAll'])->name('sections.destroy-all');
         Route::resource('sections', DeanSectionController::class)->except(['show']);
         Route::get('/subject-assignments', [DeanSubjectAssignmentController::class, 'index'])->name('subject-assignments.index');
         Route::get('/subject-assignments/create', [DeanSubjectAssignmentController::class, 'create'])->name('subject-assignments.create');
@@ -214,9 +215,11 @@ Route::middleware('dean')
         Route::post('/instructor-requests/{instructorRequest}/fulfill', [DeanCrossDepartmentInstructorRequestController::class, 'fulfill'])->name('instructor-requests.fulfill');
         Route::post('/subjects/import', [DeanSubjectController::class, 'import'])->name('subjects.import');
         Route::get('/subjects/import-template', [DeanSubjectController::class, 'importTemplate'])->name('subjects.import-template');
+        Route::delete('/subjects/destroy-all', [DeanSubjectController::class, 'destroyAll'])->name('subjects.destroy-all');
         Route::resource('subjects', DeanSubjectController::class)->except(['show']);
         Route::post('/rooms/import', [DeanRoomController::class, 'import'])->name('rooms.import');
         Route::get('/rooms/import-template', [DeanRoomController::class, 'importTemplate'])->name('rooms.import-template');
+        Route::delete('/rooms/destroy-all', [DeanRoomController::class, 'destroyAll'])->name('rooms.destroy-all');
         Route::resource('rooms', DeanRoomController::class)->except(['show']);
         Route::get('/create-schedule', [DeanScheduleController::class, 'create'])->name('schedules.create');
         Route::post('/create-schedule', [DeanScheduleController::class, 'store'])->name('schedules.store');
@@ -247,6 +250,7 @@ Route::middleware('instructor')
     ->name('instructor.')
     ->group(function () {
         Route::get('/dashboard', [InstructorDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/settings/semester', [\App\Http\Controllers\PortalSemesterPreferenceController::class, 'updateInstructor'])->name('settings.semester');
         Route::get('/workload', [InstructorWorkloadController::class, 'index'])->name('workload.index');
         Route::get('/scanner', [InstructorRoomScannerController::class, 'index'])->name('scanner.index');
         Route::get('/scanner/rooms/{room}', [InstructorRoomScannerController::class, 'status'])->name('scanner.status');
@@ -263,6 +267,7 @@ Route::middleware('student')
     ->name('student.')
     ->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/settings/semester', [\App\Http\Controllers\PortalSemesterPreferenceController::class, 'updateStudent'])->name('settings.semester');
         Route::get('/study-load', [StudentStudyLoadController::class, 'index'])->name('study-load.index');
         Route::get('/scanner', [StudentRoomScannerController::class, 'index'])->name('scanner.index');
         Route::get('/scanner/rooms/{room}', [StudentRoomScannerController::class, 'status'])->name('scanner.status');

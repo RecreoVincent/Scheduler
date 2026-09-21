@@ -58,6 +58,33 @@ class StudentPortalTest extends TestCase
             ]);
     }
 
+    public function test_student_can_switch_the_viewed_schedule_semester(): void
+    {
+        [$student, $section, $firstSemesterSubject, $room, $instructor] = $this->fixtures();
+        $this->schedule($section, $firstSemesterSubject, $room, $instructor, 'Monday', '08:00', '09:30');
+        $secondSemesterSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'IT201', 'name' => 'Second Semester Subject',
+            'subject_type' => 'Lecture', 'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+        ClassSchedule::create([
+            'course' => 'BSIT', 'section_id' => $section->id, 'subject_id' => $secondSemesterSubject->id,
+            'instructor_id' => $instructor->id, 'room_id' => $room->id,
+            'academic_year' => '2026-2027', 'semester' => '2nd', 'day' => 'Tuesday',
+            'start_time' => '08:00', 'end_time' => '09:30',
+        ]);
+
+        $this->actingAs($student)
+            ->post(route('student.settings.semester'), ['semester' => '2nd'])
+            ->assertRedirect()
+            ->assertSessionHas('success', 'Now viewing Second Semester schedules.');
+
+        $this->actingAs($student)->get(route('student.study-load.index'))
+            ->assertOk()
+            ->assertSee('Viewing Semester')
+            ->assertSee('IT201')
+            ->assertDontSee('IT101');
+    }
+
     public function test_student_room_scanner_reports_current_room_usage(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-07-13 08:30:00'));

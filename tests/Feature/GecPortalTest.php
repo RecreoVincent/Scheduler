@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AcademicSection;
 use App\Models\ClassSchedule;
 use App\Models\Department;
+use App\Models\Room;
 use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -240,6 +241,7 @@ class GecPortalTest extends TestCase
             'course' => 'BEED', 'name' => '2 - Alpha', 'year_level' => 2,
             'academic_year' => '2026-2027', 'semester' => 'All',
         ]);
+        $room = Room::create(['course' => 'BEED', 'name' => 'Education 101', 'room_type' => 'Lecture']);
         $subject = Subject::create([
             'course' => 'BEED', 'code' => 'GE 103', 'name' => 'Mathematics in the Modern World',
             'subject_type' => 'Lecture', 'classification' => 'Minor',
@@ -260,7 +262,7 @@ class GecPortalTest extends TestCase
         $this->assertNotNull($schedule);
         $this->assertSame('BEED', $schedule->course);
         $this->assertSame($gecInstructor->id, $schedule->instructor_id);
-        $this->assertNull($schedule->room_id, 'Minor subjects should always land as TBA, never claim a real room.');
+        $this->assertSame($room->id, $schedule->room_id);
     }
 
     public function test_gec_cannot_generate_a_minor_subject_schedule_without_an_assigned_instructor(): void

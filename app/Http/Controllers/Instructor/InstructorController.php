@@ -21,7 +21,20 @@ abstract class InstructorController extends Controller
     /** @return Builder<ClassSchedule> */
     protected function schedules(Request $request): Builder
     {
-        return ClassSchedule::query()->where('instructor_id', $this->instructor($request)->id);
+        return ClassSchedule::query()
+            ->where('instructor_id', $this->instructor($request)->id)
+            ->where('semester', $this->viewingSemester($request));
+    }
+
+    protected function viewingSemester(Request $request): string
+    {
+        $selectedSemester = $request->session()->get('instructor_viewing_semester');
+
+        if (in_array($selectedSemester, ['1st', '2nd', 'Summer'], true)) {
+            return $selectedSemester;
+        }
+
+        return $this->instructor($request)->department?->enabledSemesterCodes()[0] ?? '1st';
     }
 
     protected function weeklyMinutes(Builder $query): int

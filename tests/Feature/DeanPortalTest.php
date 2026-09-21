@@ -626,6 +626,67 @@ class DeanPortalTest extends TestCase
         $this->assertSoftDeleted('class_schedules', ['id' => $archivedSchedule->id, 'room_id' => null]);
     }
 
+    public function test_dean_can_remove_all_department_subjects_rooms_and_sections(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+
+        $deanSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 111', 'name' => 'Introduction to Computing',
+            'subject_type' => 'Laboratory', 'classification' => 'Major',
+            'year_level' => 1, 'semester' => '1st', 'curriculum' => 'New', 'units' => 3,
+        ]);
+        $gecSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 101', 'name' => 'Understanding the Self',
+            'subject_type' => 'Lecture', 'classification' => 'Minor', 'managed_by_gec' => true,
+            'year_level' => 1, 'semester' => '1st', 'curriculum' => 'New', 'units' => 3,
+        ]);
+        $otherSubject = Subject::create([
+            'course' => 'BSBA', 'code' => 'BA 101', 'name' => 'Business Fundamentals',
+            'subject_type' => 'Lecture', 'classification' => 'Major',
+            'year_level' => 1, 'semester' => '1st', 'curriculum' => 'New', 'units' => 3,
+        ]);
+
+        $deanRoom = Room::create(['course' => 'BSIT', 'name' => 'ITE 101', 'room_type' => 'Laboratory']);
+        $otherRoom = Room::create(['course' => 'BSBA', 'name' => 'BA 101', 'room_type' => 'Lecture']);
+
+        $deanSection = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - East', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $otherSection = AcademicSection::create([
+            'course' => 'BSBA', 'name' => '1 - East', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+
+        $this->actingAs($dean)->get(route('dean.subjects.index'))
+            ->assertOk()
+            ->assertSee('Delete All Subjects')
+            ->assertSee(route('dean.subjects.destroy-all'), false);
+        $this->actingAs($dean)->delete(route('dean.subjects.destroy-all'))
+            ->assertRedirect(route('dean.subjects.index'));
+        $this->assertModelMissing($deanSubject);
+        $this->assertModelExists($gecSubject);
+        $this->assertModelExists($otherSubject);
+
+        $this->actingAs($dean)->get(route('dean.rooms.index'))
+            ->assertOk()
+            ->assertSee('Delete All Rooms')
+            ->assertSee(route('dean.rooms.destroy-all'), false);
+        $this->actingAs($dean)->delete(route('dean.rooms.destroy-all'))
+            ->assertRedirect(route('dean.rooms.index'));
+        $this->assertModelMissing($deanRoom);
+        $this->assertModelExists($otherRoom);
+
+        $this->actingAs($dean)->get(route('dean.sections.index'))
+            ->assertOk()
+            ->assertSee('Delete All Sections')
+            ->assertSee(route('dean.sections.destroy-all'), false);
+        $this->actingAs($dean)->delete(route('dean.sections.destroy-all'))
+            ->assertRedirect(route('dean.sections.index'));
+        $this->assertModelMissing($deanSection);
+        $this->assertModelExists($otherSection);
+    }
+
     public function test_deleted_class_schedule_moves_to_archive_and_can_be_restored(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
@@ -1454,13 +1515,13 @@ class DeanPortalTest extends TestCase
             $durationMinutes = (int) ((strtotime($end) - strtotime($start)) / 60);
             $this->assertSame(150, $durationMinutes);
 
-            $this->assertSame('Laboratory', $schedule->room->room_type);
+            $this->assertSame('Lecture', $schedule->room->room_type);
             $this->assertContains($schedule->day, ['M - W', 'T - Th', 'F - S']);
             $this->assertSame($industryInstructor->id, $schedule->instructor_id);
             // The instructor's 3:30 PM outside-work-hours cutoff only leaves
             // the 4:30-7:00 PM block open on weekdays and Friday.
             $this->assertSame('16:30', $start);
-            $this->assertNotSame($lectureRoom->id, $schedule->room_id);
+            $this->assertSame($lectureRoom->id, $schedule->room_id);
         }
 
         $industryUnits = $schedules->where('instructor_id', $industryInstructor->id)->sum(fn (ClassSchedule $schedule): float => (float) $schedule->subject->units);
@@ -2391,7 +2452,7 @@ class DeanPortalTest extends TestCase
             ->assertDontSee($pending->name);
     }
 
-    public function test_bsba_subjects_can_use_any_department_room_regardless_of_subject_type(): void
+    public function test_laboratory_subjects_are_tba_when_no_laboratory_room_is_available(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSBA']);
         $instructor = User::factory()->create([
@@ -2412,11 +2473,11 @@ class DeanPortalTest extends TestCase
         ])->assertRedirect()->assertSessionHas('success');
 
         $this->assertDatabaseHas('class_schedules', [
-            'section_id' => $section->id, 'subject_id' => $subject->id, 'room_id' => $room->id,
+            'section_id' => $section->id, 'subject_id' => $subject->id, 'room_id' => null,
         ]);
     }
 
-    public function test_bshm_cooking_subjects_use_kitchen_labs_and_other_subjects_use_lecture_rooms(): void
+    public function test_subjects_use_rooms_matching_their_laboratory_or_lecture_type(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSHM']);
         $instructors = User::factory()->count(2)->create([
@@ -2442,8 +2503,8 @@ class DeanPortalTest extends TestCase
             'academic_year' => '2026-2027', 'semester' => '1st', 'year_level' => '2', 'number_of_sections' => 1,
         ])->assertRedirect()->assertSessionHas('success');
 
-        $this->assertSame($kitchen->id, ClassSchedule::where('subject_id', $cooking->id)->value('room_id'));
-        $this->assertSame($lecture->id, ClassSchedule::where('subject_id', $management->id)->value('room_id'));
+        $this->assertSame($lecture->id, ClassSchedule::where('subject_id', $cooking->id)->value('room_id'));
+        $this->assertSame($kitchen->id, ClassSchedule::where('subject_id', $management->id)->value('room_id'));
     }
 
     public function test_instructor_cannot_receive_more_than_three_schedules_on_one_day_pair(): void
