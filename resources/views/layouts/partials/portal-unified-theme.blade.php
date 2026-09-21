@@ -442,6 +442,44 @@
     .badge { display:inline-block; padding:5px 12px; color:var(--primary); background:#f2e7fa; border:1px solid #e4d0f1; border-radius:999px; font-size:9.5px; font-weight:850; letter-spacing:.3px; }
     .schedule-time { color:var(--primary) !important; }
 
+    /* Standard data table: shared by every interactive portal. Print views
+       intentionally do not use the portal layout, so their document tables
+       retain their dedicated print dimensions. */
+    .content :is(.table-wrap,.table-wrapper) {
+        position:relative;
+        max-width:100%;
+        overscroll-behavior-inline:contain;
+        scrollbar-color:rgba(69,6,147,.56) rgba(69,6,147,.09);
+        scrollbar-width:thin;
+    }
+    .content :is(.table-wrap,.table-wrapper) > table {
+        width:100%;
+        margin:0;
+    }
+    .content :is(.table-wrap,.table-wrapper) > table :is(th,td) {
+        vertical-align:middle;
+    }
+    .content :is(.table-wrap,.table-wrapper) > table th {
+        line-height:1.28;
+        white-space:normal;
+    }
+    .content :is(.table-wrap,.table-wrapper) > table td {
+        line-height:1.45;
+        overflow-wrap:anywhere;
+    }
+    .content :is(.table-wrap,.table-wrapper) > table td[colspan] {
+        padding:34px 20px;
+        color:var(--muted);
+        text-align:center;
+    }
+    .content :is(.table-wrap,.table-wrapper) > table .actions {
+        align-items:center;
+    }
+    .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar { height:9px; }
+    .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar-track { background:rgba(69,6,147,.09); border-radius:999px; }
+    .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar-thumb { background:rgba(69,6,147,.56); border-radius:999px; }
+    .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar-thumb:hover { background:var(--primary); }
+
     .chart-modal,.delete-modal { background:rgba(31,5,57,.62); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
     .chart-panel,.delete-dialog {
         color:#302638;

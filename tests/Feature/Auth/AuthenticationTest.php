@@ -113,6 +113,27 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
+    public function test_each_portal_shows_the_shared_login_transition_before_its_dashboard(): void
+    {
+        foreach (['admin', 'dean', 'gec', 'instructor', 'student'] as $role) {
+            $user = User::factory()->create([
+                'role' => $role,
+                'course' => $role === 'dean' ? 'BSIT' : null,
+                'account_status' => 'active',
+            ]);
+
+            $this->actingAs($user, $role)
+                ->get(route("{$role}.login-transition"))
+                ->assertOk()
+                ->assertSee('Welcome to MCC Scheduler')
+                ->assertSee('images/mcc-scheduler-logo-transparent.png')
+                ->assertSee('Login successful')
+                ->assertSee('}, 2000);', false)
+                ->assertSee('window.location.replace(dashboardUrl), 1000);', false)
+                ->assertSee(str_replace('/', '\\/', route("{$role}.dashboard")), false);
+        }
+    }
+
     public function test_pending_users_cannot_authenticate(): void
     {
         $user = User::factory()->create([

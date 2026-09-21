@@ -52,7 +52,7 @@ class StudentRosterLoginController extends Controller
         Auth::shouldUse('student');
         $request->session()->regenerate();
 
-        return redirect()->route('student.dashboard');
+        return redirect()->route('student.login-transition');
     }
 
     private function createStudentAccount(StudentRoster $rosterEntry, string $verifiedLastName): User

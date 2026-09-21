@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\Ms365StudentAccountController;
 use App\Http\Controllers\Admin\StudentRosterController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\PortalLoginTransitionController;
 use App\Http\Controllers\Dean\DashboardController as DeanDashboardController;
 use App\Http\Controllers\Dean\CrossDepartmentInstructorRequestController as DeanCrossDepartmentInstructorRequestController;
 use App\Http\Controllers\Dean\InstructorController as DeanInstructorController;
@@ -87,6 +88,9 @@ Route::middleware('admin')
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        Route::get('/login-transition', [PortalLoginTransitionController::class, 'show'])
+            ->defaults('portal', 'admin')
+            ->name('login-transition');
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
@@ -121,6 +125,9 @@ Route::middleware('gec')
     ->prefix('gec')
     ->name('gec.')
     ->group(function () {
+        Route::get('/login-transition', [PortalLoginTransitionController::class, 'show'])
+            ->defaults('portal', 'gec')
+            ->name('login-transition');
         Route::get('/dashboard', [GecDashboardController::class, 'index'])
             ->name('dashboard');
 
@@ -176,6 +183,9 @@ Route::middleware('dean')
     ->prefix('dean')
     ->name('dean.')
     ->group(function () {
+        Route::get('/login-transition', [PortalLoginTransitionController::class, 'show'])
+            ->defaults('portal', 'dean')
+            ->name('login-transition');
         Route::get('/dashboard', [DeanDashboardController::class, 'index'])->name('dashboard');
         Route::patch('/settings/semesters', [DeanSettingsController::class, 'updateSemesters'])->name('settings.semesters');
         Route::get('/instructors', [DeanInstructorController::class, 'index'])->name('instructors.index');
@@ -249,6 +259,9 @@ Route::middleware('instructor')
     ->prefix('instructor')
     ->name('instructor.')
     ->group(function () {
+        Route::get('/login-transition', [PortalLoginTransitionController::class, 'show'])
+            ->defaults('portal', 'instructor')
+            ->name('login-transition');
         Route::get('/dashboard', [InstructorDashboardController::class, 'index'])->name('dashboard');
         Route::post('/settings/semester', [\App\Http\Controllers\PortalSemesterPreferenceController::class, 'updateInstructor'])->name('settings.semester');
         Route::get('/workload', [InstructorWorkloadController::class, 'index'])->name('workload.index');
@@ -266,6 +279,9 @@ Route::middleware('student')
     ->prefix('student')
     ->name('student.')
     ->group(function () {
+        Route::get('/login-transition', [PortalLoginTransitionController::class, 'show'])
+            ->defaults('portal', 'student')
+            ->name('login-transition');
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
         Route::post('/settings/semester', [\App\Http\Controllers\PortalSemesterPreferenceController::class, 'updateStudent'])->name('settings.semester');
         Route::get('/study-load', [StudentStudyLoadController::class, 'index'])->name('study-load.index');

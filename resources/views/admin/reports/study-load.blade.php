@@ -10,15 +10,17 @@
 </div>
 
 <div class="card">
-    <table style="width:100%; border-collapse:collapse;">
-        <thead><tr><th style="text-align:left;padding:12px;">Student</th><th style="text-align:left;padding:12px;">Email</th><th style="text-align:left;padding:12px;">Course</th></tr></thead>
-        <tbody>
-        @forelse ($students as $student)
-            <tr style="border-top:1px solid #e2e8f0;"><td style="padding:12px;">{{ $student->name }}</td><td style="padding:12px;">{{ $student->email }}</td><td style="padding:12px;">{{ $student->course ?? 'Not assigned' }}</td></tr>
-        @empty
-            <tr><td colspan="3" style="padding:20px;text-align:center;">No students found.</td></tr>
-        @endforelse
-        </tbody>
-    </table>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Student</th><th>Email</th><th>Course</th></tr></thead>
+            <tbody>
+            @forelse ($students as $student)
+                <tr><td>{{ $student->name }}</td><td>{{ $student->email }}</td><td>{{ $student->course ?? 'Not assigned' }}</td></tr>
+            @empty
+                <tr><td colspan="3">No students found.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 @endsection

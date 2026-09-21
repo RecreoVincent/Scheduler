@@ -27,7 +27,7 @@ class SimultaneousPortalSessionsTest extends TestCase
                 'password' => 'password',
                 'role' => $role,
                 'course' => 'BSIT',
-            ])->assertRedirect(route("{$role}.dashboard"));
+            ])->assertRedirect(route("{$role}.login-transition"));
 
             $this->assertSame($user->id, Auth::guard($role)->id());
         }

@@ -27,7 +27,7 @@ class StudentIdLookupTest extends TestCase
         $this->post(route('login.student'), [
             'student_id' => '2026-0001',
             'last_name' => 'dela cruz',
-        ])->assertRedirect(route('student.dashboard'));
+        ])->assertRedirect(route('student.login-transition'));
 
         $student = User::query()->where('student_id', '2026-0001')->firstOrFail();
         $this->assertAuthenticatedAs($student, 'student');
@@ -80,7 +80,7 @@ class StudentIdLookupTest extends TestCase
         ]);
 
         $this->post(route('login.student'), ['student_id' => '2026-0001', 'last_name' => 'Cruz'])
-            ->assertRedirect(route('student.dashboard'));
+            ->assertRedirect(route('student.login-transition'));
 
         $this->assertAuthenticatedAs($student, 'student');
         $this->assertDatabaseHas('users', [

@@ -80,7 +80,7 @@ class AuthenticatedSessionController extends Controller
         }
 
         return in_array($selectedRole, ['admin', 'dean', 'gec', 'instructor', 'student'], true)
-            ? redirect()->route("{$selectedRole}.dashboard")
+            ? redirect()->route("{$selectedRole}.login-transition")
             : redirect()->intended(route('dashboard'));
     }
 
