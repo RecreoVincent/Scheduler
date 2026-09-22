@@ -48,7 +48,7 @@ class TimetableController extends DeanController
             ->whereIn('id', $scheduledSectionIds)
             ->orderBy('year_level')
             ->orderBy('name')
-            ->paginate(6)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $schedulesBySection = (clone $query)

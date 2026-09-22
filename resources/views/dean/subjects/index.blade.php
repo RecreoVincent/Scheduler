@@ -31,16 +31,16 @@
 <div class="card">
     <form class="filters" method="GET" data-auto-filter style="grid-template-columns:repeat(2,minmax(0,1fr));">
         <select class="input" name="year_level"><option value="">All years</option>@for($level = 1; $level <= 4; $level++)<option value="{{ $level }}" @selected((string) request('year_level') === (string) $level)>Year {{ $level }}</option>@endfor</select>
-        <select class="input" name="subject_type"><option value="">All types</option>@foreach(['Lecture', 'Laboratory'] as $type)<option value="{{ $type }}" @selected(request('subject_type') === $type)>{{ $type }}</option>@endforeach</select>
+        <select class="input" name="subject_type"><option value="">All types</option>@foreach(['Lecture', 'Laboratory', 'Internship'] as $type)<option value="{{ $type }}" @selected(request('subject_type') === $type)>{{ $type }}</option>@endforeach</select>
     </form>
 </div>
 
 <div style="display:flex;justify-content:flex-end;margin:14px 0">
     <button type="button" class="button button-danger delete-confirmation-trigger"
         data-delete-url="{{ route('dean.subjects.destroy-all') }}"
-        data-delete-name="All {{ $course }} subjects"
+        data-delete-name="All {{ $enabledSemesters[0] ?? 'active semester' }} {{ $course }} subjects"
         data-delete-title="Delete All Subjects?"
-        data-delete-message="This permanently removes every subject managed by the {{ $course }} Dean, including its schedules and instructor assignments. This cannot be undone."
+        data-delete-message="This permanently removes only {{ $enabledSemesters[0] ?? 'the active semester' }} {{ $course }} subjects, including their schedules and instructor assignments. Subjects in other semesters will not be affected."
         data-delete-confirm-label="Delete All Subjects">Delete All Subjects</button>
 </div>
 
@@ -100,7 +100,7 @@
         <header class="admin-profile-header">
             <div>
                 <h2 id="subjectCreateTitle">{{ $editingSubject ? 'Edit Subject' : 'Add Subject' }}</h2>
-                <p>{{ $editingSubject ? "Update this {$course} subject." : "Enter the curriculum information for {$course}. It will be added to every semester enabled in Settings." }}</p>
+                <p>{{ $editingSubject ? "Update this {$course} subject." : "Enter the curriculum information for {$course}. It will be added to the active semester selected in Settings." }}</p>
             </div>
             <button class="admin-profile-close" type="button" data-close-subject-create aria-label="Close subject form">&times;</button>
         </header>
@@ -124,7 +124,7 @@
                 <div class="admin-profile-field">
                     <label for="subject_type">Subject type</label>
                     <select id="subject_type" class="input" name="subject_type" required>
-                        @foreach(['Lecture','Laboratory'] as $type)<option @selected(old('subject_type', $editingSubject?->subject_type ?? 'Lecture') === $type)>{{ $type }}</option>@endforeach
+                        @foreach(['Lecture','Laboratory','Internship'] as $type)<option @selected(old('subject_type', $editingSubject?->subject_type ?? 'Lecture') === $type)>{{ $type }}</option>@endforeach
                     </select>
                     @error('subject_type')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
@@ -180,7 +180,7 @@
                 </div>
                 <div class="admin-profile-field full">
                     <p style="margin:0;color:var(--muted);font-size:12px;line-height:1.6">
-                        Required columns: <strong>code</strong>, <strong>name</strong>, <strong>subject_type</strong> (Lecture or Laboratory), <strong>year_level</strong> (1–4), <strong>semester</strong> (1st, 2nd, or Summer), <strong>units</strong> (0.5–12).
+                        Required columns: <strong>code</strong>, <strong>name</strong>, <strong>subject_type</strong> (Lecture, Laboratory, or Internship), <strong>year_level</strong> (1–4), <strong>semester</strong> (1st, 2nd, or Summer), <strong>units</strong> (0.5–12).
                         Optional columns: classification (Major/Minor, defaults to Major), curriculum (New/Old, defaults to New).
                         <a href="{{ route('dean.subjects.import-template') }}">Download a CSV template</a>.
                     </p>

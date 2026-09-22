@@ -46,7 +46,7 @@ class StudentController extends DeanController
             default => $query->orderBy('first_name')->orderBy('middle_name')->orderBy('last_name'),
         };
 
-        $students = $query->with('academicSection')->paginate(15)->withQueryString();
+        $students = $query->with('academicSection')->paginate($this->perPage($request))->withQueryString();
         $this->attachMs365Emails($students->getCollection());
 
         $sections = AcademicSection::forDepartment($course)

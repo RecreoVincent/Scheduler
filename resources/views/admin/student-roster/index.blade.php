@@ -34,11 +34,12 @@
 
     .roster-table { width:100%; table-layout:fixed; }
     .roster-table th, .roster-table td { text-align:left; }
-    .roster-table th:nth-child(1), .roster-table td:nth-child(1) { width:14%; }
-    .roster-table th:nth-child(2), .roster-table td:nth-child(2) { width:32%; }
-    .roster-table th:nth-child(3), .roster-table td:nth-child(3) { width:18%; }
-    .roster-table th:nth-child(4), .roster-table td:nth-child(4) { width:16%; }
-    .roster-table th:nth-child(5), .roster-table td:nth-child(5) { width:20%; }
+    .roster-table th:nth-child(1), .roster-table td:nth-child(1) { width:13%; }
+    .roster-table th:nth-child(2), .roster-table td:nth-child(2) { width:24%; }
+    .roster-table th:nth-child(3), .roster-table td:nth-child(3) { width:12%; }
+    .roster-table th:nth-child(4), .roster-table td:nth-child(4) { width:15%; }
+    .roster-table th:nth-child(5), .roster-table td:nth-child(5) { width:16%; }
+    .roster-table th:nth-child(6), .roster-table td:nth-child(6) { width:20%; }
     .roster-table td { word-wrap:break-word; }
 </style>
 @endpush
@@ -56,7 +57,7 @@
 </div>
 <div class="card" style="margin-bottom:20px">
     <h3 style="margin-bottom:7px">Import Student Roster CSV</h3>
-    <p style="margin-bottom:15px">Upload a CSV with Student ID, Name, and Section columns. Existing student ID records will be updated.</p>
+    <p style="margin-bottom:15px">Upload a CSV with Student ID, Name, Section, and Department columns. Students are automatically assigned to the matching department; a department can be inferred only when the section belongs to one department.</p>
     <form method="POST" action="{{ route('admin.student-roster.import') }}" enctype="multipart/form-data" class="roster-import-form">
         @csrf
         <div class="roster-import-field">
@@ -68,5 +69,5 @@
     </form>
     @if(session('error_note'))<p style="margin-top:12px;color:#b42318;font-size:12px">{{ session('error_note') }}</p>@endif
 </div>
-<div class="card"><form class="filters roster-search-form" method="GET"><input class="input" type="search" name="search" value="{{ $search }}" placeholder="Search student ID, name, or section"><button class="button" type="submit">Search</button></form><div class="table-wrap"><table class="roster-table"><thead><tr><th>Student ID</th><th>Name</th><th>Section</th><th>Status</th><th>Last imported</th></tr></thead><tbody>@forelse($roster as $entry)<tr><td><strong>{{ $entry->student_id }}</strong></td><td>{{ $entry->full_name }}</td><td>{{ $entry->section ?: '—' }}</td><td>@if(in_array($entry->student_id, $registeredStudentIds, true))<span class="badge">Portal account created</span>@else<span class="badge" style="color:#64748b">Not signed in yet</span>@endif</td><td>{{ $entry->imported_at?->format('M d, Y g:i A') ?: '—' }}</td></tr>@empty<tr><td colspan="5">No student roster records have been imported.</td></tr>@endforelse</tbody></table></div><x-pagination :paginator="$roster" label="Student roster pages" /></div>
+<div class="card"><form class="filters roster-search-form" method="GET"><input class="input" type="search" name="search" value="{{ $search }}" placeholder="Search student ID, name, department, or section"><button class="button" type="submit">Search</button></form><div class="table-wrap"><table class="roster-table"><thead><tr><th>Student ID</th><th>Name</th><th>Department</th><th>Section</th><th>Status</th><th>Last imported</th></tr></thead><tbody>@forelse($roster as $entry)<tr><td><strong>{{ $entry->student_id }}</strong></td><td>{{ $entry->full_name }}</td><td>{{ $entry->course ?: '—' }}</td><td>{{ $entry->section ?: '—' }}</td><td>@if(in_array($entry->student_id, $registeredStudentIds, true))<span class="badge">Portal account created</span>@else<span class="badge" style="color:#64748b">Not signed in yet</span>@endif</td><td>{{ $entry->imported_at?->format('M d, Y g:i A') ?: '—' }}</td></tr>@empty<tr><td colspan="6">No student roster records have been imported.</td></tr>@endforelse</tbody></table></div><x-pagination :paginator="$roster" label="Student roster pages" /></div>
 @endsection

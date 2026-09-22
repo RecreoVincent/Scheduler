@@ -49,7 +49,7 @@ class InstructorController extends DeanController
             default => $instructors->orderBy('first_name')->orderBy('middle_name')->orderBy('last_name'),
         };
 
-        $instructors = $instructors->paginate(12)->withQueryString();
+        $instructors = $instructors->paginate($this->perPage($request))->withQueryString();
 
         $editingInstructor = null;
         if ($request->filled('edit')) {

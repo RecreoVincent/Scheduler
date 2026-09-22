@@ -39,8 +39,15 @@
     .ms365-stat-body { min-width:0; }
     .ms365-stat-body span { display:block;margin-bottom:3px;color:#55465f;font-size:12px;font-weight:750; }
     .ms365-stat-body strong { display:block;color:#24152f;font-size:25px;line-height:1.1; }
+    .ms365-table-wrap { overflow:hidden; }
+    .ms365-table { width:100%; table-layout:fixed; }
+    .ms365-table th, .ms365-table td { padding:16px 18px; white-space:normal; overflow-wrap:anywhere; }
 
-    @media(max-width:800px) { .ms365-stats { grid-template-columns:1fr; } }
+    @media(max-width:800px) {
+        .ms365-stats { grid-template-columns:1fr; }
+        .ms365-table-wrap { overflow-x:auto; }
+        .ms365-table { min-width:780px; }
+    }
 </style>
 @endpush
 
@@ -86,8 +93,16 @@
         <input class="input" type="search" name="search" value="{{ $search }}" placeholder="Search student number, name, or MS365 email">
         <button class="button" type="submit">Search</button>
     </form>
-    <div class="table-wrap">
-        <table>
+    <div class="table-wrap ms365-table-wrap">
+        <table class="ms365-table">
+            <colgroup>
+                <col style="width:16.6667%">
+                <col style="width:16.6667%">
+                <col style="width:16.6667%">
+                <col style="width:16.6667%">
+                <col style="width:16.6666%">
+                <col style="width:16.6666%">
+            </colgroup>
             <thead><tr><th>Name</th><th>Student Number</th><th>MS365 email</th><th>License</th><th>Status</th><th>Last imported</th></tr></thead>
             <tbody>
                 @forelse($accounts as $account)

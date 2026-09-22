@@ -31,6 +31,10 @@
     .unit-current-summary span { margin-bottom:3px; color:var(--muted); font-size:9px; font-weight:750; text-transform:uppercase; }
     .unit-current-summary strong { color:var(--navy); }
     .unit-warning { margin-top:12px; padding:11px 12px; color:#9f2424; background:#fff4f3; border:1px solid #fecaca; border-radius:9px; font-size:11px; line-height:1.5; }
+    .unit-capacity-alert { display:flex; align-items:flex-start; gap:13px; margin:0 0 20px; padding:17px 19px; color:#8a1c1c; background:linear-gradient(110deg,#fff4f3,#fff9ef); border:1px solid #fecaca; border-radius:12px; box-shadow:0 8px 22px rgba(159,36,36,.07); }
+    .unit-capacity-alert-mark { width:34px; height:34px; display:grid; place-items:center; flex:0 0 34px; color:#fff; background:#c62828; border-radius:10px; font-size:17px; font-weight:850; }
+    .unit-capacity-alert h3 { margin:0 0 4px; color:#8a1c1c; font-size:14px; }
+    .unit-capacity-alert p { margin:0; font-size:11px; line-height:1.6; }
     @media(max-width:900px) { .unit-filters { grid-template-columns:1fr 1fr; } }
     @media(max-width:600px) { .unit-filters,.unit-current-summary { grid-template-columns:1fr; } }
 </style>
@@ -65,6 +69,31 @@
         </div>
     </form>
 </div>
+
+@if($capacitySummary['unitShortfall'] > 0)
+    @php
+        $formatUnits = static function (float $units): string {
+            return rtrim(rtrim(number_format($units, 1), '0'), '.');
+        };
+    @endphp
+    <section class="unit-capacity-alert" role="alert">
+        <div class="unit-capacity-alert-mark" aria-hidden="true">!</div>
+        <div>
+            <h3>GEC instructor capacity shortage</h3>
+            <p>
+                {{ $semester }} Semester Minor subjects across all departments require <strong>{{ $formatUnits($capacitySummary['totalSubjectUnits']) }} units</strong>,
+                while active GEC instructors can carry only <strong>{{ $formatUnits($capacitySummary['totalInstructorCapacity']) }} units</strong>.
+                The shortfall is <strong>{{ $formatUnits($capacitySummary['unitShortfall']) }} units</strong>.
+                @if($capacitySummary['recommendedHires'] !== null)
+                    Hire at least <strong>{{ $capacitySummary['recommendedHires'] }} additional full-time GEC {{ Str::plural('instructor', $capacitySummary['recommendedHires']) }}</strong>
+                    at the current {{ $capacitySummary['fullTimeCapacity'] }}-unit default, or increase approved capacity before generating schedules.
+                @else
+                    Set a positive full-time unit default, then add enough GEC instructors to cover the shortfall before generating schedules.
+                @endif
+            </p>
+        </div>
+    </section>
+@endif
 
 <div class="card">
     @if($instructors->isEmpty())

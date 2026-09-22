@@ -12,7 +12,7 @@ class WorkloadController extends InstructorController
     {
         $query = $this->schedules($request)->with(['section', 'subject', 'room']);
 
-        $schedules = $query->orderByRaw(ClassSchedule::dayOrderSql())->orderBy('start_time')->paginate(20);
+        $schedules = $query->orderByRaw(ClassSchedule::dayOrderSql())->orderBy('start_time')->paginate($this->perPage($request))->withQueryString();
 
         return view('instructor.workload.index', compact('schedules'));
     }

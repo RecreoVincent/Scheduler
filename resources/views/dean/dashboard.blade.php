@@ -38,7 +38,7 @@
 @section('content')
 <div class="welcome">
     <h2>Welcome, {{ auth()->user()->name }}!</h2>
-    <p>Manage the {{ $course }} department's people, academic data, rooms, and class schedules.</p>
+    <p>Showing {{ $semester }} Semester analytics for the {{ $course }} department.</p>
 </div>
 
 @php
@@ -53,7 +53,7 @@
         @php($percentage = (int) round(($statistics[$card['key']] / $deanMaximum) * 100))
         <button type="button" class="stat portal-analytics-card" data-stat="{{ $card['key'] }}" data-label="{{ $card['label'] }}" style="--analytics-accent:{{ $card['color'] }};--analytics-progress:{{ $percentage }}%">
             <span class="portal-analytics-header"><span class="portal-analytics-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V8M10 19V4M16 19v-7M22 19H2"/></svg></span><span class="portal-analytics-title">{{ $card['label'] }}</span></span>
-            <span class="portal-analytics-metric"><span class="portal-analytics-label">Department total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
+            <span class="portal-analytics-metric"><span class="portal-analytics-label">{{ $semester }} Semester total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
             <span class="portal-analytics-progress"><span class="portal-analytics-progress-fill"></span></span>
             <span class="portal-analytics-footer">{{ $percentage }}% relative to highest metric</span>
         </button>
@@ -62,7 +62,7 @@
 
 <div class="card">
     <div class="page-header">
-        <div><h2>Recent Schedules</h2><p>Latest generated class assignments.</p></div>
+        <div><h2>Recent Schedules</h2><p>Latest generated {{ $semester }} Semester class assignments.</p></div>
         <a class="button" href="{{ route('dean.schedules.create') }}">Create Schedule</a>
     </div>
     @forelse ($recentSchedules as $schedule)
@@ -75,7 +75,7 @@
 <div id="deanAnalyticsModal" class="analytics-modal" hidden>
     <section class="analytics-dialog" role="dialog" aria-modal="true" aria-labelledby="deanChartTitle">
         <div class="chart-header">
-            <div><h2 id="deanChartTitle">Department Analytics</h2><p>Compare current {{ $course }} department records.</p></div>
+            <div><h2 id="deanChartTitle">Department Analytics</h2><p>Compare {{ $semester }} Semester {{ $course }} department records.</p></div>
             <div class="chart-actions">
                 <div class="chart-toolbar" role="group" aria-label="Chart type">
                     <button type="button" class="chart-type active" data-chart-type="bar">Bar</button>

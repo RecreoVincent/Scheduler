@@ -5,10 +5,9 @@
     .room-card { margin-bottom:18px; }
     .room-head { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:14px; }
     .room-head .actions { display:flex; flex-wrap:wrap; gap:8px; }
-    .room-usage-table-wrap { overflow-x:auto; border:1px solid rgba(69,6,147,.14); border-radius:10px; }
-    .room-usage-table { min-width:620px; width:100%; }
-    .room-usage-table th, .room-usage-table td { padding:20px 220px 20px 30px; white-space:nowrap; }
-    .room-usage-table th:last-child, .room-usage-table td:last-child { width:100%; padding:0; }
+    .room-usage-table-wrap { overflow:hidden; border:1px solid rgba(69,6,147,.14); border-radius:10px; }
+    .room-usage-table { width:100%; table-layout:fixed; }
+    .room-usage-table th, .room-usage-table td { padding:16px 18px; white-space:normal; overflow-wrap:anywhere; }
     .room-usage-table td:first-child { font-weight:800; }
     .room-empty { padding:14px; color:#64748b; text-align:center; }
     .room-qr-image-wrap { width:min(330px,100%); margin:22px auto 15px; padding:14px; background:white; border:1px solid var(--border); border-radius:16px; }
@@ -23,6 +22,8 @@
         .room-head { align-items:flex-start; flex-direction:column; }
         .room-head .actions { width:100%; }
         .room-head .actions .button { flex:1; }
+        .room-usage-table-wrap { overflow-x:auto; }
+        .room-usage-table { min-width:720px; }
     }
     @media print {
         body * { visibility:hidden !important; }
@@ -72,7 +73,14 @@
     @if($room->schedules->isNotEmpty())
         <div class="room-usage-table-wrap">
             <table class="room-usage-table">
-                <thead><tr><th>Days</th><th>Time</th><th>Section</th><th>Subject</th><th></th></tr></thead>
+                <colgroup>
+                    <col style="width:20%">
+                    <col style="width:20%">
+                    <col style="width:20%">
+                    <col style="width:20%">
+                    <col style="width:20%">
+                </colgroup>
+                <thead><tr><th>Days</th><th>Time</th><th>Section</th><th>Subject Code</th><th>Subject Name</th></tr></thead>
                 <tbody>
                     @foreach($room->schedules as $schedule)
                         <tr>
@@ -80,7 +88,7 @@
                             <td>{{ date('g:i A', strtotime($schedule->start_time)) }}–{{ date('g:i A', strtotime($schedule->end_time)) }}</td>
                             <td>{{ $schedule->section?->name ?? '—' }}</td>
                             <td>{{ $schedule->subject?->code ?? '—' }}</td>
-                            <td></td>
+                            <td>{{ $schedule->subject?->name ?? '—' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

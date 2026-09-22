@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'profile_photo_path', 'password', 'role', 'course', 'department_id', 'year_level', 'academic_section_id', 'student_id', 'employment_type', 'outside_work_end_time', 'teaching_unit_limit', 'unit_limit_note', 'unit_limit_updated_at', 'account_status'])]
+#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'profile_photo_path', 'password', 'role', 'course', 'department_id', 'year_level', 'academic_section_id', 'student_id', 'employment_type', 'outside_work_end_time', 'teaching_unit_limit', 'unit_limit_note', 'unit_limit_updated_at', 'account_status', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -117,6 +117,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'teaching_unit_limit' => 'integer',
             'unit_limit_updated_at' => 'datetime',
+            'last_login_at' => 'datetime',
         ];
     }
 }

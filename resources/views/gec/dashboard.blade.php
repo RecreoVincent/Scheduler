@@ -38,7 +38,7 @@
 @section('content')
 <div class="welcome">
     <h2>Welcome, {{ auth()->user()->name }}!</h2>
-    <p>Manage General Education instructors, minor-subject assignments, and cross-department class schedules.</p>
+    <p>Showing {{ $semester }} Semester General Education analytics, assignments, and cross-department class schedules.</p>
 </div>
 
 @php
@@ -55,7 +55,7 @@
         @php($percentage = (int) round(($statistics[$card['key']] / $gecMaximum) * 100))
         <button type="button" class="stat portal-analytics-card" data-stat="{{ $card['key'] }}" data-label="{{ $card['label'] }}" style="--analytics-accent:{{ $card['color'] }};--analytics-progress:{{ $percentage }}%">
             <span class="portal-analytics-header"><span class="portal-analytics-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V8M10 19V4M16 19v-7M22 19H2"/></svg></span><span class="portal-analytics-title">{{ $card['label'] }}</span></span>
-            <span class="portal-analytics-metric"><span class="portal-analytics-label">Current total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
+            <span class="portal-analytics-metric"><span class="portal-analytics-label">{{ $semester }} Semester total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
             <span class="portal-analytics-progress"><span class="portal-analytics-progress-fill"></span></span>
             <span class="portal-analytics-footer">{{ $percentage }}% relative to highest metric</span>
         </button>
@@ -64,7 +64,7 @@
 
 <div class="card">
     <div class="page-header">
-        <div><h2>Recent Schedules</h2><p>Latest generated minor-subject class assignments, across all departments.</p></div>
+        <div><h2>Recent Schedules</h2><p>Latest generated {{ $semester }} Semester minor-subject class assignments, across all departments.</p></div>
         <a class="button" href="{{ route('gec.schedules.create') }}">Create Schedule</a>
     </div>
     @forelse ($recentSchedules as $schedule)
@@ -77,7 +77,7 @@
 <div id="gecAnalyticsModal" class="analytics-modal" hidden>
     <section class="analytics-dialog" role="dialog" aria-modal="true" aria-labelledby="gecChartTitle">
         <div class="chart-header">
-            <div><h2 id="gecChartTitle">GEC Analytics</h2><p>Compare current General Education records.</p></div>
+            <div><h2 id="gecChartTitle">GEC Analytics</h2><p>Compare {{ $semester }} Semester General Education records.</p></div>
             <div class="chart-actions">
                 <div class="chart-toolbar" role="group" aria-label="Chart type">
                     <button type="button" class="chart-type active" data-chart-type="bar">Bar</button>

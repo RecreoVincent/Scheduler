@@ -60,6 +60,10 @@ class UserAccountImportTest extends TestCase
             'year_level' => 1,
             'academic_section_id' => $section->id,
         ]);
+        $this->assertSame(
+            'BSIT',
+            User::query()->where('email', 'mia.santos@example.test')->firstOrFail()->department?->code,
+        );
     }
 
     public function test_admin_can_download_the_user_account_import_template(): void

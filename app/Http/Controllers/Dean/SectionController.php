@@ -25,7 +25,7 @@ class SectionController extends DeanController
             }
         }
 
-        $sections = $query->orderBy('year_level')->orderBy('name')->paginate(15)->withQueryString();
+        $sections = $query->orderBy('year_level')->orderBy('name')->paginate($this->perPage($request))->withQueryString();
 
         $editingSection = null;
         if ($request->filled('edit')) {

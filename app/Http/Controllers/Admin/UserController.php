@@ -60,7 +60,7 @@ class UserController extends Controller
 
         $users = $query
             ->latest()
-            ->paginate(10)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $editingUser = null;
@@ -77,12 +77,13 @@ class UserController extends Controller
         ]);
     }
 
-    public function deleted()
+    public function deleted(Request $request)
     {
         $deletedUsers = User::onlyTrashed()
             ->whereIn('role', $this->roles)
             ->latest('deleted_at')
-            ->paginate(10);
+            ->paginate($this->perPage($request))
+            ->withQueryString();
 
         return view('admin.users.deleted', compact('deletedUsers'));
     }

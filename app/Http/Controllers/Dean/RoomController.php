@@ -34,7 +34,7 @@ class RoomController extends DeanController
             $query->where('room_type', $request->input('room_type'));
         }
 
-        $rooms = $query->orderBy('name')->paginate(10)->withQueryString();
+        $rooms = $query->orderBy('name')->paginate($this->perPage($request))->withQueryString();
 
         $editingRoom = null;
         if ($request->filled('edit')) {

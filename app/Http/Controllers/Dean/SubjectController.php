@@ -49,17 +49,15 @@ class SubjectController extends DeanController
     {
         $validated = $this->validated($request);
         $course = $this->course($request);
-        $semesters = $this->enabledSemesters($request);
+        $semester = $this->enabledSemesters($request)[0] ?? null;
 
-        if ($semesters === []) {
+        if ($semester === null) {
             throw ValidationException::withMessages([
                 'code' => 'Enable at least one semester for this department in Settings before adding subjects.',
             ]);
         }
 
-        foreach ($semesters as $semester) {
-            Subject::create(['course' => $course, 'semester' => $semester, ...$validated]);
-        }
+        Subject::create(['course' => $course, 'semester' => $semester, ...$validated]);
 
         return redirect()->route('dean.subjects.index')->with('success', 'Subject added successfully.');
     }
@@ -124,6 +122,7 @@ class SubjectController extends DeanController
     {
         $this->ensureCourse($request, $subject);
         $this->ensureNotGecManaged($subject);
+        $this->ensureActiveSemester($request, $subject);
         ClassSchedule::withTrashed()->where('subject_id', $subject->id)->forceDelete();
         $subject->instructors()->detach();
         $subject->delete();
@@ -134,13 +133,20 @@ class SubjectController extends DeanController
     public function destroyAll(Request $request): RedirectResponse
     {
         $course = $this->course($request);
+        $semester = $this->enabledSemesters($request)[0] ?? null;
+
+        if ($semester === null) {
+            return back()->with('error', 'Enable an active semester before deleting subjects.');
+        }
+
         $subjectIds = Subject::query()
             ->forDepartment($course)
             ->where('managed_by_gec', false)
+            ->where('semester', $semester)
             ->pluck('id');
 
         if ($subjectIds->isEmpty()) {
-            return back()->with('error', "There are no {$course} subjects to remove.");
+            return back()->with('error', "There are no {$semester} Semester {$course} subjects to remove.");
         }
 
         DB::transaction(function () use ($subjectIds): void {
@@ -153,7 +159,7 @@ class SubjectController extends DeanController
 
         return redirect()
             ->route('dean.subjects.index')
-            ->with('success', "Removed all {$count} {$course} ".str('subject')->plural($count).'.');
+            ->with('success', "Removed all {$count} {$semester} Semester {$course} ".str('subject')->plural($count).'.');
     }
 
     /**
@@ -166,13 +172,18 @@ class SubjectController extends DeanController
         abort_if($subject->managed_by_gec, 404);
     }
 
+    private function ensureActiveSemester(Request $request, Subject $subject): void
+    {
+        abort_unless(in_array($subject->semester, $this->enabledSemesters($request), true), 404);
+    }
+
     private function validated(Request $request, ?Subject $subject = null): array
     {
         $course = $this->course($request);
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:30'],
             'name' => ['required', 'string', 'max:150'],
-            'subject_type' => ['required', Rule::in(['Lecture', 'Laboratory'])],
+            'subject_type' => ['required', Rule::in(['Lecture', 'Laboratory', 'Internship'])],
             'classification' => ['nullable', Rule::in(['Major', 'Minor'])],
             'year_level' => ['required', 'integer', 'between:1,4'],
             'curriculum' => ['required', Rule::in(['New', 'Old'])],
@@ -193,6 +204,12 @@ class SubjectController extends DeanController
         }
 
         $validated['classification'] ??= 'Major';
+
+        if ($validated['subject_type'] === 'Internship' && $validated['classification'] !== 'Major') {
+            throw ValidationException::withMessages([
+                'classification' => 'Internship subjects must be classified as Major.',
+            ]);
+        }
 
         return $validated;
     }

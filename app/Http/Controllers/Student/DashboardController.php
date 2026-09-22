@@ -10,6 +10,7 @@ class DashboardController extends StudentController
 {
     public function index(Request $request): View
     {
+        $semester = $this->viewingSemester($request);
         $query = $this->schedules($request);
         $schedules = (clone $query)->with(['section', 'subject', 'instructor', 'room'])->get();
         $student = $this->student($request)->load('academicSection');
@@ -25,6 +26,6 @@ class DashboardController extends StudentController
             ->sortBy('start_time')
             ->values();
 
-        return view('student.dashboard', compact('student', 'statistics', 'today', 'todaySchedules'));
+        return view('student.dashboard', compact('student', 'semester', 'statistics', 'today', 'todaySchedules'));
     }
 }

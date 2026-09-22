@@ -16,14 +16,40 @@ class DashboardController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $instructorQuery = User::forDepartment($course)->where('role', 'instructor')->where('account_status', 'active');
-        $studentQuery = User::forDepartment($course)->where('role', 'student');
+        $semester = $this->enabledSemesters($request)[0] ?? '1st';
+        $semesterScheduleQuery = ClassSchedule::query()
+            ->forDepartment($course)
+            ->where('semester', $semester);
+        $instructorQuery = User::query()
+            ->forDepartment($course)
+            ->where('role', 'instructor')
+            ->where('account_status', 'active')
+            ->whereHas('classSchedules', fn (Builder $query) => $query
+                ->forDepartment($course)
+                ->where('semester', $semester));
+        $studentQuery = User::query()
+            ->forDepartment($course)
+            ->where('role', 'student')
+            ->where(function (Builder $query) use ($semester): void {
+                $query->whereNull('academic_section_id')
+                    ->orWhereHas('academicSection', fn (Builder $sectionQuery) => $sectionQuery
+                        ->whereIn('semester', [$semester, 'All']));
+            });
+        $subjectQuery = Subject::query()->forDepartment($course)->where('semester', $semester);
+        $sectionQuery = AcademicSection::query()
+            ->forDepartment($course)
+            ->whereIn('semester', [$semester, 'All']);
+        $roomQuery = Room::query()
+            ->forDepartment($course)
+            ->whereHas('schedules', fn (Builder $query) => $query
+                ->forDepartment($course)
+                ->where('semester', $semester));
         $statistics = [
             'instructors' => (clone $instructorQuery)->count(),
             'students' => (clone $studentQuery)->count(),
-            'subjects' => Subject::forDepartment($course)->count(),
-            'sections' => AcademicSection::forDepartment($course)->count(),
-            'rooms' => Room::forDepartment($course)->count(),
+            'subjects' => (clone $subjectQuery)->count(),
+            'sections' => (clone $sectionQuery)->count(),
+            'rooms' => (clone $roomQuery)->count(),
         ];
 
         $analytics = [
@@ -34,23 +60,25 @@ class DashboardController extends DeanController
                 'Unspecified' => (clone $instructorQuery)->whereNull('employment_type')->count(),
             ],
             'students' => $this->yearLevelCounts(clone $studentQuery),
-            'subjects' => $this->yearLevelCounts(Subject::forDepartment($course)),
-            'sections' => $this->yearLevelCounts(AcademicSection::forDepartment($course)),
-            'rooms' => Room::withCount('schedules')
-                ->forDepartment($course)
+            'subjects' => $this->yearLevelCounts(clone $subjectQuery),
+            'sections' => $this->yearLevelCounts(clone $sectionQuery),
+            'rooms' => $roomQuery
+                ->withCount(['schedules as schedules_count' => fn (Builder $query) => $query
+                    ->forDepartment($course)
+                    ->where('semester', $semester)])
                 ->orderBy('name')
                 ->get()
                 ->mapWithKeys(fn (Room $room): array => [$room->name => (int) $room->getAttribute('schedules_count')])
                 ->all(),
         ];
 
-        $recentSchedules = ClassSchedule::with(['section', 'subject', 'room'])
-            ->forDepartment($course)
+        $recentSchedules = (clone $semesterScheduleQuery)
+            ->with(['section', 'subject', 'room'])
             ->latest()
             ->take(6)
             ->get();
 
-        return view('dean.dashboard', compact('course', 'statistics', 'analytics', 'recentSchedules'));
+        return view('dean.dashboard', compact('course', 'semester', 'statistics', 'analytics', 'recentSchedules'));
     }
 
     private function yearLevelCounts(Builder $query): array

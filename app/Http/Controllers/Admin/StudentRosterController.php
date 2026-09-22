@@ -20,9 +20,10 @@ class StudentRosterController extends Controller
             ->when($search !== '', fn ($query) => $query->where(fn ($query) => $query
                 ->where('student_id', 'like', "%{$search}%")
                 ->orWhere('full_name', 'like', "%{$search}%")
-                ->orWhere('section', 'like', "%{$search}%")))
+                ->orWhere('section', 'like', "%{$search}%")
+                ->orWhere('course', 'like', "%{$search}%")))
             ->orderBy('full_name')
-            ->paginate(20)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $registeredStudentIds = User::query()

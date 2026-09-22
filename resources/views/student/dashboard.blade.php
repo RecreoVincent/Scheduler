@@ -42,7 +42,7 @@
         @php($percentage = (int) round(((float) $statistics[$card['key']] / $studentMaximum) * 100))
         <button type="button" class="card stat-card portal-analytics-card" data-stat="{{ $card['key'] }}" data-label="{{ $card['label'] }}" style="--analytics-accent:{{ $card['color'] }};--analytics-progress:{{ $percentage }}%">
             <span class="portal-analytics-header"><span class="portal-analytics-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V8M10 19V4M16 19v-7M22 19H2"/></svg></span><span class="portal-analytics-title">{{ $card['label'] }}</span></span>
-            <span class="portal-analytics-metric"><span class="portal-analytics-label">Current total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
+            <span class="portal-analytics-metric"><span class="portal-analytics-label">{{ $semester }} Semester total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
             <span class="portal-analytics-progress"><span class="portal-analytics-progress-fill"></span></span>
             <span class="portal-analytics-footer">{{ $percentage }}% relative to highest metric</span>
         </button>

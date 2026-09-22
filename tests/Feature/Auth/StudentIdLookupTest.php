@@ -40,6 +40,7 @@ class StudentIdLookupTest extends TestCase
             'account_status' => 'active',
             'last_name' => 'Dela Cruz',
         ]);
+        $this->assertNotNull($student->fresh()->last_login_at);
         $this->get(route('student.dashboard'))
             ->assertOk()
             ->assertSee('BSIT · Year 1')
@@ -89,6 +90,34 @@ class StudentIdLookupTest extends TestCase
             'course' => 'BSIT',
             'year_level' => 1,
             'academic_section_id' => $section->id,
+        ]);
+    }
+
+    public function test_roster_department_prevents_an_identical_section_name_from_assigning_the_wrong_department(): void
+    {
+        AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - East', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $bsbaSection = AcademicSection::create([
+            'course' => 'BSBA', 'name' => '1 - East', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        StudentRoster::create([
+            'student_id' => '2026-0002',
+            'full_name' => 'Maria Santos',
+            'course' => 'BSBA',
+            'section' => '1 - East',
+        ]);
+
+        $this->post(route('login.student'), ['student_id' => '2026-0002', 'last_name' => 'Santos'])
+            ->assertRedirect(route('student.login-transition'));
+
+        $this->assertDatabaseHas('users', [
+            'student_id' => '2026-0002',
+            'course' => 'BSBA',
+            'year_level' => 1,
+            'academic_section_id' => $bsbaSection->id,
         ]);
     }
 

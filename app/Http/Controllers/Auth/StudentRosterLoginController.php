@@ -69,11 +69,12 @@ class StudentRosterLoginController extends Controller
             'email' => 'student-'.substr(hash('sha256', $rosterEntry->student_id), 0, 24).'@roster.mcc.local',
             'password' => Hash::make(Str::random(64)),
             'role' => 'student',
-            'course' => $section?->course,
+            'course' => $rosterEntry->course ?? $section?->course,
             'year_level' => $section?->year_level,
             'academic_section_id' => $section?->id,
             'student_id' => $rosterEntry->student_id,
             'account_status' => 'active',
+            'last_login_at' => now(),
         ]);
     }
 
@@ -85,10 +86,17 @@ class StudentRosterLoginController extends Controller
 
         $sectionKey = $this->sectionLookupKey($rosterEntry->section);
 
-        return AcademicSection::query()
+        $sections = AcademicSection::query()
+            ->when(filled($rosterEntry->course), fn ($query) => $query->where('course', $rosterEntry->course))
             ->whereRaw("LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = ?", [$sectionKey])
             ->orderByDesc('academic_year')
-            ->first();
+            ->get();
+
+        if (blank($rosterEntry->course) && $sections->pluck('course')->filter()->unique()->count() > 1) {
+            return null;
+        }
+
+        return $sections->first();
     }
 
     private function sectionLookupKey(string $section): string
@@ -100,17 +108,20 @@ class StudentRosterLoginController extends Controller
 
     private function syncRosterAssignment(User $student, StudentRoster $rosterEntry): void
     {
-        $updates = ['account_status' => 'active'];
+        $updates = ['account_status' => 'active', 'last_login_at' => now()];
+        if (filled($rosterEntry->course)) {
+            $updates['course'] = strtoupper($rosterEntry->course);
+        }
         $section = $this->matchingSection($rosterEntry);
 
         // Do not erase an existing assignment if an administrator imports a
         // roster row whose section has not been created in the system yet.
         if ($section) {
-            $updates += [
+            $updates = array_replace($updates, [
                 'course' => $section->course,
                 'year_level' => $section->year_level,
                 'academic_section_id' => $section->id,
-            ];
+            ]);
         }
 
         $student->fill($updates);

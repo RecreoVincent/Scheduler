@@ -60,7 +60,7 @@ class ScheduleArchiveController extends DeanController
             ->orderByDesc('academic_year')
             ->orderByRaw("CASE semester WHEN '1st' THEN 1 WHEN '2nd' THEN 2 WHEN 'Summer' THEN 3 ELSE 4 END")
             ->orderBy('section_id')
-            ->paginate(6)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $sectionsById = AcademicSection::query()

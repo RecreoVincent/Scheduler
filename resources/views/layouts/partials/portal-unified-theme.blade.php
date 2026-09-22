@@ -501,13 +501,61 @@
     .quick-link:hover { background:#ffecb3; box-shadow:0 8px 18px rgba(232,184,74,.3); transform:translateY(-2px); }
     .pagination-link:hover { color:var(--primary); background:#f5eefb; border-color:#caa8df; }
     .pagination-link.active { color:#fff; background:var(--primary); border-color:var(--primary); }
+    .portal-pagination-bar {
+        display:grid;
+        grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+        align-items:center;
+        gap:16px;
+        margin-top:24px;
+    }
+    .portal-pagination-meta {
+        display:flex;
+        grid-column:1;
+        align-items:center;
+        gap:12px;
+        min-width:0;
+        flex-wrap:wrap;
+    }
+    .portal-page-size label {
+        display:inline-flex;
+        align-items:center;
+        gap:7px;
+        color:#766b7f;
+        font-size:12px;
+        font-weight:750;
+        white-space:nowrap;
+    }
+    .portal-page-size select {
+        height:34px;
+        min-width:58px;
+        padding:0 25px 0 10px;
+        color:#3e2454;
+        background-color:#fff;
+        border:1px solid #d8c0e8;
+        border-radius:8px;
+        font:800 12px/1 inherit;
+        cursor:pointer;
+    }
+    .portal-page-size select:focus-visible { outline:3px solid rgba(112,34,184,.22); outline-offset:2px; }
+    .portal-pagination-summary {
+        margin:0;
+        padding-left:14px;
+        color:#766b7f;
+        border-left:1px solid #e5dbea;
+        font-size:12px;
+        font-weight:700;
+        line-height:1.4;
+    }
+    .portal-pagination-summary strong { color:#3e2454; font-weight:850; }
+    .portal-pagination-separator { margin:0 5px; color:#9b8ca7; }
     .portal-pagination {
         display:flex;
+        grid-column:2;
         justify-content:center;
         align-items:center;
         flex-wrap:wrap;
         gap:8px;
-        margin-top:24px;
+        margin:0;
     }
     .portal-page-button {
         width:46px;
@@ -777,6 +825,11 @@
         .page-header { align-items:flex-start; flex-direction:column; }
         .page-header .button { width:100%; }
         .card { padding:20px; }
+        .portal-pagination-bar { grid-template-columns:1fr; justify-items:center; gap:12px; }
+        .portal-pagination-meta { grid-column:1; justify-content:center; }
+        .portal-pagination-summary { padding-left:0; border-left:0; text-align:center; }
+        .portal-pagination-separator { display:none; }
+        .portal-pagination { grid-column:1; }
 
         /* These menus anchor to their trigger via right:0, which can push
            them off-screen once the trigger no longer sits at the true

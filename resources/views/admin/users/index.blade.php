@@ -493,7 +493,7 @@
                     <p style="margin:0;color:var(--muted);font-size:12px;line-height:1.6">
                         Required columns for every row: <strong>first_name</strong>, <strong>last_name</strong>, <strong>email</strong>, <strong>role</strong> (dean, instructor, or student), and <strong>course</strong>.
                         Instructor rows also require employment_type (full_time, industry_part_time, or flexible_part_time); outside_work_end_time is required for industry part-time instructors (HH:MM).
-                        Student rows require year_level and student_id; section is optional but must match the course and year level. The student ID must already be in the Student Roster.
+                        Student rows require year_level and student_id. Their <strong>course</strong> automatically assigns them to that department and makes them visible only to its Dean; section is optional but must match the course and year level. The student ID must already be in the Student Roster.
                         Optional columns: middle_name, suffix, account_status (active or pending), and password. A temporary password is generated when password is blank.
                         <a href="{{ route('admin.users.import-template') }}">Download a CSV template</a>.
                     </p>

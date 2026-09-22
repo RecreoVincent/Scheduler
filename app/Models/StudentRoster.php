@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToDepartment;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
+#[Fillable(['student_id', 'full_name', 'section', 'course', 'department_id', 'imported_at'])]
 class StudentRoster extends Model
 {
-    protected $fillable = ['student_id', 'full_name', 'section', 'imported_at'];
+    use BelongsToDepartment;
 
     protected function casts(): array
     {

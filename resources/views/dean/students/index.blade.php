@@ -68,7 +68,11 @@
                     <td>{{ $student->ms365_email ?: 'No active MS365 email found' }}</td>
                     <td>{{ $student->year_level ? 'Year '.$student->year_level : '—' }}</td>
                     <td>{{ $student->academicSection?->name ?? '—' }}</td>
-                    <td><span class="badge">{{ $student->account_status === 'active' ? 'Active' : str($student->account_status)->title() }}</span></td>
+                    <td>
+                        <span class="badge" @style(['color:#16835f' => $student->last_login_at, 'color:#766b7f' => ! $student->last_login_at])>
+                            {{ $student->last_login_at ? 'Active' : 'Inactive' }}
+                        </span>
+                    </td>
                     <td>
                         <div class="actions">
                             <a class="button button-secondary" href="{{ route('dean.students.index', array_merge(request()->query(), ['edit' => $student->id])) }}#studentCreateModal">Edit</a>

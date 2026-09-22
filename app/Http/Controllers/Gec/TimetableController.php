@@ -49,7 +49,7 @@ class TimetableController extends GecController
             ->orderBy('course')
             ->orderBy('year_level')
             ->orderBy('name')
-            ->paginate(6)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $schedulesBySection = (clone $query)

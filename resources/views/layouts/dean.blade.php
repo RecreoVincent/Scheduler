@@ -282,6 +282,7 @@
         <a class="menu-link {{ request()->routeIs('dean.students.*') ? 'active' : '' }}" href="{{ route('dean.students.index') }}"><span class="menu-icon"><x-icon name="users" /></span>Student List</a>
         <a class="menu-link {{ request()->routeIs('dean.sections.*') ? 'active' : '' }}" href="{{ route('dean.sections.index') }}"><span class="menu-icon"><x-icon name="grid" /></span>Sections</a>
         <a class="menu-link {{ request()->routeIs('dean.subjects.*') ? 'active' : '' }}" href="{{ route('dean.subjects.index') }}"><span class="menu-icon"><x-icon name="book" /></span>Subjects</a>
+        <a class="menu-link {{ request()->routeIs('dean.subject-endorsements.*') ? 'active' : '' }}" href="{{ route('dean.subject-endorsements.index') }}"><span class="menu-icon"><x-icon name="send" /></span>Subject Endorsement</a>
         <a class="menu-link {{ request()->routeIs('dean.rooms.*') ? 'active' : '' }}" href="{{ route('dean.rooms.index') }}"><span class="menu-icon"><x-icon name="building" /></span>Rooms</a>
 
         <p class="menu-label">Instructor Management</p>

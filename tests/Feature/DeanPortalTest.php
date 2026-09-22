@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\Ms365StudentAccount;
 use App\Models\Room;
 use App\Models\Subject;
+use App\Models\SubjectEndorsement;
 use App\Models\User;
 use App\Services\ClassScheduleGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +19,131 @@ use Tests\TestCase;
 class DeanPortalTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_dean_can_submit_a_subject_endorsement_to_another_department(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $destinationDean = User::factory()->create([
+            'role' => 'dean',
+            'course' => 'BSBA',
+            'account_status' => 'active',
+        ]);
+        $subject = Subject::create([
+            'course' => 'BSIT',
+            'code' => 'ITE 201',
+            'name' => 'Object-Oriented Programming',
+            'subject_type' => 'Lecture',
+            'classification' => 'Major',
+            'year_level' => 2,
+            'semester' => '1st',
+            'curriculum' => 'New',
+            'units' => 3,
+        ]);
+        Notification::fake();
+
+        $this->actingAs($dean)->post(route('dean.subject-endorsements.store'), [
+            'to_department' => 'BSBA',
+            'subject_code' => ' ite 201 ',
+            'subject_name' => 'Object-Oriented Programming',
+            'subject_type' => 'Lecture',
+            'units' => 3,
+        ])->assertRedirect(route('dean.subject-endorsements.index'));
+
+        $this->assertDatabaseHas('subject_endorsements', [
+            'from_department' => 'BSIT',
+            'to_department' => 'BSBA',
+            'subject_code' => 'ITE 201',
+            'subject_name' => 'Object-Oriented Programming',
+            'subject_type' => 'Lecture',
+            'units' => 3,
+            'subject_id' => $subject->id,
+            'endorsed_by' => $dean->id,
+        ]);
+
+        $endorsement = SubjectEndorsement::firstOrFail();
+        Notification::assertSentTo(
+            $destinationDean,
+            \App\Notifications\SubjectEndorsementReceivedNotification::class,
+            fn ($notification): bool => $notification->toArray($destinationDean)['url'] === route('dean.subject-endorsements.schedule.create', $endorsement),
+        );
+        $this->actingAs($dean)->get(route('dean.subject-endorsements.index'))
+            ->assertOk()
+            ->assertSee('Subject Endorsement')
+            ->assertSee('ITE 201')
+            ->assertSee($endorsement->to_department);
+
+        $this->actingAs($destinationDean)
+            ->get(route('dean.subject-endorsements.schedule.create', $endorsement))
+            ->assertOk()
+            ->assertSee('Schedule Endorsed Subject')
+            ->assertSee('ITE 201');
+    }
+
+    public function test_receiving_dean_can_create_a_schedule_for_an_endorsed_subject(): void
+    {
+        $destinationDean = User::factory()->create([
+            'role' => 'dean',
+            'course' => 'BSBA',
+            'account_status' => 'active',
+        ]);
+        $destinationInstructor = User::factory()->create([
+            'role' => 'instructor',
+            'course' => 'BSBA',
+            'account_status' => 'active',
+            'employment_type' => 'full_time',
+        ]);
+        $subject = Subject::create([
+            'course' => 'BSIT',
+            'code' => 'ITE 202',
+            'name' => 'Data Structures',
+            'subject_type' => 'Lecture',
+            'classification' => 'Major',
+            'year_level' => 2,
+            'semester' => '1st',
+            'curriculum' => 'New',
+            'units' => 3,
+        ]);
+        $section = AcademicSection::create([
+            'course' => 'BSIT',
+            'name' => '2 - Alpha',
+            'year_level' => 2,
+            'academic_year' => '2026-2027',
+            'semester' => 'All',
+        ]);
+        Room::create([
+            'course' => 'BSBA',
+            'name' => 'Business Lecture 1',
+            'room_type' => 'Lecture',
+            'capacity' => 40,
+        ]);
+        $endorsement = SubjectEndorsement::create([
+            'subject_id' => $subject->id,
+            'from_department' => 'BSIT',
+            'to_department' => 'BSBA',
+            'subject_code' => $subject->code,
+            'subject_name' => $subject->name,
+            'subject_type' => $subject->subject_type,
+            'units' => $subject->units,
+        ]);
+
+        $this->actingAs($destinationDean)->post(route('dean.subject-endorsements.schedule.store', $endorsement), [
+            'academic_year' => '2026-2027',
+            'semester' => '1st',
+            'number_of_sections' => 1,
+            'instructor_ids' => [$destinationInstructor->id, null, null, null],
+        ])->assertRedirect(route('dean.subject-endorsements.schedule.create', $endorsement));
+
+        $this->assertDatabaseHas('class_schedules', [
+            'course' => 'BSIT',
+            'section_id' => $section->id,
+            'subject_id' => $subject->id,
+            'instructor_id' => $destinationInstructor->id,
+            'academic_year' => '2026-2027',
+            'semester' => '1st',
+        ]);
+        $this->assertSame($destinationDean->id, $endorsement->fresh()->scheduled_by);
+        $this->assertNotNull($endorsement->fresh()->scheduled_at);
+    }
 
     public function test_dean_student_list_displays_the_unique_active_ms365_email(): void
     {
@@ -1065,6 +1191,104 @@ class DeanPortalTest extends TestCase
         $this->actingAs($dean)->get(route('dean.sections.edit', $otherSection))->assertNotFound();
     }
 
+    public function test_dean_dashboard_analytics_only_use_the_active_semester(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        Department::where('code', 'BSIT')->firstOrFail()->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => false,
+            'semester_summer_enabled' => false,
+        ]);
+        $firstSection = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - First', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => '1st',
+        ]);
+        $secondSection = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - Second', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => '2nd',
+        ]);
+        User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'academic_section_id' => $firstSection->id]);
+        User::factory()->create(['role' => 'student', 'course' => 'BSIT', 'academic_section_id' => $secondSection->id]);
+        $firstInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $secondInstructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $firstSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 101', 'name' => 'First Semester Subject',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $secondSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 201', 'name' => 'Second Semester Subject',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+        $firstRoom = Room::create(['course' => 'BSIT', 'name' => 'First Room', 'room_type' => 'Lecture']);
+        $secondRoom = Room::create(['course' => 'BSIT', 'name' => 'Second Room', 'room_type' => 'Lecture']);
+        ClassSchedule::create([
+            'course' => 'BSIT', 'section_id' => $firstSection->id, 'subject_id' => $firstSubject->id,
+            'instructor_id' => $firstInstructor->id, 'room_id' => $firstRoom->id,
+            'academic_year' => '2026-2027', 'semester' => '1st', 'day' => 'M - W', 'start_time' => '08:30', 'end_time' => '10:00',
+        ]);
+        ClassSchedule::create([
+            'course' => 'BSIT', 'section_id' => $secondSection->id, 'subject_id' => $secondSubject->id,
+            'instructor_id' => $secondInstructor->id, 'room_id' => $secondRoom->id,
+            'academic_year' => '2026-2027', 'semester' => '2nd', 'day' => 'M - W', 'start_time' => '08:30', 'end_time' => '10:00',
+        ]);
+
+        $this->actingAs($dean)->get(route('dean.dashboard'))
+            ->assertOk()
+            ->assertSee('1st Semester analytics')
+            ->assertSee('ITE 101')
+            ->assertDontSee('ITE 201')
+            ->assertViewHas('statistics', fn (array $statistics): bool => $statistics === [
+                'instructors' => 1,
+                'students' => 1,
+                'subjects' => 1,
+                'sections' => 1,
+                'rooms' => 1,
+            ]);
+    }
+
+    public function test_dean_subject_deletion_only_affects_the_active_semester(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        Department::where('code', 'BSIT')->firstOrFail()->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => false,
+            'semester_summer_enabled' => false,
+        ]);
+        $firstSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 101', 'name' => 'First Semester Subject',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $secondSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 201', 'name' => 'Second Semester Subject',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+        $section = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - Alpha', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $instructor = User::factory()->create(['role' => 'instructor', 'course' => 'BSIT', 'account_status' => 'active']);
+        $room = Room::create(['course' => 'BSIT', 'name' => 'Lecture 1', 'room_type' => 'Lecture']);
+        ClassSchedule::create([
+            'course' => 'BSIT', 'section_id' => $section->id, 'subject_id' => $firstSubject->id,
+            'instructor_id' => $instructor->id, 'room_id' => $room->id,
+            'academic_year' => '2026-2027', 'semester' => '1st', 'day' => 'M - W', 'start_time' => '08:30', 'end_time' => '10:00',
+        ]);
+        $secondSchedule = ClassSchedule::create([
+            'course' => 'BSIT', 'section_id' => $section->id, 'subject_id' => $secondSubject->id,
+            'instructor_id' => $instructor->id, 'room_id' => $room->id,
+            'academic_year' => '2026-2027', 'semester' => '2nd', 'day' => 'M - W', 'start_time' => '08:30', 'end_time' => '10:00',
+        ]);
+
+        $this->actingAs($dean)->delete(route('dean.subjects.destroy-all'))
+            ->assertRedirect(route('dean.subjects.index'));
+
+        $this->assertModelMissing($firstSubject);
+        $this->assertModelExists($secondSubject);
+        $this->assertDatabaseMissing('class_schedules', ['subject_id' => $firstSubject->id]);
+        $this->assertDatabaseHas('class_schedules', ['id' => $secondSchedule->id]);
+        $this->actingAs($dean)->delete(route('dean.subjects.destroy', $secondSubject))->assertNotFound();
+    }
+
     public function test_dean_can_adjust_department_instructor_unit_limits(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
@@ -1109,6 +1333,47 @@ class DeanPortalTest extends TestCase
                 'teaching_unit_limit' => 40,
             ])
             ->assertNotFound();
+    }
+
+    public function test_instructor_units_warns_when_major_subject_units_exceed_active_instructor_capacity(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        Department::where('code', 'BSIT')->firstOrFail()->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => false,
+            'semester_summer_enabled' => false,
+            'default_unit_limit_full_time' => 30,
+        ]);
+        User::factory()->create([
+            'role' => 'instructor',
+            'course' => 'BSIT',
+            'account_status' => 'active',
+            'employment_type' => 'full_time',
+            'teaching_unit_limit' => 30,
+        ]);
+
+        foreach ([['ITE 101', 10], ['ITE 102', 10], ['ITE 103', 10], ['ITE 104', 10]] as [$code, $units]) {
+            Subject::create([
+                'course' => 'BSIT',
+                'code' => $code,
+                'name' => "Subject {$code}",
+                'subject_type' => 'Lecture',
+                'classification' => 'Major',
+                'year_level' => 1,
+                'semester' => '1st',
+                'curriculum' => 'New',
+                'units' => $units,
+            ]);
+        }
+
+        $this->actingAs($dean)->get(route('dean.instructor-units.index'))
+            ->assertOk()
+            ->assertSee('Instructor capacity shortage')
+            ->assertSee('40 units')
+            ->assertSee('30 units')
+            ->assertSee('shortfall is')
+            ->assertSee('10 units')
+            ->assertSee('1 additional full-time instructor');
     }
 
     public function test_automatic_schedule_generation_creates_conflict_free_department_schedule(): void
@@ -1474,11 +1739,11 @@ class DeanPortalTest extends TestCase
             'role' => 'instructor',
             'course' => 'BSIT',
             'employment_type' => 'industry_part_time',
-            'outside_work_end_time' => '15:30',
+            'outside_work_end_time' => '13:30',
             'account_status' => 'active',
         ]);
         $lectureRoom = Room::create(['course' => 'BSIT', 'name' => 'Room 101', 'room_type' => 'Lecture']);
-        Room::create(['course' => 'BSIT', 'name' => 'Lab 1', 'room_type' => 'Laboratory']);
+        $laboratoryRoom = Room::create(['course' => 'BSIT', 'name' => 'Lab 1', 'room_type' => 'Laboratory']);
         AcademicSection::create([
             'course' => 'BSIT', 'name' => 'Section 1', 'year_level' => 1,
             'academic_year' => '2026-2027', 'semester' => 'All',
@@ -1486,10 +1751,14 @@ class DeanPortalTest extends TestCase
 
         // Three Major subjects so the First Year section can cover all three
         // meeting-day pairs, since Minor subjects are no longer generated.
-        foreach ([['IT101', 'Programming 1'], ['IT102', 'Programming 2'], ['IT103', 'Programming 3']] as [$code, $name]) {
+        foreach ([
+            ['IT101', 'Programming 1', 'Lecture'],
+            ['IT102', 'Programming 2', 'Laboratory'],
+            ['IT103', 'Industry Internship', 'Internship'],
+        ] as [$code, $name, $type]) {
             $subject = Subject::create([
                 'course' => 'BSIT', 'code' => $code, 'name' => $name,
-                'subject_type' => 'Lecture', 'classification' => 'Major',
+                'subject_type' => $type, 'classification' => 'Major',
                 'year_level' => 1, 'semester' => '1st', 'units' => 3,
             ]);
             $subject->instructors()->attach($industryInstructor);
@@ -1510,18 +1779,26 @@ class DeanPortalTest extends TestCase
             $end = substr($schedule->end_time, 0, 5);
             $this->assertGreaterThanOrEqual('07:00', $start);
             $this->assertLessThanOrEqual('19:00', $end);
-            $this->assertFalse($start < '13:00' && $end > '12:00');
-
             $durationMinutes = (int) ((strtotime($end) - strtotime($start)) / 60);
-            $this->assertSame(150, $durationMinutes);
+            $this->assertSame([
+                'IT101' => 90,
+                'IT102' => 150,
+                'IT103' => 180,
+            ][$schedule->subject->code], $durationMinutes);
 
-            $this->assertSame('Lecture', $schedule->room->room_type);
             $this->assertContains($schedule->day, ['M - W', 'T - Th', 'F - S']);
             $this->assertSame($industryInstructor->id, $schedule->instructor_id);
-            // The instructor's 3:30 PM outside-work-hours cutoff only leaves
-            // the 4:30-7:00 PM block open on weekdays and Friday.
-            $this->assertSame('16:30', $start);
-            $this->assertSame($lectureRoom->id, $schedule->room_id);
+            // The instructor's 1:30 PM outside-work-hours cutoff only leaves
+            // the 2:00 PM onward BSIT blocks open on weekdays and Friday.
+            $this->assertSame('14:00', $start);
+
+            if ($schedule->subject->subject_type === 'Lecture') {
+                $this->assertSame($lectureRoom->id, $schedule->room_id);
+            } elseif ($schedule->subject->subject_type === 'Laboratory') {
+                $this->assertSame($laboratoryRoom->id, $schedule->room_id);
+            } else {
+                $this->assertNull($schedule->room_id);
+            }
         }
 
         $industryUnits = $schedules->where('instructor_id', $industryInstructor->id)->sum(fn (ClassSchedule $schedule): float => (float) $schedule->subject->units);
@@ -1857,13 +2134,13 @@ class DeanPortalTest extends TestCase
         );
     }
 
-    public function test_manual_timetable_edit_blocks_lunch_but_allows_major_subjects_on_friday_and_saturday(): void
+    public function test_manual_timetable_edit_blocks_invalid_duration_but_allows_major_subjects_on_friday_and_saturday(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
         $instructor = User::factory()->create([
             'role' => 'instructor', 'course' => 'BSIT', 'employment_type' => 'full_time', 'account_status' => 'active',
         ]);
-        $room = Room::create(['course' => 'BSIT', 'name' => 'Lab 1', 'room_type' => 'Laboratory']);
+        $room = Room::create(['course' => 'BSIT', 'name' => 'Room 101', 'room_type' => 'Lecture']);
         $section = AcademicSection::create([
             'course' => 'BSIT', 'name' => 'Section 1', 'year_level' => 1,
             'academic_year' => '2026-2027', 'semester' => 'All',
@@ -1887,7 +2164,7 @@ class DeanPortalTest extends TestCase
 
         $this->actingAs($dean)->put(route('dean.timetable.update', $schedule), [
             'instructor_id' => $instructor->id, 'room_id' => $room->id,
-            'day' => 'F - S', 'start_time' => '07:30', 'end_time' => '10:00',
+            'day' => 'F - S', 'start_time' => '07:30', 'end_time' => '09:00',
         ])->assertRedirect()->assertSessionHas('success');
 
         $schedule->refresh();
@@ -2034,6 +2311,31 @@ class DeanPortalTest extends TestCase
             ->assertSeeInOrder(['First Year Subjects', 'Second Year Subjects', 'Third Year Subjects', 'Fourth Year Subjects'])
             ->assertSee('edit='.$subject->id, false)
             ->assertSee('delete-confirmation-trigger', false);
+    }
+
+    public function test_dean_subject_creation_creates_only_one_record_when_legacy_semester_flags_are_all_enabled(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSBA']);
+        Department::where('code', 'BSBA')->firstOrFail()->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => true,
+            'semester_summer_enabled' => true,
+        ]);
+
+        $this->actingAs($dean)->post(route('dean.subjects.store'), [
+            'code' => 'BA 101',
+            'name' => 'Business Fundamentals',
+            'subject_type' => 'Lecture',
+            'classification' => 'Major',
+            'year_level' => 1,
+            'curriculum' => 'New',
+            'units' => 3,
+        ])->assertRedirect(route('dean.subjects.index'));
+
+        $subjects = Subject::query()->forDepartment('BSBA')->where('code', 'BA 101')->get();
+
+        $this->assertCount(1, $subjects);
+        $this->assertSame('1st', $subjects->sole()->semester);
     }
 
     public function test_subject_code_uniqueness_is_scoped_to_the_selected_curriculum(): void

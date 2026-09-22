@@ -3,15 +3,23 @@
 namespace App\Http\Controllers\Gec;
 
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends GecController
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $instructorQuery = User::forDepartment('GEC')->where('role', 'instructor')->where('account_status', 'active');
-        $subjectsQuery = $this->minorSubjects();
-        $schedulesQuery = $this->minorSchedules();
+        $semester = $this->enabledSemesters($request)[0] ?? '1st';
+        $instructorQuery = User::query()
+            ->forDepartment('GEC')
+            ->where('role', 'instructor')
+            ->where('account_status', 'active')
+            ->whereHas('classSchedules', fn ($query) => $query
+                ->where('semester', $semester)
+                ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Minor')));
+        $subjectsQuery = $this->minorSubjects()->where('semester', $semester);
+        $schedulesQuery = $this->minorSchedules()->where('semester', $semester);
 
         $statistics = [
             'instructors' => (clone $instructorQuery)->count(),
@@ -35,13 +43,13 @@ class DashboardController extends GecController
             'schedules' => $this->departmentCounts(fn (string $department) => (clone $schedulesQuery)->where('course', $department)->count()),
         ];
 
-        $recentSchedules = $this->minorSchedules()
+        $recentSchedules = (clone $schedulesQuery)
             ->with(['section', 'subject', 'room'])
             ->latest()
             ->take(6)
             ->get();
 
-        return view('gec.dashboard', compact('statistics', 'analytics', 'recentSchedules'));
+        return view('gec.dashboard', compact('semester', 'statistics', 'analytics', 'recentSchedules'));
     }
 
     /** @return array<string, int> */

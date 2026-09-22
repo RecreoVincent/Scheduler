@@ -14,6 +14,7 @@ class SubjectImporter
         'lecture' => 'Lecture',
         'laboratory' => 'Laboratory',
         'lab' => 'Laboratory',
+        'internship' => 'Internship',
     ];
 
     private const CLASSIFICATION_ALIASES = [
@@ -97,7 +98,7 @@ class SubjectImporter
             ], [
                 'code' => ['required', 'string', 'max:30'],
                 'name' => ['required', 'string', 'max:150'],
-                'subject_type' => ['required', Rule::in(['Lecture', 'Laboratory'])],
+                'subject_type' => ['required', Rule::in($managedByGec ? ['Lecture', 'Laboratory'] : ['Lecture', 'Laboratory', 'Internship'])],
                 'classification' => ['required', Rule::in(['Major', 'Minor'])],
                 'year_level' => ['required', 'integer', 'between:1,4'],
                 'semester' => ['required', Rule::in(['1st', '2nd', 'Summer'])],
@@ -108,6 +109,13 @@ class SubjectImporter
             if ($validator->fails()) {
                 $skipped++;
                 $errors[] = "Row {$rowNumber}: ".implode(' ', $validator->errors()->all());
+
+                continue;
+            }
+
+            if ($subjectType === 'Internship' && $classification !== 'Major') {
+                $skipped++;
+                $errors[] = "Row {$rowNumber}: Internship subjects must be classified as Major.";
 
                 continue;
             }

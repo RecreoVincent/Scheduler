@@ -35,6 +35,83 @@ class GecPortalTest extends TestCase
         $this->actingAs($gec)->get(route('gec.dashboard'))->assertOk();
     }
 
+    public function test_gec_dashboard_analytics_only_use_the_active_semester(): void
+    {
+        $gec = $this->gecUser();
+        Department::where('code', 'GEC')->firstOrFail()->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => false,
+            'semester_summer_enabled' => false,
+        ]);
+        $instructor = User::factory()->create([
+            'role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active',
+        ]);
+        $firstSection = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - First', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $secondSection = AcademicSection::create([
+            'course' => 'BSBA', 'name' => '1 - Second', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $firstSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 101', 'name' => 'First Semester Minor',
+            'subject_type' => 'Lecture', 'classification' => 'Minor', 'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $secondSubject = Subject::create([
+            'course' => 'BSBA', 'code' => 'GE 201', 'name' => 'Second Semester Minor',
+            'subject_type' => 'Lecture', 'classification' => 'Minor', 'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+        $room = Room::create(['course' => 'BSIT', 'name' => 'GEC Room', 'room_type' => 'Lecture']);
+        ClassSchedule::create([
+            'course' => 'BSIT', 'section_id' => $firstSection->id, 'subject_id' => $firstSubject->id,
+            'instructor_id' => $instructor->id, 'room_id' => $room->id,
+            'academic_year' => '2026-2027', 'semester' => '1st', 'day' => 'M - W', 'start_time' => '08:30', 'end_time' => '10:00',
+        ]);
+        ClassSchedule::create([
+            'course' => 'BSBA', 'section_id' => $secondSection->id, 'subject_id' => $secondSubject->id,
+            'instructor_id' => $instructor->id, 'room_id' => $room->id,
+            'academic_year' => '2026-2027', 'semester' => '2nd', 'day' => 'M - W', 'start_time' => '10:00', 'end_time' => '11:30',
+        ]);
+
+        $this->actingAs($gec)->get(route('gec.dashboard'))
+            ->assertOk()
+            ->assertSee('1st Semester General Education analytics')
+            ->assertSee('GE 101')
+            ->assertDontSee('GE 201')
+            ->assertViewHas('statistics', fn (array $statistics): bool => $statistics === [
+                'instructors' => 1,
+                'subjects' => 1,
+                'assignments' => 0,
+                'schedules' => 1,
+            ]);
+    }
+
+    public function test_gec_cannot_delete_a_minor_subject_from_an_inactive_semester(): void
+    {
+        $gec = $this->gecUser();
+        Department::where('code', 'GEC')->firstOrFail()->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => false,
+            'semester_summer_enabled' => false,
+        ]);
+        $firstSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 101', 'name' => 'First Semester Minor',
+            'subject_type' => 'Lecture', 'classification' => 'Minor', 'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $secondSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 201', 'name' => 'Second Semester Minor',
+            'subject_type' => 'Lecture', 'classification' => 'Minor', 'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+
+        $this->actingAs($gec)->delete(route('gec.subjects.destroy', $secondSubject))->assertNotFound();
+        $this->assertModelExists($secondSubject);
+
+        $this->actingAs($gec)->delete(route('gec.subjects.destroy', $firstSubject))->assertRedirect();
+        $this->assertModelMissing($firstSubject);
+        $this->assertModelExists($secondSubject);
+    }
+
     public function test_instructor_registering_under_gec_course_lands_pending_and_can_be_approved(): void
     {
         $this->post(route('register'), [
@@ -230,6 +307,52 @@ class GecPortalTest extends TestCase
         ]);
     }
 
+    public function test_gec_instructor_units_warns_when_minor_subject_units_exceed_active_gec_instructor_capacity(): void
+    {
+        $gec = $this->gecUser();
+        Department::where('code', 'GEC')->firstOrFail()->update([
+            'semester_first_enabled' => true,
+            'semester_second_enabled' => false,
+            'semester_summer_enabled' => false,
+            'default_unit_limit_full_time' => 30,
+        ]);
+        User::factory()->create([
+            'role' => 'instructor',
+            'course' => 'GEC',
+            'account_status' => 'active',
+            'employment_type' => 'full_time',
+            'teaching_unit_limit' => 30,
+        ]);
+
+        foreach ([
+            ['BSIT', 'GE 201'],
+            ['BSBA', 'GE 202'],
+            ['BSHM', 'GE 203'],
+            ['BEED', 'GE 204'],
+        ] as [$course, $code]) {
+            Subject::create([
+                'course' => $course,
+                'code' => $code,
+                'name' => "Subject {$code}",
+                'subject_type' => 'Lecture',
+                'classification' => 'Minor',
+                'year_level' => 1,
+                'semester' => '1st',
+                'curriculum' => 'New',
+                'units' => 10,
+            ]);
+        }
+
+        $this->actingAs($gec)->get(route('gec.instructor-units.index'))
+            ->assertOk()
+            ->assertSee('GEC instructor capacity shortage')
+            ->assertSee('40 units')
+            ->assertSee('30 units')
+            ->assertSee('shortfall is')
+            ->assertSee('10 units')
+            ->assertSee('1 additional full-time GEC instructor');
+    }
+
     public function test_gec_can_generate_minor_subject_schedule_for_a_department_using_gec_instructors(): void
     {
         $gec = $this->gecUser();
@@ -263,6 +386,7 @@ class GecPortalTest extends TestCase
         $this->assertSame('BEED', $schedule->course);
         $this->assertSame($gecInstructor->id, $schedule->instructor_id);
         $this->assertSame($room->id, $schedule->room_id);
+        $this->assertSame(90, (int) ((strtotime($schedule->end_time) - strtotime($schedule->start_time)) / 60));
     }
 
     public function test_gec_cannot_generate_a_minor_subject_schedule_without_an_assigned_instructor(): void

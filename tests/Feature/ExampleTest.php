@@ -56,10 +56,36 @@ class ExampleTest extends TestCase
 
         $this->assertStringContainsString('class="portal-pagination"', $html);
         $this->assertStringContainsString('aria-label="Record pages"', $html);
+        $this->assertStringContainsString('class="portal-page-size"', $html);
+        $this->assertStringContainsString('name="per_page"', $html);
+        $this->assertStringContainsString('>5</option>', $html);
+        $this->assertStringContainsString('value="10" selected', $html);
+        $this->assertStringContainsString('>50</option>', $html);
+        $this->assertStringContainsString('Page <strong>2</strong> of <strong>3</strong>', $html);
+        $this->assertStringContainsString('Showing <strong>11&ndash;20</strong>', $html);
+        $this->assertStringContainsString('of <strong>30</strong> records', $html);
         $this->assertStringContainsString('class="portal-page-button is-active" aria-current="page">2</span>', $html);
         $this->assertStringContainsString('href="/records?page=1"', $html);
         $this->assertStringContainsString('href="/records?page=3"', $html);
         $this->assertStringContainsString('aria-label="Previous page"', $html);
         $this->assertStringContainsString('aria-label="Next page"', $html);
+    }
+
+    public function test_single_page_tables_show_the_record_count_without_a_redundant_page_label(): void
+    {
+        $paginator = new LengthAwarePaginator(
+            items: range(1, 4),
+            total: 4,
+            perPage: 5,
+            currentPage: 1,
+            options: ['path' => '/records'],
+        );
+
+        $html = Blade::render('<x-pagination :paginator="$paginator" />', compact('paginator'));
+
+        $this->assertStringContainsString('Show', $html);
+        $this->assertStringContainsString('Showing <strong>1&ndash;4</strong>', $html);
+        $this->assertStringContainsString('of <strong>4</strong> records', $html);
+        $this->assertStringNotContainsString('Page <strong>1</strong> of <strong>1</strong>', $html);
     }
 }

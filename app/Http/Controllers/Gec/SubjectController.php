@@ -38,7 +38,7 @@ class SubjectController extends GecController
             ->orderBy('course')
             ->orderBy('year_level')
             ->orderBy('code')
-            ->paginate(15)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $editingSubject = null;
@@ -134,9 +134,10 @@ class SubjectController extends GecController
         return redirect()->route('gec.subjects.index')->with('success', 'Minor subject updated successfully.');
     }
 
-    public function destroy(Subject $subject): RedirectResponse
+    public function destroy(Request $request, Subject $subject): RedirectResponse
     {
         $this->ensureMinorSubject($subject);
+        abort_unless(in_array($subject->semester, $this->enabledSemesters($request), true), 404);
         ClassSchedule::withTrashed()->where('subject_id', $subject->id)->forceDelete();
         $subject->instructors()->detach();
         $subject->delete();

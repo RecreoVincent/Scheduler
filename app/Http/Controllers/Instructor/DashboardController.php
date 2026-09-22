@@ -10,6 +10,7 @@ class DashboardController extends InstructorController
 {
     public function index(Request $request): View
     {
+        $semester = $this->viewingSemester($request);
         $query = $this->schedules($request);
         $statistics = [
             'sections' => (clone $query)->distinct()->count('section_id'),
@@ -29,6 +30,6 @@ class DashboardController extends InstructorController
             ->sortBy('start_time')
             ->values();
 
-        return view('instructor.dashboard', compact('statistics', 'schedules', 'todaySchedules', 'today'));
+        return view('instructor.dashboard', compact('semester', 'statistics', 'schedules', 'todaySchedules', 'today'));
     }
 }

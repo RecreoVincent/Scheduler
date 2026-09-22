@@ -31,10 +31,44 @@ class ClassScheduleGenerator
 
     private const MAX_INSTRUCTOR_SCHEDULES_PER_DAY_PATTERN = 3;
 
-    private const TIME_SLOTS = [
+    private const DEFAULT_LABORATORY_TIME_SLOTS = [
         ['08:30', '11:00'],
         ['13:00', '15:30'],
         ['16:30', '19:00'],
+    ];
+
+    private const DEFAULT_LECTURE_TIME_SLOTS = [
+        ['08:30', '10:00'],
+        ['10:00', '11:30'],
+        ['13:00', '14:30'],
+        ['14:30', '16:00'],
+        ['16:30', '18:00'],
+    ];
+
+    private const DEFAULT_INTERNSHIP_TIME_SLOTS = [
+        ['08:30', '11:30'],
+        ['13:00', '16:00'],
+        ['16:00', '19:00'],
+    ];
+
+    private const BSIT_LABORATORY_TIME_SLOTS = [
+        ['08:30', '11:00'],
+        ['11:00', '13:30'],
+        ['14:00', '16:30'],
+    ];
+
+    private const BSIT_LECTURE_TIME_SLOTS = [
+        ['08:30', '10:00'],
+        ['10:00', '11:30'],
+        ['11:00', '12:30'],
+        ['14:00', '15:30'],
+        ['15:30', '17:00'],
+    ];
+
+    private const BSIT_INTERNSHIP_TIME_SLOTS = [
+        ['08:30', '11:30'],
+        ['11:00', '14:00'],
+        ['14:00', '17:00'],
     ];
 
     /**
@@ -57,6 +91,7 @@ class ClassScheduleGenerator
      * @param  Collection<int, Room>  $rooms
      * @param  Collection<int, User>  $fallbackInstructors
      * @param  array{academic_year:string, semester:string}  $period
+     * @param  bool  $partialSubjectGeneration  Preserve other subjects' schedules when generating one endorsed subject.
      */
     public function generate(
         string $course,
@@ -66,13 +101,14 @@ class ClassScheduleGenerator
         Collection $fallbackInstructors,
         array $period,
         ?int $seed = null,
+        bool $partialSubjectGeneration = false,
     ): int {
         // Keep one seed for the whole transaction so every retry produces the
         // same internally consistent plan, while a new generation request gets
         // a fresh section/subject arrangement.
         $seed ??= random_int(1, 2_147_483_647);
 
-        return DB::transaction(function () use ($course, $sections, $subjects, $rooms, $fallbackInstructors, $period, $seed): int {
+        return DB::transaction(function () use ($course, $sections, $subjects, $rooms, $fallbackInstructors, $period, $seed, $partialSubjectGeneration): int {
             $sections = $sections
                 // Lower years still receive priority. Only sections within the
                 // same year are randomized.
@@ -83,16 +119,20 @@ class ClassScheduleGenerator
                 ))
                 ->values();
 
-            $classification = $subjects->first()?->classification;
-
-            ClassSchedule::forDepartment($course)
+            $schedulesToReplace = ClassSchedule::forDepartment($course)
                 ->whereIn('section_id', $sections->pluck('id'))
-                ->forAcademicPeriod($period['academic_year'], $period['semester'])
-                ->when(
-                    $classification !== null,
-                    fn ($query) => $query->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', $classification)),
-                )
-                ->delete();
+                ->forAcademicPeriod($period['academic_year'], $period['semester']);
+
+            if ($partialSubjectGeneration) {
+                $schedulesToReplace->whereIn('subject_id', $subjects->pluck('id'));
+            } else {
+                $classification = $subjects->first()?->classification;
+                if ($classification !== null) {
+                    $schedulesToReplace->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', $classification));
+                }
+            }
+
+            $schedulesToReplace->delete();
 
             // Serialize competing generators against the existing schedules in this period.
             $periodSchedules = ClassSchedule::with('subject:id,code,units')
@@ -259,11 +299,13 @@ class ClassScheduleGenerator
                 }
             }
 
-            foreach ($sections as $section) {
-                $this->ensureFirstYearCoversAllDays(
-                    $section,
-                    $sectionPlans->get($section->id)['day_pattern_loads'],
-                );
+            if (! $partialSubjectGeneration) {
+                foreach ($sections as $section) {
+                    $this->ensureFirstYearCoversAllDays(
+                        $section,
+                        $sectionPlans->get($section->id)['day_pattern_loads'],
+                    );
+                }
             }
 
             $this->ensureCompletedWorkloadsAreValid($assignedInstructorIds->unique(), $workloads);
@@ -352,15 +394,15 @@ class ClassScheduleGenerator
             return 'Classes must be scheduled between 7:00 AM and 7:00 PM.';
         }
 
-        if ($start < '13:00' && $end > '12:00') {
+        if (strcasecmp((string) $schedule->course, 'BSIT') !== 0 && $start < '13:00' && $end > '12:00') {
             return 'Classes cannot overlap the 12:00 PM to 1:00 PM lunch break.';
         }
 
         $subject = $schedule->subject;
         $durationMinutes = (int) ((strtotime($end) - strtotime($start)) / 60);
-        $requiredDuration = $this->isMinor($subject) ? 90 : 150;
+        $requiredDuration = $this->meetingDurationMinutes($subject);
         if ($durationMinutes !== $requiredDuration) {
-            return ($this->isMinor($subject) ? 'Minor' : 'Major').' subjects must use a '.($requiredDuration === 90 ? '1 hour 30 minute' : '2 hour 30 minute').' time slot.';
+            return "{$subject->classification} {$subject->subject_type} subjects must use a {$this->meetingDurationLabel($subject)} time slot.";
         }
 
         $allowedPatterns = $this->allowedDayPatterns($subject);
@@ -499,7 +541,7 @@ class ClassScheduleGenerator
             foreach ($inner as $innerItem) {
                 [$instructor, $day] = $allowTbaFallback ? [$innerItem, $outerItem] : [$outerItem, $innerItem];
 
-                foreach ($this->timeSlotsFor($section) as [$start, $end]) {
+                foreach ($this->timeSlotsFor($section->course, $section, $subject) as [$start, $end]) {
                     if (! $this->instructorIsAvailable($instructor, $day, $start)) {
                         continue;
                     }
@@ -536,12 +578,12 @@ class ClassScheduleGenerator
     ): string {
         $patterns = $this->allowedDayPatterns($subject);
         $patternLabel = implode(' or ', $patterns);
-        $duration = $this->isMinor($subject) ? '1 hour 30 minutes' : '2 hours 30 minutes';
+        $duration = $this->meetingDurationLabel($subject);
         $requirement = "{$subject->code} is a {$subject->classification} {$subject->subject_type} subject. It requires {$duration} on {$patternLabel}.";
         $sectionFreeSlots = collect();
 
         foreach ($patterns as $day) {
-            foreach ($this->timeSlotsFor($section) as [$start, $end]) {
+            foreach ($this->timeSlotsFor($section->course, $section, $subject) as [$start, $end]) {
                 if (! $this->scheduleConflictExists('section_id', $section->id, $day, $start, $end)) {
                     $sectionFreeSlots->push(compact('day', 'start', 'end'));
                 }
@@ -694,12 +736,48 @@ class ClassScheduleGenerator
     }
 
     /** @return array<int, array{0:string, 1:string}> */
-    private function timeSlotsFor(AcademicSection $section): array
+    private function timeSlotsFor(string $course, AcademicSection $section, Subject $subject): array
     {
+        $isBsit = strcasecmp($course, 'BSIT') === 0;
+
+        $slots = match (true) {
+            $this->isInternship($subject) => $isBsit ? self::BSIT_INTERNSHIP_TIME_SLOTS : self::DEFAULT_INTERNSHIP_TIME_SLOTS,
+            $this->isLaboratorySubject($subject) => $isBsit ? self::BSIT_LABORATORY_TIME_SLOTS : self::DEFAULT_LABORATORY_TIME_SLOTS,
+            default => $isBsit ? self::BSIT_LECTURE_TIME_SLOTS : self::DEFAULT_LECTURE_TIME_SLOTS,
+        };
+
         // Lower-year sections claim the earlier room periods first. Higher-year
         // sections search from the end of the day, preserving room availability
         // for Years 1 and 2 even when Years 3 or 4 are generated beforehand.
-        return (int) $section->year_level <= 2 ? self::TIME_SLOTS : array_reverse(self::TIME_SLOTS);
+        return (int) $section->year_level <= 2 ? $slots : array_reverse($slots);
+    }
+
+    private function meetingDurationMinutes(Subject $subject): int
+    {
+        return match (true) {
+            $this->isInternship($subject) => 180,
+            $this->isLaboratorySubject($subject) && ! $this->isMinor($subject) => 150,
+            default => 90,
+        };
+    }
+
+    private function meetingDurationLabel(Subject $subject): string
+    {
+        return match ($this->meetingDurationMinutes($subject)) {
+            90 => '1 hour 30 minute',
+            150 => '2 hour 30 minute',
+            180 => '3 hour',
+        };
+    }
+
+    private function isInternship(Subject $subject): bool
+    {
+        return strcasecmp(trim((string) $subject->subject_type), 'Internship') === 0;
+    }
+
+    private function isLaboratorySubject(Subject $subject): bool
+    {
+        return str_contains(strtolower((string) $subject->subject_type), 'laboratory');
     }
 
     private function instructorIsAvailable(User $instructor, string $day, string $start): bool

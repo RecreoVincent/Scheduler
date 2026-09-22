@@ -130,8 +130,14 @@ class AdminUserAccountImporter
             }
 
             $rosterError = null;
-            if ($role === 'student' && $studentId !== null && ! StudentRoster::query()->where('student_id', $studentId)->exists()) {
-                $rosterError = "Student ID \"{$studentId}\" is not in the official Student Roster.";
+            if ($role === 'student' && $studentId !== null) {
+                $rosterEntry = StudentRoster::query()->where('student_id', $studentId)->first();
+
+                if (! $rosterEntry) {
+                    $rosterError = "Student ID \"{$studentId}\" is not in the official Student Roster.";
+                } elseif (filled($rosterEntry->course) && strtoupper($rosterEntry->course) !== $course) {
+                    $rosterError = "Student ID \"{$studentId}\" belongs to {$rosterEntry->course} in the official Student Roster, not {$course}.";
+                }
             }
 
             if ($validator->fails() || $sectionError !== null || $rosterError !== null) {

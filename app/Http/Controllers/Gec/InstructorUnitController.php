@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Gec;
 
 use App\Models\ClassSchedule;
 use App\Models\Department;
+use App\Models\Subject;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,11 +32,14 @@ class InstructorUnitController extends GecController
         $academicYear = $validated['academic_year'] ?? $academicYears->first();
         $semester = $validated['semester'] ?? ($enabledSemesters[0] ?? '1st');
 
-        $query = User::query()
+        $activeInstructorQuery = User::query()
             ->with('department')
             ->where('role', 'instructor')
             ->forDepartment($course)
             ->where('account_status', 'active');
+
+        $capacityInstructors = (clone $activeInstructorQuery)->get();
+        $query = clone $activeInstructorQuery;
 
         if (filled($validated['search'] ?? null)) {
             $search = $validated['search'];
@@ -50,7 +54,7 @@ class InstructorUnitController extends GecController
             ->orderBy('first_name')
             ->orderBy('middle_name')
             ->orderBy('last_name')
-            ->paginate(12)
+            ->paginate($this->perPage($request))
             ->withQueryString();
 
         $scheduledUnits = collect();
@@ -73,6 +77,26 @@ class InstructorUnitController extends GecController
             'flexible_part_time' => $department?->default_unit_limit_flexible_part_time ?? User::DEFAULT_UNIT_LIMITS['flexible_part_time'],
         ];
 
+        $totalSubjectUnits = (float) Subject::query()
+            ->whereIn('course', self::REAL_DEPARTMENTS)
+            ->where('classification', 'Minor')
+            ->where('semester', $semester)
+            ->sum('units');
+        $totalInstructorCapacity = (float) $capacityInstructors
+            ->sum(fn (User $instructor): int => $instructor->effectiveTeachingUnitLimit());
+        $unitShortfall = max(0, $totalSubjectUnits - $totalInstructorCapacity);
+        $fullTimeCapacity = (int) $defaultUnitLimits['full_time'];
+        $recommendedHires = $unitShortfall > 0 && $fullTimeCapacity > 0
+            ? (int) ceil($unitShortfall / $fullTimeCapacity)
+            : null;
+        $capacitySummary = compact(
+            'totalSubjectUnits',
+            'totalInstructorCapacity',
+            'unitShortfall',
+            'fullTimeCapacity',
+            'recommendedHires',
+        );
+
         return view('gec.instructor-units.index', compact(
             'course',
             'instructors',
@@ -82,6 +106,7 @@ class InstructorUnitController extends GecController
             'academicYear',
             'semester',
             'defaultUnitLimits',
+            'capacitySummary',
         ));
     }
 
