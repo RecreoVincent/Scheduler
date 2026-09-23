@@ -20,6 +20,9 @@
     .endorsement-received-card { order:1; }
     .endorsement-pending-card { order:2; }
     .endorsement-history-card { order:3; }
+    @if(auth()->user()?->course === 'BSIT')
+        .page-header h2 { color:#ec4899; }
+    @endif
     @media(max-width:900px) { .endorsement-form-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
     @media(max-width:600px) { .endorsement-form-grid { grid-template-columns:1fr; } }
 </style>
