@@ -47,8 +47,8 @@ class DashboardController extends DeanController
                 'Unspecified' => (clone $instructorQuery)->whereNull('employment_type')->count(),
             ],
             'students' => $this->yearLevelCounts(clone $studentQuery),
-            'subjects' => $this->yearLevelCounts(clone $subjectQuery),
-            'sections' => $this->yearLevelCounts(clone $sectionQuery),
+            'subjects' => $this->yearLevelCounts(clone $subjectQuery, includeUnassigned: false),
+            'sections' => $this->yearLevelCounts(clone $sectionQuery, includeUnassigned: false),
             'rooms' => (clone $roomQuery)
                 ->selectRaw('room_type, COUNT(*) as rooms_count')
                 ->groupBy('room_type')
@@ -67,7 +67,7 @@ class DashboardController extends DeanController
         return view('dean.dashboard', compact('course', 'semester', 'statistics', 'analytics', 'recentSchedules'));
     }
 
-    private function yearLevelCounts(Builder $query): array
+    private function yearLevelCounts(Builder $query, bool $includeUnassigned = true): array
     {
         $counts = [];
 
@@ -75,7 +75,9 @@ class DashboardController extends DeanController
             $counts["Year {$level}"] = (clone $query)->where('year_level', $level)->count();
         }
 
-        $counts['Unassigned'] = (clone $query)->whereNull('year_level')->count();
+        if ($includeUnassigned) {
+            $counts['Unassigned'] = (clone $query)->whereNull('year_level')->count();
+        }
 
         return $counts;
     }

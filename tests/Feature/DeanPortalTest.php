@@ -1247,7 +1247,8 @@ class DeanPortalTest extends TestCase
             ->assertViewHas('analytics', fn (array $analytics): bool => $analytics['rooms'] === [
                 'Laboratory' => 1,
                 'Lecture' => 1,
-            ]);
+            ] && ! array_key_exists('Unassigned', $analytics['subjects'])
+                && ! array_key_exists('Unassigned', $analytics['sections']));
     }
 
     public function test_dean_subject_deletion_only_affects_the_active_semester(): void

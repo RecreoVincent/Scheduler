@@ -264,6 +264,31 @@ class StudentRosterImporter
         }
     }
 
+    public function syncRosterRecord(StudentRoster $roster, ?string $previousStudentId = null): void
+    {
+        $previousStudentId = $this->clean($previousStudentId);
+        $studentId = $this->clean($roster->student_id);
+
+        if ($studentId === null) {
+            return;
+        }
+
+        if ($previousStudentId !== null
+            && $previousStudentId !== $studentId
+            && ! User::withTrashed()->where('student_id', $studentId)->exists()) {
+            User::withTrashed()
+                ->where('role', 'student')
+                ->where('student_id', $previousStudentId)
+                ->update(['student_id' => $studentId]);
+        }
+
+        $course = $this->clean($roster->course);
+        $course = $course === null ? null : strtoupper($course);
+        $assignment = $this->matchingSection($roster->section, $course);
+
+        $this->syncStudentAccount($studentId, $roster->full_name, $course, $assignment);
+    }
+
     /** @return array{0:string,1:?string,2:string} */
     private function accountNameParts(string $fullName): array
     {

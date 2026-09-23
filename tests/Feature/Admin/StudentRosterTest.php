@@ -27,6 +27,60 @@ class StudentRosterTest extends TestCase
             ->assertSee('BSIT 1A');
     }
 
+    public function test_admin_can_create_update_and_delete_a_student_roster_record(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.student-roster.store'), [
+                'student_id' => ' 2026-0100 ',
+                'full_name' => '  Ana   Reyes  ',
+                'course' => 'bsit',
+                'section' => ' 1 - East ',
+            ])
+            ->assertRedirect(route('admin.student-roster.index'));
+
+        $roster = StudentRoster::where('student_id', '2026-0100')->firstOrFail();
+        $this->assertSame('Ana Reyes', $roster->full_name);
+        $this->assertSame('BSIT', $roster->course);
+        $this->assertSame('1 - East', $roster->section);
+        $this->assertDatabaseHas('users', [
+            'student_id' => '2026-0100',
+            'role' => 'student',
+            'course' => 'BSIT',
+            'account_status' => 'inactive',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.student-roster.index', ['edit' => $roster->id]))
+            ->assertOk()
+            ->assertSee('Edit Roster Record')
+            ->assertSee('Ana Reyes');
+
+        $this->actingAs($admin)
+            ->patch(route('admin.student-roster.update', $roster), [
+                'student_id' => '2026-0100',
+                'full_name' => 'Ana Marie Reyes',
+                'course' => 'BSBA',
+                'section' => '2 - West',
+            ])
+            ->assertRedirect(route('admin.student-roster.index'));
+
+        $this->assertDatabaseHas('student_rosters', [
+            'id' => $roster->id,
+            'full_name' => 'Ana Marie Reyes',
+            'course' => 'BSBA',
+            'section' => '2 - West',
+        ]);
+        $this->assertDatabaseHas('users', ['student_id' => '2026-0100', 'course' => 'BSBA']);
+
+        $this->actingAs($admin)
+            ->delete(route('admin.student-roster.destroy', $roster))
+            ->assertRedirect(route('admin.student-roster.index'));
+
+        $this->assertDatabaseMissing('student_rosters', ['id' => $roster->id]);
+    }
+
     public function test_admin_can_import_a_student_roster_csv(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

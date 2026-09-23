@@ -100,9 +100,15 @@ Route::middleware('admin')
             ->name('profile.update');
 
         Route::get('/student-roster', [StudentRosterController::class, 'index'])->name('student-roster.index');
+        Route::post('/student-roster', [StudentRosterController::class, 'store'])->name('student-roster.store');
+        Route::patch('/student-roster/{studentRoster}', [StudentRosterController::class, 'update'])->name('student-roster.update');
+        Route::delete('/student-roster/{studentRoster}', [StudentRosterController::class, 'destroy'])->name('student-roster.destroy');
         Route::post('/student-roster/import', [StudentRosterController::class, 'import'])->name('student-roster.import');
 
         Route::get('/ms365-accounts', [Ms365StudentAccountController::class, 'index'])->name('ms365-accounts.index');
+        Route::post('/ms365-accounts', [Ms365StudentAccountController::class, 'store'])->name('ms365-accounts.store');
+        Route::patch('/ms365-accounts/{ms365Account}', [Ms365StudentAccountController::class, 'update'])->name('ms365-accounts.update');
+        Route::delete('/ms365-accounts/{ms365Account}', [Ms365StudentAccountController::class, 'destroy'])->name('ms365-accounts.destroy');
         Route::post('/ms365-accounts/import', [Ms365StudentAccountController::class, 'import'])->name('ms365-accounts.import');
 
         Route::get('/deleted-accounts', [UserController::class, 'deleted'])
