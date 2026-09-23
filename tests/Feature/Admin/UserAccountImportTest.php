@@ -81,4 +81,20 @@ class UserAccountImportTest extends TestCase
             ->assertOk()
             ->assertDownload('user-account-import-template.csv');
     }
+
+    public function test_user_account_form_has_independent_password_visibility_controls(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
+        $user = User::factory()->create(['role' => 'dean', 'account_status' => 'active']);
+
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.users.index', ['edit' => $user->id]))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'id="user_password"',
+                'data-password-eye-toggle',
+                'id="user_password_confirmation"',
+                'data-password-eye-toggle',
+            ], false);
+    }
 }

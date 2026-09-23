@@ -454,12 +454,23 @@
                 </div>
                 <div class="admin-profile-field">
                     <label for="user_password">{{ $editingUser ? 'New Password' : 'Password' }}</label>
-                    <input id="user_password" type="password" class="input" name="password" autocomplete="new-password" placeholder="{{ $editingUser ? 'Leave blank to keep current password' : '' }}" @if(!$editingUser) required @endif>
+                    <x-password-toggle
+                        id="user_password"
+                        name="password"
+                        autocomplete="new-password"
+                        placeholder="{{ $editingUser ? 'Leave blank to keep current password' : '' }}"
+                        :required="! $editingUser"
+                    />
                     @error('password')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field">
                     <label for="user_password_confirmation">Confirm {{ $editingUser ? 'New ' : '' }}Password</label>
-                    <input id="user_password_confirmation" type="password" class="input" name="password_confirmation" autocomplete="new-password" @if(!$editingUser) required @endif>
+                    <x-password-toggle
+                        id="user_password_confirmation"
+                        name="password_confirmation"
+                        autocomplete="new-password"
+                        :required="! $editingUser"
+                    />
                 </div>
             </div>
 
@@ -588,6 +599,21 @@
         closeButtons.forEach(button => button.addEventListener('click', closeModal));
         modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+
+        modal.querySelectorAll('[data-password-eye-toggle]').forEach(button => {
+            button.addEventListener('click', () => {
+                const input = button.previousElementSibling;
+                const eyeIcon = button.querySelector('[data-eye-icon]');
+                const eyeOffIcon = button.querySelector('[data-eye-off-icon]');
+                if (!input) return;
+
+                const showing = input.type === 'text';
+                input.type = showing ? 'password' : 'text';
+                eyeIcon.hidden = !showing;
+                eyeOffIcon.hidden = showing;
+                button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+            });
+        });
 
         @if($errors->hasAny(['first_name', 'last_name', 'middle_name', 'suffix', 'email', 'role', 'course', 'year_level', 'academic_section_id', 'employment_type', 'outside_work_end_time', 'account_status', 'password']) || $editingUser)
             openModal();
