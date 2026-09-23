@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Ms365StudentAccountController extends Controller
 {
@@ -53,12 +54,47 @@ class Ms365StudentAccountController extends Controller
             ->with('success', 'MS365 registry record removed. The Microsoft 365 account itself was not changed.');
     }
 
+    public function destroyAll(): RedirectResponse
+    {
+        $count = Ms365StudentAccount::query()->count();
+
+        if ($count === 0) {
+            return back()->with('error', 'There are no MS365 registry records to remove.');
+        }
+
+        Ms365StudentAccount::query()->delete();
+
+        return redirect()->route('admin.ms365-accounts.index')->with(
+            'success',
+            "Removed all {$count} MS365 registry ".str('record')->plural($count).'. The Microsoft 365 accounts themselves were not changed.',
+        );
+    }
+
     public function import(Request $request, Ms365StudentAccountImporter $importer): RedirectResponse
     {
         $request->validate(['csv_file'=>['required','file','mimes:csv,txt','max:51200']]);
         try { $result = $importer->import($request->file('csv_file')->getRealPath()); }
         catch (RuntimeException $exception) { return back()->with('error',$exception->getMessage()); }
         return back()->with('success',"MS365 registry updated: {$result['imported']} imported, {$result['skipped']} skipped.");
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        $headers = [
+            'Display name', 'User principal name', 'Student Number', 'First name', 'Last name',
+            'Object Id', 'Licenses', 'Block credential', 'Soft deletion time stamp', 'When created',
+        ];
+        $sample = [
+            'Maria Santos', 'maria.santos@mcclawis.edu.ph', '2026-0001', 'Maria', 'Santos',
+            '', 'Office 365 A1 for students', 'False', '', '2026-01-01 08:00:00',
+        ];
+
+        return response()->streamDownload(function () use ($headers, $sample): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            fputcsv($out, $sample);
+            fclose($out);
+        }, 'ms365-account-import-template.csv', ['Content-Type' => 'text/csv']);
     }
 
     /** @return array<string, mixed> */

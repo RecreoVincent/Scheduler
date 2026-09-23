@@ -13,6 +13,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentRosterController extends Controller
 {
@@ -83,6 +84,22 @@ class StudentRosterController extends Controller
             ->with('success', 'Student roster record removed. Existing student portal accounts were not deleted.');
     }
 
+    public function destroyAll(): RedirectResponse
+    {
+        $count = StudentRoster::query()->count();
+
+        if ($count === 0) {
+            return back()->with('error', 'There are no student roster records to remove.');
+        }
+
+        StudentRoster::query()->delete();
+
+        return redirect()->route('admin.student-roster.index')->with(
+            'success',
+            "Removed all {$count} student roster ".str('record')->plural($count).'. Existing student portal accounts were not deleted.',
+        );
+    }
+
     public function import(Request $request, StudentRosterImporter $importer): RedirectResponse
     {
         $request->validate(['csv_file' => ['required', 'file', 'mimes:csv,txt', 'max:51200']]);
@@ -105,6 +122,19 @@ class StudentRosterController extends Controller
         }
 
         return $response;
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        $headers = ['Student ID', 'Name', 'Department', 'Section'];
+        $sample = ['2026-0001', 'Maria Santos', 'BSIT', '1 - East'];
+
+        return response()->streamDownload(function () use ($headers, $sample): void {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, $headers);
+            fputcsv($out, $sample);
+            fclose($out);
+        }, 'student-roster-import-template.csv', ['Content-Type' => 'text/csv']);
     }
 
     /** @return array{student_id:string,full_name:string,section:?string,course:string} */

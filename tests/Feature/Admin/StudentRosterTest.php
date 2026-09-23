@@ -81,6 +81,26 @@ class StudentRosterTest extends TestCase
         $this->assertDatabaseMissing('student_rosters', ['id' => $roster->id]);
     }
 
+    public function test_admin_can_download_the_roster_template_and_remove_all_roster_records_without_deleting_students(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        StudentRoster::create(['student_id' => '2026-0101', 'full_name' => 'Ana Reyes', 'course' => 'BSIT']);
+        StudentRoster::create(['student_id' => '2026-0102', 'full_name' => 'Ben Cruz', 'course' => 'BSIT']);
+        $student = User::factory()->create(['role' => 'student', 'student_id' => '2026-0101', 'course' => 'BSIT']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.student-roster.import-template'))
+            ->assertOk()
+            ->assertDownload('student-roster-import-template.csv');
+
+        $this->actingAs($admin)
+            ->delete(route('admin.student-roster.destroy-all'))
+            ->assertRedirect(route('admin.student-roster.index'));
+
+        $this->assertSame(0, StudentRoster::count());
+        $this->assertDatabaseHas('users', ['id' => $student->id]);
+    }
+
     public function test_admin_can_import_a_student_roster_csv(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

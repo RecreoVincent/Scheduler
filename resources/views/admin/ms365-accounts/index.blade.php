@@ -15,8 +15,9 @@
     .ms365-table-wrap { overflow:hidden; }
     .ms365-table { width:100%; table-layout:fixed; }
     .ms365-table th, .ms365-table td { padding:16px 14px; white-space:normal; overflow-wrap:anywhere; }
-    .ms365-actions { display:flex; flex-wrap:wrap; gap:7px; }
-    .ms365-actions .button { min-width:0; padding:8px 11px; font-size:12px; }
+    .ms365-page-actions, .ms365-actions { display:flex; align-items:center; gap:7px; }
+    .ms365-actions { flex-wrap:nowrap; white-space:nowrap; }
+    .ms365-actions .button { min-width:0; flex:0 0 auto; padding:8px 11px; font-size:12px; }
     @media(max-width:900px) { .ms365-stats { grid-template-columns:1fr; } .ms365-table-wrap { overflow-x:auto; } .ms365-table { min-width:980px; } }
 </style>
 @endpush
@@ -27,7 +28,10 @@
         <h2>MS365 Student Account Registry</h2>
         <p>Manage the college-issued Microsoft 365 student email registry.</p>
     </div>
-    <button id="openMs365Create" class="button" type="button">+ Add MS365 Record</button>
+    <div class="ms365-page-actions">
+        <button type="button" class="button button-danger ms365-delete-trigger" data-delete-all="true" data-delete-url="{{ route('admin.ms365-accounts.destroy-all') }}">Delete All</button>
+        <button id="openMs365Create" class="button" type="button">+ Add MS365 Record</button>
+    </div>
 </div>
 
 <div class="ms365-stats" aria-label="MS365 account summary">
@@ -47,6 +51,7 @@
             @error('csv_file')<span class="error">{{ $message }}</span>@enderror
         </div>
         <button class="button" type="submit">Import CSV</button>
+        <a class="button button-secondary" href="{{ route('admin.ms365-accounts.import-template') }}">Download CSV Template</a>
     </form>
 </div>
 
@@ -110,7 +115,7 @@
 
 <div id="ms365DeleteModal" class="admin-profile-modal" hidden>
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="ms365DeleteTitle">
-        <header class="admin-profile-header"><div><h2 id="ms365DeleteTitle">Remove MS365 Registry Record?</h2><p>Remove <strong id="ms365DeleteEmail"></strong> from this local registry. The Microsoft 365 account itself will not be deleted.</p></div></header>
+        <header class="admin-profile-header"><div><h2 id="ms365DeleteTitle">Remove MS365 Registry Record?</h2><p id="ms365DeleteSingleMessage">Remove <strong id="ms365DeleteEmail"></strong> from this local registry. The Microsoft 365 account itself will not be deleted.</p><p id="ms365DeleteAllMessage" hidden>Remove all {{ $statistics['total'] }} local MS365 registry records. The Microsoft 365 accounts themselves will not be deleted.</p></div></header>
         <form id="ms365DeleteForm" method="POST">@csrf @method('DELETE')<footer class="admin-profile-actions"><button class="button button-secondary" type="button" id="cancelMs365Delete">Cancel</button><button class="button button-danger" type="submit" id="confirmMs365Delete">Remove Record</button></footer></form>
     </section>
 </div>
@@ -138,12 +143,25 @@
     (() => {
         const modal = document.getElementById('ms365DeleteModal');
         const form = document.getElementById('ms365DeleteForm');
+        const title = document.getElementById('ms365DeleteTitle');
         const email = document.getElementById('ms365DeleteEmail');
+        const singleMessage = document.getElementById('ms365DeleteSingleMessage');
+        const allMessage = document.getElementById('ms365DeleteAllMessage');
         const cancel = document.getElementById('cancelMs365Delete');
         const confirm = document.getElementById('confirmMs365Delete');
         let trigger;
         const close = () => { modal.hidden = true; document.body.classList.remove('modal-open'); form.removeAttribute('action'); trigger?.focus(); };
-        document.querySelectorAll('.ms365-delete-trigger').forEach(button => button.addEventListener('click', () => { trigger = button; form.action = button.dataset.deleteUrl; email.textContent = button.dataset.accountEmail; modal.hidden = false; document.body.classList.add('modal-open'); cancel.focus(); }));
+        document.querySelectorAll('.ms365-delete-trigger').forEach(button => button.addEventListener('click', () => {
+            trigger = button;
+            const deletingAll = button.dataset.deleteAll === 'true';
+            form.action = button.dataset.deleteUrl;
+            title.textContent = deletingAll ? 'Remove All MS365 Registry Records?' : 'Remove MS365 Registry Record?';
+            singleMessage.hidden = deletingAll;
+            allMessage.hidden = !deletingAll;
+            email.textContent = button.dataset.accountEmail;
+            confirm.textContent = deletingAll ? 'Remove All Records' : 'Remove Record';
+            modal.hidden = false; document.body.classList.add('modal-open'); cancel.focus();
+        }));
         cancel.addEventListener('click', close);
         modal.addEventListener('click', event => { if (event.target === modal) close(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) close(); });

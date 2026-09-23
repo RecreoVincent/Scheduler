@@ -18,14 +18,16 @@
     .roster-table { width:100%; table-layout:fixed; }
     .roster-table th, .roster-table td { text-align:left; overflow-wrap:anywhere; }
     .roster-table th:nth-child(1), .roster-table td:nth-child(1) { width:12%; }
-    .roster-table th:nth-child(2), .roster-table td:nth-child(2) { width:22%; }
-    .roster-table th:nth-child(3), .roster-table td:nth-child(3) { width:11%; }
-    .roster-table th:nth-child(4), .roster-table td:nth-child(4) { width:14%; }
+    .roster-table th:nth-child(2), .roster-table td:nth-child(2) { width:21%; }
+    .roster-table th:nth-child(3), .roster-table td:nth-child(3) { width:10%; }
+    .roster-table th:nth-child(4), .roster-table td:nth-child(4) { width:13%; }
     .roster-table th:nth-child(5), .roster-table td:nth-child(5) { width:15%; }
     .roster-table th:nth-child(6), .roster-table td:nth-child(6) { width:14%; }
-    .roster-table th:nth-child(7), .roster-table td:nth-child(7) { width:12%; }
-    .roster-actions { display:flex; flex-wrap:wrap; gap:7px; }
-    .roster-actions .button { min-width:0; padding:8px 11px; font-size:12px; }
+    .roster-table th:nth-child(7), .roster-table td:nth-child(7) { width:15%; }
+    .roster-table td:last-child { padding-right:8px; padding-left:8px; }
+    .roster-page-actions, .roster-actions { display:flex; align-items:center; gap:7px; }
+    .roster-actions { flex-wrap:nowrap; white-space:nowrap; }
+    .roster-actions .button { min-width:0; flex:0 0 auto; padding:8px 11px; font-size:12px; }
     @media(max-width:760px) { .roster-stats { grid-template-columns:1fr; } .roster-import-field { max-width:none; } .roster-import-form .button { width:100%; } .roster-table { min-width:900px; } }
 </style>
 @endpush
@@ -36,7 +38,10 @@
         <h2>Student ID Roster</h2>
         <p>Students can sign in to the Student Portal when their student number and last name match this roster.</p>
     </div>
-    <button id="openRosterCreate" class="button" type="button">+ Add Roster Record</button>
+    <div class="roster-page-actions">
+        <button type="button" class="button button-danger roster-delete-trigger" data-delete-all="true" data-delete-url="{{ route('admin.student-roster.destroy-all') }}">Delete All</button>
+        <button id="openRosterCreate" class="button" type="button">+ Add Roster Record</button>
+    </div>
 </div>
 
 <div class="roster-stats">
@@ -55,6 +60,7 @@
             @error('csv_file')<span class="error">{{ $message }}</span>@enderror
         </div>
         <button class="button" type="submit">Import CSV</button>
+        <a class="button button-secondary" href="{{ route('admin.student-roster.import-template') }}">Download CSV Template</a>
     </form>
     @if(session('error_note'))<p style="margin-top:12px;color:#b42318;font-size:12px">{{ session('error_note') }}</p>@endif
 </div>
@@ -112,7 +118,7 @@
 
 <div id="rosterDeleteModal" class="admin-profile-modal" hidden>
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="rosterDeleteTitle">
-        <header class="admin-profile-header"><div><h2 id="rosterDeleteTitle">Remove Roster Record?</h2><p>Remove <strong id="rosterDeleteName"></strong> from the official roster. The student portal account will not be deleted.</p></div></header>
+        <header class="admin-profile-header"><div><h2 id="rosterDeleteTitle">Remove Roster Record?</h2><p id="rosterDeleteSingleMessage">Remove <strong id="rosterDeleteName"></strong> from the official roster. The student portal account will not be deleted.</p><p id="rosterDeleteAllMessage" hidden>Remove all {{ $statistics['total'] }} official student roster records. Existing student portal accounts will not be deleted.</p></div></header>
         <form id="rosterDeleteForm" method="POST">@csrf @method('DELETE')<footer class="admin-profile-actions"><button class="button button-secondary" type="button" id="cancelRosterDelete">Cancel</button><button class="button button-danger" type="submit" id="confirmRosterDelete">Remove Record</button></footer></form>
     </section>
 </div>
@@ -140,12 +146,25 @@
     (() => {
         const modal = document.getElementById('rosterDeleteModal');
         const form = document.getElementById('rosterDeleteForm');
+        const title = document.getElementById('rosterDeleteTitle');
         const name = document.getElementById('rosterDeleteName');
+        const singleMessage = document.getElementById('rosterDeleteSingleMessage');
+        const allMessage = document.getElementById('rosterDeleteAllMessage');
         const cancel = document.getElementById('cancelRosterDelete');
         const confirm = document.getElementById('confirmRosterDelete');
         let trigger;
         const close = () => { modal.hidden = true; document.body.classList.remove('modal-open'); form.removeAttribute('action'); trigger?.focus(); };
-        document.querySelectorAll('.roster-delete-trigger').forEach(button => button.addEventListener('click', () => { trigger = button; form.action = button.dataset.deleteUrl; name.textContent = button.dataset.studentName; modal.hidden = false; document.body.classList.add('modal-open'); cancel.focus(); }));
+        document.querySelectorAll('.roster-delete-trigger').forEach(button => button.addEventListener('click', () => {
+            trigger = button;
+            const deletingAll = button.dataset.deleteAll === 'true';
+            form.action = button.dataset.deleteUrl;
+            title.textContent = deletingAll ? 'Remove All Roster Records?' : 'Remove Roster Record?';
+            singleMessage.hidden = deletingAll;
+            allMessage.hidden = !deletingAll;
+            name.textContent = button.dataset.studentName;
+            confirm.textContent = deletingAll ? 'Remove All Records' : 'Remove Record';
+            modal.hidden = false; document.body.classList.add('modal-open'); cancel.focus();
+        }));
         cancel.addEventListener('click', close);
         modal.addEventListener('click', event => { if (event.target === modal) close(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) close(); });

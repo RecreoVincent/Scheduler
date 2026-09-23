@@ -87,4 +87,22 @@ class Ms365StudentAccountTest extends TestCase
 
         $this->assertDatabaseMissing('ms365_student_accounts', ['id' => $account->id]);
     }
+
+    public function test_admin_can_download_the_ms365_template_and_remove_all_local_registry_records(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'account_status' => 'active']);
+        Ms365StudentAccount::create(['email' => 'ana.reyes@mcclaws.edu.ph', 'display_name' => 'Ana Reyes']);
+        Ms365StudentAccount::create(['email' => 'ben.cruz@mcclaws.edu.ph', 'display_name' => 'Ben Cruz']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.ms365-accounts.import-template'))
+            ->assertOk()
+            ->assertDownload('ms365-account-import-template.csv');
+
+        $this->actingAs($admin)
+            ->delete(route('admin.ms365-accounts.destroy-all'))
+            ->assertRedirect(route('admin.ms365-accounts.index'));
+
+        $this->assertSame(0, Ms365StudentAccount::count());
+    }
 }
