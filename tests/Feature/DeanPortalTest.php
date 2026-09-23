@@ -1191,7 +1191,7 @@ class DeanPortalTest extends TestCase
         $this->actingAs($dean)->get(route('dean.sections.edit', $otherSection))->assertNotFound();
     }
 
-    public function test_dean_dashboard_analytics_only_use_the_active_semester(): void
+    public function test_dean_dashboard_only_filters_subjects_and_recent_schedules_by_the_active_semester(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
         Department::where('code', 'BSIT')->firstOrFail()->update([
@@ -1234,15 +1234,15 @@ class DeanPortalTest extends TestCase
 
         $this->actingAs($dean)->get(route('dean.dashboard'))
             ->assertOk()
-            ->assertSee('1st Semester analytics')
+            ->assertSee('Subjects and recent schedules reflect the active 1st Semester')
             ->assertSee('ITE 101')
             ->assertDontSee('ITE 201')
             ->assertViewHas('statistics', fn (array $statistics): bool => $statistics === [
-                'instructors' => 1,
-                'students' => 1,
+                'instructors' => 2,
+                'students' => 2,
                 'subjects' => 1,
-                'sections' => 1,
-                'rooms' => 1,
+                'sections' => 2,
+                'rooms' => 2,
             ]);
     }
 

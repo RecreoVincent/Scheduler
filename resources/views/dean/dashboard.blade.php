@@ -38,13 +38,13 @@
 @section('content')
 <div class="welcome">
     <h2>Welcome, {{ auth()->user()->name }}!</h2>
-    <p>Showing {{ $semester }} Semester analytics for the {{ $course }} department.</p>
+    <p>Showing {{ $course }} department totals. Subjects and recent schedules reflect the active {{ $semester }} Semester.</p>
 </div>
 
 @php
     $deanCards = [
-        ['label'=>'Instructors','key'=>'instructors','color'=>'#3b82f6'], ['label'=>'Students','key'=>'students','color'=>'#8b5cf6'],
-        ['label'=>'Subjects','key'=>'subjects','color'=>'#14b8a6'], ['label'=>'Sections','key'=>'sections','color'=>'#f59e0b'], ['label'=>'Rooms','key'=>'rooms','color'=>'#ef4444'],
+        ['label'=>'Instructors','key'=>'instructors','metric_label'=>'Total instructors','color'=>'#3b82f6'], ['label'=>'Students','key'=>'students','metric_label'=>'Total students','color'=>'#8b5cf6'],
+        ['label'=>'Subjects','key'=>'subjects','metric_label'=>"{$semester} Semester total",'color'=>'#14b8a6'], ['label'=>'Sections','key'=>'sections','metric_label'=>'Total sections','color'=>'#f59e0b'], ['label'=>'Rooms','key'=>'rooms','metric_label'=>'Total rooms','color'=>'#ef4444'],
     ];
     $deanMaximum = max(1, ...array_values($statistics));
 @endphp
@@ -53,7 +53,7 @@
         @php($percentage = (int) round(($statistics[$card['key']] / $deanMaximum) * 100))
         <button type="button" class="stat portal-analytics-card" data-stat="{{ $card['key'] }}" data-label="{{ $card['label'] }}" style="--analytics-accent:{{ $card['color'] }};--analytics-progress:{{ $percentage }}%">
             <span class="portal-analytics-header"><span class="portal-analytics-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19V8M10 19V4M16 19v-7M22 19H2"/></svg></span><span class="portal-analytics-title">{{ $card['label'] }}</span></span>
-            <span class="portal-analytics-metric"><span class="portal-analytics-label">{{ $semester }} Semester total</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
+            <span class="portal-analytics-metric"><span class="portal-analytics-label">{{ $card['metric_label'] }}</span><strong class="portal-analytics-value">{{ $statistics[$card['key']] }}</strong></span>
             <span class="portal-analytics-progress"><span class="portal-analytics-progress-fill"></span></span>
             <span class="portal-analytics-footer">{{ $percentage }}% relative to highest metric</span>
         </button>

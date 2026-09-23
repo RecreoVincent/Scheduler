@@ -22,28 +22,15 @@ class DashboardController extends DeanController
             ->where('semester', $semester);
         $instructorQuery = User::query()
             ->forDepartment($course)
-            ->where('role', 'instructor')
-            ->where('account_status', 'active')
-            ->whereHas('classSchedules', fn (Builder $query) => $query
-                ->forDepartment($course)
-                ->where('semester', $semester));
+            ->where('role', 'instructor');
         $studentQuery = User::query()
             ->forDepartment($course)
-            ->where('role', 'student')
-            ->where(function (Builder $query) use ($semester): void {
-                $query->whereNull('academic_section_id')
-                    ->orWhereHas('academicSection', fn (Builder $sectionQuery) => $sectionQuery
-                        ->whereIn('semester', [$semester, 'All']));
-            });
+            ->where('role', 'student');
         $subjectQuery = Subject::query()->forDepartment($course)->where('semester', $semester);
         $sectionQuery = AcademicSection::query()
-            ->forDepartment($course)
-            ->whereIn('semester', [$semester, 'All']);
+            ->forDepartment($course);
         $roomQuery = Room::query()
-            ->forDepartment($course)
-            ->whereHas('schedules', fn (Builder $query) => $query
-                ->forDepartment($course)
-                ->where('semester', $semester));
+            ->forDepartment($course);
         $statistics = [
             'instructors' => (clone $instructorQuery)->count(),
             'students' => (clone $studentQuery)->count(),
@@ -63,9 +50,7 @@ class DashboardController extends DeanController
             'subjects' => $this->yearLevelCounts(clone $subjectQuery),
             'sections' => $this->yearLevelCounts(clone $sectionQuery),
             'rooms' => $roomQuery
-                ->withCount(['schedules as schedules_count' => fn (Builder $query) => $query
-                    ->forDepartment($course)
-                    ->where('semester', $semester)])
+                ->withCount('schedules')
                 ->orderBy('name')
                 ->get()
                 ->mapWithKeys(fn (Room $room): array => [$room->name => (int) $room->getAttribute('schedules_count')])
