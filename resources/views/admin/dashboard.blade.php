@@ -467,7 +467,7 @@
     @php
         $analyticsCards = [
             ['stat' => 'total_users', 'summary' => 'all', 'title' => 'Account Status', 'total_label' => 'Total Accounts', 'accent' => '#3b82f6', 'icon' => 'users'],
-            ['stat' => 'total_deans', 'summary' => 'dean', 'title' => 'Dean Status', 'total_label' => 'Total Deans', 'accent' => '#8b5cf6', 'icon' => 'cap'],
+            ['stat' => 'total_deans', 'summary' => 'dean', 'title' => 'Dean / Program Head Status', 'total_label' => 'Total Deans / Program Heads', 'accent' => '#8b5cf6', 'icon' => 'cap'],
             ['stat' => 'total_instructors', 'summary' => 'instructor', 'title' => 'Instructor Status', 'total_label' => 'Total Instructors', 'accent' => '#14b8a6', 'icon' => 'board'],
             ['stat' => 'total_students', 'summary' => 'student', 'title' => 'Student Status', 'total_label' => 'Total Students', 'accent' => '#f59e0b', 'icon' => 'book'],
         ];
@@ -544,7 +544,7 @@
                 </div>
 
                 <span class="role-badge">
-                    {{ $user->role }}
+                    <x-role-label :role="$user->role" />
                 </span>
             </div>
         @empty
@@ -573,7 +573,7 @@
 
         const chartData = [
             { key: 'total_users', label: 'Total Accounts', value: statistics.total_users, color: '#2563eb' },
-            { key: 'total_deans', label: 'Deans', value: statistics.total_deans, color: '#8b5cf6' },
+            { key: 'total_deans', label: 'Deans / Program Heads', value: statistics.total_deans, color: '#8b5cf6' },
             { key: 'total_instructors', label: 'Instructors', value: statistics.total_instructors, color: '#f59e0b' },
             { key: 'total_students', label: 'Students', value: statistics.total_students, color: '#10b981' },
         ];

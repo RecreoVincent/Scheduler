@@ -62,7 +62,7 @@
                 <label for="role">Role</label>
                 <select id="role" name="role" class="input" required>
                     @foreach ($roles as $role)
-                        <option value="{{ $role }}" @selected(old('role', $user->role) === $role)>{{ ucfirst($role) }}</option>
+                        <option value="{{ $role }}" @selected(old('role', $user->role) === $role)><x-role-label :role="$role" /></option>
                     @endforeach
                 </select>
                 @error('role')<div class="error">{{ $message }}</div>@enderror

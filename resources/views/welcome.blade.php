@@ -1147,7 +1147,7 @@
                 <div class="portal-heading"><div><span>Secure role access</span><h2 id="portalTitle">Choose your portal</h2></div><p>Continue to the workspace assigned to your account.</p></div>
                 <div class="portal-grid">
                     <a class="portal-card" href="{{ route('login', ['role' => 'admin']) }}"><div class="portal-top"><span class="portal-symbol">A</span><span class="portal-arrow">→</span></div><div><h3>Administrator</h3><p>Accounts and institution analytics</p></div></a>
-                    <button id="openCourses" class="portal-card" type="button"><div class="portal-top"><span class="portal-symbol">D</span><span class="portal-arrow">→</span></div><div><h3>Dean</h3><p>Department schedules and resources</p></div></button>
+                    <button id="openCourses" class="portal-card" type="button"><div class="portal-top"><span class="portal-symbol">D</span><span class="portal-arrow">→</span></div><div><h3>Dean / Program Head</h3><p>Department schedules and resources</p></div></button>
                     <a class="portal-card" href="{{ route('login', ['role' => 'gec']) }}"><div class="portal-top"><span class="portal-symbol">G</span><span class="portal-arrow">→</span></div><div><h3>GEC</h3><p>General Education Course</p></div></a>
                     <a class="portal-card" href="{{ route('login', ['role' => 'instructor']) }}"><div class="portal-top"><span class="portal-symbol">I</span><span class="portal-arrow">→</span></div><div><h3>Instructor</h3><p>Workload and room monitoring</p></div></a>
                     <a class="portal-card" href="{{ route('login', ['role' => 'student']) }}"><div class="portal-top"><span class="portal-symbol">S</span><span class="portal-arrow">→</span></div><div><h3>Student</h3><p>Study Load and class schedule</p></div></a>
@@ -1160,7 +1160,7 @@
         <div class="content-inner">
             <span class="section-kicker">About the platform</span>
             <h2 id="aboutTitle" class="section-heading">Built for Madridejos Community College's academic scheduling</h2>
-            <p class="section-lede">MCC Scheduler is an automated class scheduling and room allocation system that coordinates every department's sections, subjects, instructors, and rooms into conflict-free timetables — while giving Administrators, Deans, GEC, Instructors, and Students each a dedicated, role-specific workspace.</p>
+            <p class="section-lede">MCC Scheduler is an automated class scheduling and room allocation system that coordinates every department's sections, subjects, instructors, and rooms into conflict-free timetables — while giving Administrators, Deans / Program Heads, GEC, Instructors, and Students each a dedicated, role-specific workspace.</p>
             <div class="about-grid">
                 <div class="about-card">
                     <div class="about-card-icon"><x-icon name="calendar-plus" /></div>
@@ -1175,7 +1175,7 @@
                 <div class="about-card">
                     <div class="about-card-icon"><x-icon name="users" /></div>
                     <h3>Role-Based Portals</h3>
-                    <p>Administrators, Deans, GEC, Instructors, and Students each get tools built for their exact role.</p>
+                    <p>Administrators, Deans / Program Heads, GEC, Instructors, and Students each get tools built for their exact role.</p>
                 </div>
                 <div class="about-card">
                     <div class="about-card-icon"><x-icon name="clipboard" /></div>
@@ -1208,7 +1208,7 @@
                 </div>
                 <div class="contact-panel">
                     <h3>Need portal access?</h3>
-                    <p>Administrators, deans, and instructors can register directly from the portal login page. Students sign in using their student number and last name from the official roster.</p>
+                    <p>Administrators, Deans / Program Heads, and instructors can register directly from the portal login page. Students sign in using their student number and last name from the official roster.</p>
                     <a class="button-link" href="#portals">Go to portal login <span aria-hidden="true">&rarr;</span></a>
                 </div>
             </div>
@@ -1221,7 +1221,7 @@
 
     <div id="courseModal" class="course-modal" hidden>
         <section class="course-dialog" role="dialog" aria-modal="true" aria-labelledby="courseTitle">
-            <div class="dialog-head"><h2 id="courseTitle">Choose your Dean portal</h2><button id="closeCourses" class="close-modal" type="button" aria-label="Close">&times;</button></div>
+            <div class="dialog-head"><h2 id="courseTitle">Choose your Dean / Program Head portal</h2><button id="closeCourses" class="close-modal" type="button" aria-label="Close">&times;</button></div>
             <p>Select your department to continue to its dedicated scheduling workspace.</p>
             @php
                 $departments = [

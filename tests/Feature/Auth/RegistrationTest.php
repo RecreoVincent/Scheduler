@@ -139,7 +139,7 @@ class RegistrationTest extends TestCase
     {
         $this->get(route('register', ['role' => 'dean', 'course' => 'BSIT']))
             ->assertOk()
-            ->assertSee('Dean Portal')
+            ->assertSee('Dean / Program Head Portal')
             ->assertSee('#450693', false)
             ->assertDontSee('name="academic_section_id"', false);
 

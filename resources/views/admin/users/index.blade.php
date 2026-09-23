@@ -214,7 +214,7 @@
 <div class="page-header">
     <div>
         <h2>User Accounts</h2>
-        <p>Create and manage dean, instructor, and student accounts.</p>
+        <p>Create and manage Dean / Program Head, instructor, and student accounts.</p>
     </div>
 
     <div class="page-header-actions">
@@ -245,7 +245,7 @@
             @foreach ($roles as $role)
                 <option value="{{ $role }}"
                     @selected(request('role') === $role)>
-                    {{ ucfirst($role) }}
+                    <x-role-label :role="$role" />
                 </option>
             @endforeach
         </select>
@@ -284,7 +284,7 @@
 
                     <td>
                         <span class="badge">
-                            {{ $user->role }}
+                            <x-role-label :role="$user->role" />
                         </span>
                     </td>
 
@@ -354,7 +354,7 @@
         <header class="admin-profile-header">
             <div>
                 <h2 id="userFormTitle">{{ $editingUser ? 'Edit Account' : 'Create Account' }}</h2>
-                <p>{{ $editingUser ? "Update {$editingUser->name}'s account information." : 'Add a dean, instructor, or student account.' }}</p>
+                <p>{{ $editingUser ? "Update {$editingUser->name}'s account information." : 'Add a Dean / Program Head, instructor, or student account.' }}</p>
             </div>
             <button class="admin-profile-close" type="button" data-close-user-form aria-label="Close account form">&times;</button>
         </header>
@@ -393,7 +393,7 @@
                     <select id="user_role" class="input" name="role" required>
                         <option value="">Select role</option>
                         @foreach($roles as $role)
-                            <option value="{{ $role }}" @selected(old('role', $editingUser?->role) === $role)>{{ ucfirst($role) }}</option>
+                            <option value="{{ $role }}" @selected(old('role', $editingUser?->role) === $role)><x-role-label :role="$role" /></option>
                         @endforeach
                     </select>
                     @error('role')<span class="admin-profile-error">{{ $message }}</span>@enderror
@@ -487,7 +487,7 @@
         <header class="admin-profile-header">
             <div>
                 <h2 id="userImportTitle">Import User Accounts</h2>
-                <p>Bulk-create dean, instructor, and student accounts from a CSV file.</p>
+                <p>Bulk-create Dean / Program Head, instructor, and student accounts from a CSV file.</p>
             </div>
             <button class="admin-profile-close" type="button" data-close-user-import aria-label="Close user account import">&times;</button>
         </header>
@@ -502,7 +502,7 @@
                 </div>
                 <div class="admin-profile-field full">
                     <p style="margin:0;color:var(--muted);font-size:12px;line-height:1.6">
-                        Required columns for every row: <strong>first_name</strong>, <strong>last_name</strong>, <strong>email</strong>, <strong>role</strong> (dean, instructor, or student), and <strong>course</strong>.
+                        Required columns for every row: <strong>first_name</strong>, <strong>last_name</strong>, <strong>email</strong>, <strong>role</strong> (use <strong>dean</strong> for a Dean / Program Head, instructor, or student), and <strong>course</strong>.
                         Instructor rows also require employment_type (full_time, industry_part_time, or flexible_part_time); outside_work_end_time is required for industry part-time instructors (HH:MM).
                         Student rows require year_level and student_id. Their <strong>course</strong> automatically assigns them to that department and makes them visible only to its Dean; section is optional but must match the course and year level. The student ID must already be in the Student Roster.
                         Optional columns: middle_name, suffix, account_status (active or pending), and password. A temporary password is generated when password is blank.

@@ -51,7 +51,7 @@
     ];
     if($isDepartmentDean){
         $portalBrand=[
-            'welcome'=>'Welcome, '.$selectedCourse.' Dean',
+            'welcome'=>'Welcome, '.$selectedCourse.' Dean / Program Head',
             'label'=>$departmentLogin['name'],
             'description'=>'Sign in to manage the '.$departmentLogin['name'].' schedules and academic resources.',
             'title'=>'Plan the department with clarity.',
@@ -67,7 +67,7 @@
             $portalBrand['logoAlt']='Madridejos Community College logo';
         }
     }
-    $selectedRoleLabel=$selectedRole==='gec'?'GEC':ucfirst($selectedRole);
+    $selectedRoleLabel=$selectedRole==='dean'?'Dean / Program Head':($selectedRole==='gec'?'GEC':ucfirst($selectedRole));
     $usesStudentRosterLogin=$selectedRole==='student';
     $isBrandedPortal=$portalBrand!==null;
     $usesMccLogo=$isBrandedPortal&&!$isDepartmentDean;

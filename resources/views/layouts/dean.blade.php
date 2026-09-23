@@ -15,7 +15,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dean Portal') | Scheduler</title>
+    <title>@yield('title', 'Dean / Program Head Portal') | Scheduler</title>
     <style>
         :root {
             --primary:#450693;
@@ -272,7 +272,7 @@
 <div class="app">
     <aside id="portalSidebar" class="sidebar portal-sidebar">
         <div class="portal-sidebar-navigation">
-        <a href="{{ route('dean.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Dean Portal</small></span></a>
+        <a href="{{ route('dean.dashboard') }}" class="brand"><span class="brand-icon brand-icon--scheduler"><img src="{{ asset('images/mcc-scheduler-logo.png') }}" alt="MCC Scheduler logo"></span><span class="brand-copy"><strong>MCC | Scheduler</strong><small>Dean / Program Head Portal</small></span></a>
         <div class="department-chip"><span class="department-dot"></span>{{ auth()->user()->course }} Department</div>
 
         <p class="menu-label">Overview</p>
@@ -303,7 +303,7 @@
 
     <main class="main">
         <header class="topbar">
-            <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Dean workspace</span><h1>@yield('page-title','Dean Portal')</h1></div></div>
+            <div class="topbar-start">@include('layouts.partials.sidebar-toggle')<div><span class="topbar-label">Dean / Program Head workspace</span><h1>@yield('page-title','Dean / Program Head Portal')</h1></div></div>
             <div class="topbar-actions">
                 @php $deanDepartment = auth()->user()->department; @endphp
                 <details class="topbar-settings-menu" @if($errors->has('semester_availability')) open @endif>
@@ -332,7 +332,7 @@
                     </div>
                 </details>
                 @include('layouts.partials.schedule-notifications')
-                @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Dean'])
+                @include('layouts.partials.portal-profile-menu',['portalRoleLabel'=>'Dean / Program Head'])
             </div>
         </header>
         <section class="content">@yield('content')</section>

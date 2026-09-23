@@ -74,7 +74,7 @@
 <div class="page-header">
     <div>
         <h2>Create Account</h2>
-        <p>Add a dean, instructor, or student account.</p>
+        <p>Add a Dean / Program Head, instructor, or student account.</p>
     </div>
 </div>
 
@@ -147,7 +147,7 @@
                     @foreach ($roles as $role)
                         <option value="{{ $role }}"
                             @selected(old('role') === $role)>
-                            {{ ucfirst($role) }}
+                            <x-role-label :role="$role" />
                         </option>
                     @endforeach
                 </select>

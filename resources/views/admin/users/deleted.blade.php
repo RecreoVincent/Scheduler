@@ -42,7 +42,7 @@
                     <tr>
                         <td>{{ $deletedUser->name }}</td>
                         <td>{{ $deletedUser->email }}</td>
-                        <td><span class="badge">{{ $deletedUser->role }}</span></td>
+                        <td><span class="badge"><x-role-label :role="$deletedUser->role" /></span></td>
                         <td>{{ $deletedUser->course ?? '—' }}</td>
                         <td>{{ $deletedUser->deleted_at->format('M d, Y g:i A') }}</td>
                         <td>

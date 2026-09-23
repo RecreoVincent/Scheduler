@@ -29,7 +29,7 @@ class AuthenticationTest extends TestCase
             ->assertSee('bsit-logo-wrap')
             ->assertSee('bsit-portal-symbol')
             ->assertSee('Information Technology Department logo')
-            ->assertSee('Welcome, BSIT Dean')
+            ->assertSee('Welcome, BSIT Dean / Program Head')
             ->assertSee('Plan the department with clarity.')
             ->assertSee('value="dean"', false)
             ->assertSee('value="BSIT"', false);

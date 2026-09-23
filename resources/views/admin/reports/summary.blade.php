@@ -10,7 +10,7 @@
 </div>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
-    @foreach (['Deans' => $summary['deans'], 'Instructors' => $summary['instructors'], 'Students' => $summary['students']] as $label => $count)
+    @foreach (['Deans / Program Heads' => $summary['deans'], 'Instructors' => $summary['instructors'], 'Students' => $summary['students']] as $label => $count)
         <div class="card"><p style="color:#64748b;">{{ $label }}</p><p style="font-size:32px;font-weight:700;margin-top:8px;">{{ $count }}</p></div>
     @endforeach
 </div>

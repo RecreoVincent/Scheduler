@@ -1,5 +1,5 @@
 @php
-    $portalRoleLabel = $portalRoleLabel ?? ucfirst((string) auth()->user()->role);
+    $portalRoleLabel = $portalRoleLabel ?? (auth()->user()->role === 'dean' ? 'Dean / Program Head' : ucfirst((string) auth()->user()->role));
     $portalRoleValue = strtolower((string) auth()->user()->role);
     $portalProfileInitial = strtoupper(substr(auth()->user()->first_name ?: auth()->user()->name ?: 'U', 0, 1));
 @endphp

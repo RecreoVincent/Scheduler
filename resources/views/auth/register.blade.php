@@ -6,10 +6,11 @@
         'BSED' => ['name' => 'Secondary Education Department', 'logo' => 'images/education-department-logo.jpg'],
         'BEED' => ['name' => 'Elementary Education Department', 'logo' => 'images/education-department-logo.jpg'],
     ];
+    $selectedRoleLabel = $selectedRole === 'dean' ? 'Dean / Program Head' : ucfirst($selectedRole);
     $departmentBrand = $selectedRole === 'dean' ? ($departmentBrands[$selectedCourse] ?? null) : null;
     $registrationBrand = $departmentBrand
-        ? ['logo' => $departmentBrand['logo'], 'logo_alt' => $departmentBrand['name'].' logo', 'label' => $departmentBrand['name'], 'title' => 'Join your department workspace.', 'summary' => 'Create your Dean account for secure, department-specific scheduling and academic resource management.']
-        : ['logo' => 'images/mcc-college-logo.png', 'logo_alt' => 'Madridejos Community College logo', 'label' => 'MCC '.ucfirst($selectedRole).' Portal', 'title' => 'Join your academic workspace.', 'summary' => $selectedRole === 'student' ? 'Create your account to access your Study Load, class schedule, assigned rooms, and academic information.' : 'Create your account to access teaching schedules, workloads, assigned classes, and room information.'];
+        ? ['logo' => $departmentBrand['logo'], 'logo_alt' => $departmentBrand['name'].' logo', 'label' => $departmentBrand['name'], 'title' => 'Join your department workspace.', 'summary' => 'Create your Dean / Program Head account for secure, department-specific scheduling and academic resource management.']
+        : ['logo' => 'images/mcc-college-logo.png', 'logo_alt' => 'Madridejos Community College logo', 'label' => 'MCC '.$selectedRoleLabel.' Portal', 'title' => 'Join your academic workspace.', 'summary' => $selectedRole === 'student' ? 'Create your account to access your Study Load, class schedule, assigned rooms, and academic information.' : 'Create your account to access teaching schedules, workloads, assigned classes, and room information.'];
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -18,7 +19,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Create {{ ucfirst($selectedRole) }} Account | Scheduler</title>
+    <title>Create {{ $selectedRoleLabel }} Account | Scheduler</title>
     <style>
         :root{--primary:#450693;--primary-dark:#2d045f;--primary-light:#7022b8;--gold:#e8b84a;--gold-dark:#815000;--gold-soft:#fff6df;--ink:#1e1724;--text:#554b5e;--muted:#817789;--line:#e3dbe8;--soft:#faf8fb;--danger:#b42318;--success:#067647}
         *{box-sizing:border-box;margin:0;padding:0}body{min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:white}a{color:inherit;text-decoration:none}button,input,select{font:inherit}.auth-layout{min-height:100vh;display:grid;grid-template-columns:.86fr 1.14fr;align-items:start}
@@ -114,7 +115,7 @@
             <a class="brand" href="{{ route('home') }}"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M13 14h3M8 18h3"/></svg></span><span>MCC | Scheduler</span></a>
             <header class="heading"><span class="heading-kicker">Create your portal account</span><h1>Join your academic workspace</h1><p>{{ $selectedRole === 'student' ? 'Complete your student and section information, then sign in to your portal.' : 'Complete your information below. Your account requires approval before portal access is enabled.' }}</p></header>
 
-            <div class="portal-card"><span class="portal-symbol {{ $departmentBrand ? '' : 'mcc-symbol' }}"><img src="{{ asset($registrationBrand['logo']) }}" alt="{{ $registrationBrand['logo_alt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ ucfirst($selectedRole) }} Portal @if($selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}#portals">Change</a></div>
+            <div class="portal-card"><span class="portal-symbol {{ $departmentBrand ? '' : 'mcc-symbol' }}"><img src="{{ asset($registrationBrand['logo']) }}" alt="{{ $registrationBrand['logo_alt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ $selectedRoleLabel }} Portal @if($selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}#portals">Change</a></div>
             @if($errors->any())<div class="alert alert-error" role="alert">Please review the highlighted registration fields and try again.</div>@endif
             @if(session('error'))<div class="alert alert-error" role="alert">{{ session('error') }}</div>@endif
 
@@ -149,13 +150,13 @@
 
                 <section class="form-step" data-form-step="2" hidden>
                 <div class="form-grid">
-                    <div class="account-step-note">@if($selectedRole === 'student')Use your school-issued MCC Microsoft 365 email. Only eligible accounts in the MS365 student registry can register.@else Use an active email address and create a secure password for your {{ ucfirst($selectedRole) }} Portal account.@endif</div>
+                    <div class="account-step-note">@if($selectedRole === 'student')Use your school-issued MCC Microsoft 365 email. Only eligible accounts in the MS365 student registry can register.@else Use an active email address and create a secure password for your {{ $selectedRoleLabel }} Portal account.@endif</div>
                     <div class="form-group full"><label for="email">Email Address</label><input id="email" class="form-control" type="email" name="email" value="{{ old('email') }}" placeholder="you@example.com" required autocomplete="username">@error('email')<p class="field-error">{{ $message }}</p>@enderror</div>
                     <div class="form-group"><label for="password">Password</label><div class="password-wrap"><input id="password" class="form-control" type="password" name="password" placeholder="Create password" required autocomplete="new-password"><button class="toggle-password" type="button" data-password-target="password">Show</button></div>@error('password')<p class="field-error">{{ $message }}</p>@enderror</div>
                     <div class="form-group"><label for="password_confirmation">Confirm Password</label><div class="password-wrap"><input id="password_confirmation" class="form-control" type="password" name="password_confirmation" placeholder="Repeat password" required autocomplete="new-password"><button class="toggle-password" type="button" data-password-target="password_confirmation">Show</button></div></div>
                 </div>
 
-                <div class="form-actions"><a class="login-link" href="{{ route('login', ['role' => $selectedRole, 'course' => old('course', $selectedCourse)]) }}">Already registered? <strong>Sign in</strong></a><div class="step-actions"><button class="secondary-button" type="button" id="previousRegistrationStep">Back</button><button class="register-button" type="submit">Create {{ ucfirst($selectedRole) }} Account <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div></div>
+                <div class="form-actions"><a class="login-link" href="{{ route('login', ['role' => $selectedRole, 'course' => old('course', $selectedCourse)]) }}">Already registered? <strong>Sign in</strong></a><div class="step-actions"><button class="secondary-button" type="button" id="previousRegistrationStep">Back</button><button class="register-button" type="submit">Create {{ $selectedRoleLabel }} Account <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div></div>
                 </section>
             </form>
         </div>

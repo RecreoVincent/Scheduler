@@ -95,6 +95,7 @@ class UserAccountImportTest extends TestCase
                 'data-password-eye-toggle',
                 'id="user_password_confirmation"',
                 'data-password-eye-toggle',
-            ], false);
+            ], false)
+            ->assertSee('Dean / Program Head');
     }
 }
