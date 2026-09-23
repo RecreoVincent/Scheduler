@@ -16,7 +16,7 @@ class AdminUserAccountImporter
 {
     private const REQUIRED_HEADERS = ['first_name', 'last_name', 'email', 'role', 'course'];
 
-    private const ROLES = ['dean', 'instructor', 'student'];
+    private const ROLES = ['dean', 'gec', 'instructor', 'student'];
 
     private const EMPLOYMENT_TYPES = ['full_time', 'industry_part_time', 'flexible_part_time'];
 

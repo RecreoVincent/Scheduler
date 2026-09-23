@@ -22,6 +22,7 @@ class UserController extends Controller
 {
     private array $roles = [
         'dean',
+        'gec',
         'instructor',
         'student',
     ];
@@ -221,6 +222,7 @@ class UserController extends Controller
         ];
         $samples = [
             ['Ana', '', 'Reyes', '', 'ana.reyes@example.com', 'dean', 'BSIT', '', '', '', '', '', 'active', ''],
+            ['Gina', '', 'Cruz', '', 'gina.cruz@example.com', 'gec', 'GEC', '', '', '', '', '', 'active', ''],
             ['Ivan', '', 'Cruz', '', 'ivan.cruz@example.com', 'instructor', 'BSIT', 'full_time', '', '', '', '', 'active', ''],
             ['Mia', '', 'Santos', '', 'mia.santos@example.com', 'student', 'BSIT', '', '', '1', '1 - East', '2026-0001', 'active', ''],
         ];

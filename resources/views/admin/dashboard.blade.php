@@ -28,7 +28,7 @@
 
     .statistics {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
         gap: 14px;
         margin-bottom: 24px;
     }
@@ -468,6 +468,7 @@
         $analyticsCards = [
             ['stat' => 'total_users', 'summary' => 'all', 'title' => 'Account Status', 'total_label' => 'Total Accounts', 'accent' => '#3b82f6', 'icon' => 'users'],
             ['stat' => 'total_deans', 'summary' => 'dean', 'title' => 'Dean / Program Head Status', 'total_label' => 'Total Deans / Program Heads', 'accent' => '#8b5cf6', 'icon' => 'cap'],
+            ['stat' => 'total_gec', 'summary' => 'gec', 'title' => 'GEC Status', 'total_label' => 'Total GEC Accounts', 'accent' => '#ec4899', 'icon' => 'board'],
             ['stat' => 'total_instructors', 'summary' => 'instructor', 'title' => 'Instructor Status', 'total_label' => 'Total Instructors', 'accent' => '#14b8a6', 'icon' => 'board'],
             ['stat' => 'total_students', 'summary' => 'student', 'title' => 'Student Status', 'total_label' => 'Total Students', 'accent' => '#f59e0b', 'icon' => 'book'],
         ];
@@ -574,12 +575,14 @@
         const chartData = [
             { key: 'total_users', label: 'Total Accounts', value: statistics.total_users, color: '#2563eb' },
             { key: 'total_deans', label: 'Deans / Program Heads', value: statistics.total_deans, color: '#8b5cf6' },
+            { key: 'total_gec', label: 'GEC Accounts', value: statistics.total_gec, color: '#ec4899' },
             { key: 'total_instructors', label: 'Instructors', value: statistics.total_instructors, color: '#f59e0b' },
             { key: 'total_students', label: 'Students', value: statistics.total_students, color: '#10b981' },
         ];
 
         const otherAccounts = Math.max(0, statistics.total_users
             - statistics.total_deans
+            - statistics.total_gec
             - statistics.total_instructors
             - statistics.total_students);
 
@@ -594,10 +597,12 @@
             BSHM: '#f97316',
             BSED: '#2563eb',
             BEED: '#38bdf8',
+            GEC: '#ec4899',
             Unassigned: '#64748b',
         };
         const roleByStatistic = {
             total_deans: 'dean',
+            total_gec: 'gec',
             total_instructors: 'instructor',
             total_students: 'student',
         };

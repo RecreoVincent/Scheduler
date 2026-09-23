@@ -9,12 +9,13 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $departments = ['BSIT', 'BSBA', 'BSHM', 'BSED', 'BEED'];
-        $roles = ['dean', 'instructor', 'student'];
+        $departments = ['BSIT', 'BSBA', 'BSHM', 'BSED', 'BEED', 'GEC'];
+        $roles = ['dean', 'gec', 'instructor', 'student'];
 
         $statistics = [
             'total_users' => User::count(),
             'total_deans' => User::where('role', 'dean')->count(),
+            'total_gec' => User::where('role', 'gec')->count(),
             'total_instructors' => User::where('role', 'instructor')->count(),
             'total_students' => User::where('role', 'student')->count(),
         ];
@@ -38,6 +39,7 @@ class DashboardController extends Controller
         $accountStatusAnalytics = [
             'all' => $accountStatusSummary(),
             'dean' => $accountStatusSummary('dean'),
+            'gec' => $accountStatusSummary('gec'),
             'instructor' => $accountStatusSummary('instructor'),
             'student' => $accountStatusSummary('student'),
         ];
@@ -65,6 +67,7 @@ class DashboardController extends Controller
 
         $recentUsers = User::whereIn('role', [
             'dean',
+            'gec',
             'instructor',
             'student',
         ])
