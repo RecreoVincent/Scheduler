@@ -17,9 +17,10 @@ class CrossDepartmentInstructorRequestController extends DeanController
     public function index(Request $request): View
     {
         $course = $this->course($request);
-        $incoming = CrossDepartmentInstructorRequest::query()
+        $incomingActive = CrossDepartmentInstructorRequest::query()
             ->with(['subject', 'requestedBy', 'assignedInstructors'])
             ->where('requested_department', $course)
+            ->where('status', 'pending')
             ->latest()
             ->get();
         $outgoingActive = CrossDepartmentInstructorRequest::query()
@@ -35,6 +36,25 @@ class CrossDepartmentInstructorRequestController extends DeanController
             ->whereNull('archived_at')
             ->orderByDesc('fulfilled_at')
             ->get();
+        $incomingHistory = CrossDepartmentInstructorRequest::query()
+            ->with(['subject', 'assignedInstructors'])
+            ->where('requested_department', $course)
+            ->where('status', 'fulfilled')
+            ->whereNull('requested_department_archived_at')
+            ->orderByDesc('fulfilled_at')
+            ->get();
+        $incomingHistory->each(function (CrossDepartmentInstructorRequest $instructorRequest): void {
+            $instructorRequest->setAttribute('history_direction', 'Incoming');
+            $instructorRequest->setAttribute('history_department', $instructorRequest->requesting_department);
+        });
+        $outgoingHistory->each(function (CrossDepartmentInstructorRequest $instructorRequest): void {
+            $instructorRequest->setAttribute('history_direction', 'Sent');
+            $instructorRequest->setAttribute('history_department', $instructorRequest->requested_department);
+        });
+        $requestHistory = $incomingHistory
+            ->concat($outgoingHistory)
+            ->sortByDesc('fulfilled_at')
+            ->values();
         $instructors = User::query()
             ->forDepartment($course)
             ->where('role', 'instructor')
@@ -43,7 +63,7 @@ class CrossDepartmentInstructorRequestController extends DeanController
             ->orderBy('last_name')
             ->get();
 
-        return view('dean.instructor-requests.index', compact('course', 'incoming', 'outgoingActive', 'outgoingHistory', 'instructors'));
+        return view('dean.instructor-requests.index', compact('course', 'incomingActive', 'outgoingActive', 'requestHistory', 'instructors'));
     }
 
     public function fulfill(Request $request, CrossDepartmentInstructorRequest $instructorRequest): RedirectResponse
@@ -139,18 +159,26 @@ class CrossDepartmentInstructorRequestController extends DeanController
         return back()->with('success', "{$instructorCount} ".str('instructor')->plural($instructorCount)." assigned to {$instructorRequest->subject->code}: {$instructorNames}.");
     }
 
-    public function clearOutgoingHistory(Request $request): RedirectResponse
+    public function clearHistory(Request $request): RedirectResponse
     {
-        $archivedCount = CrossDepartmentInstructorRequest::query()
-            ->where('requesting_department', $this->course($request))
+        $course = $this->course($request);
+        $archivedAt = now();
+        $outgoingArchivedCount = CrossDepartmentInstructorRequest::query()
+            ->where('requesting_department', $course)
             ->where('status', 'fulfilled')
             ->whereNull('archived_at')
-            ->update(['archived_at' => now()]);
+            ->update(['archived_at' => $archivedAt]);
+        $incomingArchivedCount = CrossDepartmentInstructorRequest::query()
+            ->where('requested_department', $course)
+            ->where('status', 'fulfilled')
+            ->whereNull('requested_department_archived_at')
+            ->update(['requested_department_archived_at' => $archivedAt]);
+        $archivedCount = $outgoingArchivedCount + $incomingArchivedCount;
 
         if ($archivedCount === 0) {
             return back()->with('error', 'There is no completed request history to clear.');
         }
 
-        return back()->with('success', "{$archivedCount} completed ".str('request')->plural($archivedCount).' archived from this page.');
+        return back()->with('success', "{$archivedCount} completed ".str('request')->plural($archivedCount).' archived from this page. The other department\'s history is unchanged.');
     }
 }

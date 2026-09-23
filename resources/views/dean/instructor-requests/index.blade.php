@@ -26,7 +26,7 @@
     <div class="table-wrap"><table>
         <thead><tr><th>Requesting Department</th><th>Subject</th><th>Year / Semester</th><th>Requested By</th><th>Status</th><th>Assignment</th></tr></thead>
         <tbody>
-        @forelse($incoming as $instructorRequest)
+        @forelse($incomingActive as $instructorRequest)
             <tr>
                 <td><span class="badge">{{ $instructorRequest->requesting_department }}</span></td>
                 <td><strong>{{ $instructorRequest->subject?->code }}</strong><br><small>{{ $instructorRequest->subject?->name }}</small></td>
@@ -60,7 +60,7 @@
                 </td>
             </tr>
         @empty
-            <tr><td colspan="6">No incoming instructor requests.</td></tr>
+            <tr><td colspan="6">No pending incoming instructor requests.</td></tr>
         @endforelse
         </tbody>
     </table></div>
@@ -94,37 +94,38 @@
     <div class="request-section-header">
         <div>
             <h3>Request History</h3>
-            <p>Completed requests remain here until you clear them. Clearing history hides them from this page without deleting the assignment record.</p>
+            <p>Completed incoming and sent requests remain here until you clear them. Clearing history hides records only from your department without deleting any assignment.</p>
         </div>
-        @if($outgoingHistory->isNotEmpty())
+        @if($requestHistory->isNotEmpty())
             <button id="openClearRequestHistory" type="button" class="button button-danger">Clear History</button>
         @endif
     </div>
     <div class="table-wrap"><table>
-        <thead><tr><th>Requested Department</th><th>Subject</th><th>Status</th><th>Assigned Instructors</th><th>Completed</th></tr></thead>
+        <thead><tr><th>Direction</th><th>Other Department</th><th>Subject</th><th>Status</th><th>Assigned Instructors</th><th>Completed</th></tr></thead>
         <tbody>
-        @forelse($outgoingHistory as $instructorRequest)
+        @forelse($requestHistory as $instructorRequest)
             <tr>
-                <td><span class="badge">{{ $instructorRequest->requested_department }}</span></td>
+                <td><span class="badge">{{ $instructorRequest->history_direction }}</span></td>
+                <td><span class="badge">{{ $instructorRequest->history_department }}</span></td>
                 <td><strong>{{ $instructorRequest->subject?->code }}</strong> &middot; {{ $instructorRequest->subject?->name }}</td>
                 <td><span class="badge">{{ str($instructorRequest->status)->title() }}</span></td>
                 <td>{{ $instructorRequest->assignedInstructors->pluck('name')->join(', ') ?: 'No instructor assigned' }}</td>
                 <td>{{ $instructorRequest->fulfilled_at?->format('M j, Y g:i A') ?? '—' }}</td>
             </tr>
         @empty
-            <tr><td colspan="5">No completed instructor request history.</td></tr>
+            <tr><td colspan="6">No completed instructor request history.</td></tr>
         @endforelse
         </tbody>
     </table></div>
 </section>
 
-@if($outgoingHistory->isNotEmpty())
+@if($requestHistory->isNotEmpty())
 <div id="clearRequestHistoryModal" class="admin-profile-modal" hidden>
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="clearRequestHistoryTitle" aria-describedby="clearRequestHistoryMessage">
         <header class="admin-profile-header">
             <div>
                 <h2 id="clearRequestHistoryTitle">Clear fulfilled request history?</h2>
-                <p id="clearRequestHistoryMessage">Completed requests will be removed from this page. Active requests and instructor assignments will not be affected.</p>
+                <p id="clearRequestHistoryMessage">Completed requests will be removed from your department's history. Active requests, the other department's history, and instructor assignments will not be affected.</p>
             </div>
             <button id="closeClearRequestHistory" class="admin-profile-close" type="button" aria-label="Close confirmation">&times;</button>
         </header>

@@ -2623,6 +2623,60 @@ class DeanPortalTest extends TestCase
             ->assertDontSee('Clear History');
     }
 
+    public function test_dean_moves_fulfilled_incoming_instructor_requests_to_request_history(): void
+    {
+        $itDean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT', 'account_status' => 'active']);
+        $bsbaDean = User::factory()->create(['role' => 'dean', 'course' => 'BSBA', 'account_status' => 'active']);
+        $fulfilledSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 320', 'name' => 'Incoming Fulfilled Request',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 3,
+            'semester' => '1st', 'curriculum' => 'New', 'units' => 3,
+        ]);
+        $pendingSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'ITE 321', 'name' => 'Incoming Pending Request',
+            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 3,
+            'semester' => '1st', 'curriculum' => 'New', 'units' => 3,
+        ]);
+        $fulfilledRequest = CrossDepartmentInstructorRequest::create([
+            'subject_id' => $fulfilledSubject->id,
+            'requesting_department' => 'BSIT',
+            'requested_department' => 'BSBA',
+            'requested_by' => $itDean->id,
+            'status' => 'fulfilled',
+            'fulfilled_by' => $bsbaDean->id,
+            'fulfilled_at' => now(),
+        ]);
+        $pendingRequest = CrossDepartmentInstructorRequest::create([
+            'subject_id' => $pendingSubject->id,
+            'requesting_department' => 'BSIT',
+            'requested_department' => 'BSBA',
+            'requested_by' => $itDean->id,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($bsbaDean)
+            ->get(route('dean.instructor-requests.index'))
+            ->assertOk()
+            ->assertViewHas('incomingActive', fn ($requests) => $requests->contains('id', $pendingRequest->id)
+                && ! $requests->contains('id', $fulfilledRequest->id))
+            ->assertViewHas('requestHistory', fn ($requests) => $requests->contains('id', $fulfilledRequest->id))
+            ->assertSee('Incoming')
+            ->assertSee('ITE 320')
+            ->assertSee('ITE 321');
+
+        $this->actingAs($bsbaDean)
+            ->post(route('dean.instructor-requests.clear-history'))
+            ->assertRedirect();
+
+        $this->assertNotNull($fulfilledRequest->fresh()->requested_department_archived_at);
+        $this->assertNull($fulfilledRequest->fresh()->archived_at);
+
+        $this->actingAs($itDean)
+            ->get(route('dean.instructor-requests.index'))
+            ->assertOk()
+            ->assertSee('ITE 320');
+    }
+
     public function test_pending_request_is_delivered_when_the_requested_department_dean_is_created(): void
     {
         $itDean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT', 'account_status' => 'active']);

@@ -227,7 +227,7 @@ Route::middleware('dean')
         Route::get('/subject-endorsements/{endorsement}/schedule', [DeanSubjectEndorsementScheduleController::class, 'create'])->name('subject-endorsements.schedule.create');
         Route::post('/subject-endorsements/{endorsement}/schedule', [DeanSubjectEndorsementScheduleController::class, 'store'])->name('subject-endorsements.schedule.store');
         Route::get('/instructor-requests', [DeanCrossDepartmentInstructorRequestController::class, 'index'])->name('instructor-requests.index');
-        Route::post('/instructor-requests/clear-history', [DeanCrossDepartmentInstructorRequestController::class, 'clearOutgoingHistory'])->name('instructor-requests.clear-history');
+        Route::post('/instructor-requests/clear-history', [DeanCrossDepartmentInstructorRequestController::class, 'clearHistory'])->name('instructor-requests.clear-history');
         Route::post('/instructor-requests/{instructorRequest}/fulfill', [DeanCrossDepartmentInstructorRequestController::class, 'fulfill'])->name('instructor-requests.fulfill');
         Route::post('/subjects/import', [DeanSubjectController::class, 'import'])->name('subjects.import');
         Route::get('/subjects/import-template', [DeanSubjectController::class, 'importTemplate'])->name('subjects.import-template');
