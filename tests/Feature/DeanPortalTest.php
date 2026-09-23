@@ -145,6 +145,46 @@ class DeanPortalTest extends TestCase
         $this->assertNotNull($endorsement->fresh()->scheduled_at);
     }
 
+    public function test_dean_can_delete_completed_endorsement_history_without_deleting_schedules(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $sentEndorsement = SubjectEndorsement::create([
+            'from_department' => 'BSIT',
+            'to_department' => 'BSBA',
+            'subject_code' => 'ITE 301',
+            'subject_name' => 'Systems Analysis',
+            'subject_type' => 'Lecture',
+            'units' => 3,
+            'scheduled_at' => now(),
+        ]);
+        $receivedEndorsement = SubjectEndorsement::create([
+            'from_department' => 'BSBA',
+            'to_department' => 'BSIT',
+            'subject_code' => 'BA 301',
+            'subject_name' => 'Business Systems',
+            'subject_type' => 'Lecture',
+            'units' => 3,
+            'scheduled_at' => now(),
+        ]);
+
+        $this->actingAs($dean)
+            ->get(route('dean.subject-endorsements.index'))
+            ->assertOk()
+            ->assertSee('Delete All History');
+
+        $this->actingAs($dean)
+            ->delete(route('dean.subject-endorsements.history.destroy'))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertNotNull($sentEndorsement->fresh()->from_department_archived_at);
+        $this->assertNull($sentEndorsement->fresh()->to_department_archived_at);
+        $this->assertNotNull($receivedEndorsement->fresh()->to_department_archived_at);
+        $this->assertNull($receivedEndorsement->fresh()->from_department_archived_at);
+        $this->assertModelExists($sentEndorsement);
+        $this->assertModelExists($receivedEndorsement);
+    }
+
     public function test_dean_student_list_displays_the_unique_active_ms365_email(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);

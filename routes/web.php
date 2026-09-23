@@ -237,6 +237,7 @@ Route::middleware('dean')
         Route::delete('/subject-assignments/{subject}', [DeanSubjectAssignmentController::class, 'destroy'])->name('subject-assignments.destroy');
         Route::get('/subject-endorsements', [DeanSubjectEndorsementController::class, 'index'])->name('subject-endorsements.index');
         Route::post('/subject-endorsements', [DeanSubjectEndorsementController::class, 'store'])->name('subject-endorsements.store');
+        Route::delete('/subject-endorsements/history', [DeanSubjectEndorsementController::class, 'clearHistory'])->name('subject-endorsements.history.destroy');
         Route::get('/subject-endorsements/{endorsement}/schedule', [DeanSubjectEndorsementScheduleController::class, 'create'])->name('subject-endorsements.schedule.create');
         Route::post('/subject-endorsements/{endorsement}/schedule', [DeanSubjectEndorsementScheduleController::class, 'store'])->name('subject-endorsements.schedule.store');
         Route::get('/instructor-requests', [DeanCrossDepartmentInstructorRequestController::class, 'index'])->name('instructor-requests.index');

@@ -39,9 +39,15 @@ class SubjectEndorsementController extends DeanController
         $endorsementHistory = SubjectEndorsement::query()
             ->with(['subject', 'scheduledBy'])
             ->whereNotNull('scheduled_at')
-            ->where(fn ($query) => $query
-                ->where('from_department', $course)
-                ->orWhere('to_department', $course))
+            ->where(function ($query) use ($course): void {
+                $query
+                    ->where(fn ($sentQuery) => $sentQuery
+                        ->where('from_department', $course)
+                        ->whereNull('from_department_archived_at'))
+                    ->orWhere(fn ($receivedQuery) => $receivedQuery
+                        ->where('to_department', $course)
+                        ->whereNull('to_department_archived_at'));
+            })
             ->latest('scheduled_at')
             ->get();
 
@@ -136,5 +142,28 @@ class SubjectEndorsementController extends DeanController
         return redirect()
             ->route('dean.subject-endorsements.index')
             ->with('success', "{$subjectCode} was endorsed to {$validated['to_department']} successfully. {$deliveryMessage}");
+    }
+
+    public function clearHistory(Request $request): RedirectResponse
+    {
+        $course = $this->course($request);
+        $archivedAt = now();
+        $sentArchivedCount = SubjectEndorsement::query()
+            ->where('from_department', $course)
+            ->whereNotNull('scheduled_at')
+            ->whereNull('from_department_archived_at')
+            ->update(['from_department_archived_at' => $archivedAt]);
+        $receivedArchivedCount = SubjectEndorsement::query()
+            ->where('to_department', $course)
+            ->whereNotNull('scheduled_at')
+            ->whereNull('to_department_archived_at')
+            ->update(['to_department_archived_at' => $archivedAt]);
+        $archivedCount = $sentArchivedCount + $receivedArchivedCount;
+
+        if ($archivedCount === 0) {
+            return back()->with('error', 'There is no completed endorsement history to delete.');
+        }
+
+        return back()->with('success', "{$archivedCount} completed ".str('endorsement')->plural($archivedCount).' removed from this department\'s history. Generated schedules and the other department\'s history are unchanged.');
     }
 }

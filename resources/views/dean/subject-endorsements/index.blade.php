@@ -10,6 +10,8 @@
     .endorsement-history-header { margin:0 0 14px; }
     .endorsement-history-header h3 { margin:0 0 4px; color:var(--navy); }
     .endorsement-history-header p { font-size:11px; color:var(--muted); }
+    .endorsement-history-card .endorsement-history-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+    .endorsement-history-card .endorsement-history-header .button { flex:0 0 auto; white-space:nowrap; }
     .endorsement-class-list { display:grid; gap:5px; min-width:260px; }
     .endorsement-class-item { padding:7px 9px; font-size:10px; line-height:1.45; color:#51485a; background:#faf8fb; border:1px solid #eee7f1; border-radius:7px; }
     .endorsement-class-item strong { color:var(--navy); }
@@ -85,8 +87,21 @@
 <div class="endorsement-lists">
 <section class="card endorsement-history-card" style="margin-bottom:20px">
     <div class="endorsement-history-header">
-        <h3>Endorsement History</h3>
-        <p>Completed endorsements are kept here, whether they were sent by your department or received from another department. Each generated class schedule is listed below its endorsement.</p>
+        <div>
+            <h3>Endorsement History</h3>
+            <p>Completed endorsements are kept here, whether they were sent by your department or received from another department. Each generated class schedule is listed below its endorsement.</p>
+        </div>
+        @if($endorsementHistory->isNotEmpty())
+            <button
+                type="button"
+                class="button button-danger delete-confirmation-trigger"
+                data-delete-url="{{ route('dean.subject-endorsements.history.destroy') }}"
+                data-delete-name="{{ $endorsementHistory->count() }} completed {{ Str::plural('endorsement', $endorsementHistory->count()) }}"
+                data-delete-title="Delete All Endorsement History?"
+                data-delete-message="This removes completed endorsements only from your department's history. Generated schedules and the other department's history will remain unchanged."
+                data-delete-confirm-label="Delete All History"
+            >Delete All History</button>
+        @endif
     </div>
     <div class="table-wrap"><table>
         <thead><tr><th>Direction</th><th>Departments</th><th>Subject</th><th>Generated Class Schedules</th><th>Scheduled</th></tr></thead>
@@ -170,4 +185,11 @@
     </table></div>
 </section>
 </div>
+@if($endorsementHistory->isNotEmpty())
+    @include('dean.partials.delete-confirmation', [
+        'title' => 'Delete All Endorsement History?',
+        'message' => 'This removes completed endorsements only from your department history. Generated schedules will remain unchanged.',
+        'confirmLabel' => 'Delete All History',
+    ])
+@endif
 @endsection
