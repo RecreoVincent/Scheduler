@@ -11,6 +11,7 @@ use App\Notifications\SubjectEndorsementReceivedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -36,10 +37,15 @@ class SubjectEndorsementController extends DeanController
             ->whereNull('scheduled_at')
             ->latest()
             ->get();
-        $endorsementHistory = SubjectEndorsement::query()
+        $historyArchiveSupported = Schema::hasColumns('subject_endorsements', [
+            'from_department_archived_at',
+            'to_department_archived_at',
+        ]);
+        $endorsementHistoryQuery = SubjectEndorsement::query()
             ->with(['subject', 'scheduledBy'])
-            ->whereNotNull('scheduled_at')
-            ->where(function ($query) use ($course): void {
+            ->whereNotNull('scheduled_at');
+        if ($historyArchiveSupported) {
+            $endorsementHistoryQuery->where(function ($query) use ($course): void {
                 $query
                     ->where(fn ($sentQuery) => $sentQuery
                         ->where('from_department', $course)
@@ -47,7 +53,15 @@ class SubjectEndorsementController extends DeanController
                     ->orWhere(fn ($receivedQuery) => $receivedQuery
                         ->where('to_department', $course)
                         ->whereNull('to_department_archived_at'));
-            })
+            });
+        } else {
+            // Allow a rolling deployment to keep the page available until the
+            // new history-archive migration is applied on the server.
+            $endorsementHistoryQuery->where(fn ($query) => $query
+                ->where('from_department', $course)
+                ->orWhere('to_department', $course));
+        }
+        $endorsementHistory = $endorsementHistoryQuery
             ->latest('scheduled_at')
             ->get();
 
@@ -75,6 +89,7 @@ class SubjectEndorsementController extends DeanController
             'endorsements',
             'receivedEndorsements',
             'endorsementHistory',
+            'historyArchiveSupported',
         ));
     }
 
@@ -146,6 +161,10 @@ class SubjectEndorsementController extends DeanController
 
     public function clearHistory(Request $request): RedirectResponse
     {
+        if (! Schema::hasColumns('subject_endorsements', ['from_department_archived_at', 'to_department_archived_at'])) {
+            return back()->with('error', 'The history update is still being installed. Run the latest database migration, then try again.');
+        }
+
         $course = $this->course($request);
         $archivedAt = now();
         $sentArchivedCount = SubjectEndorsement::query()

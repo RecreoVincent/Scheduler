@@ -91,7 +91,7 @@
             <h3>Endorsement History</h3>
             <p>Completed endorsements are kept here, whether they were sent by your department or received from another department. Each generated class schedule is listed below its endorsement.</p>
         </div>
-        @if($endorsementHistory->isNotEmpty())
+        @if($historyArchiveSupported && $endorsementHistory->isNotEmpty())
             <button
                 type="button"
                 class="button button-danger delete-confirmation-trigger"
@@ -185,7 +185,7 @@
     </table></div>
 </section>
 </div>
-@if($endorsementHistory->isNotEmpty())
+@if($historyArchiveSupported && $endorsementHistory->isNotEmpty())
     @include('dean.partials.delete-confirmation', [
         'title' => 'Delete All Endorsement History?',
         'message' => 'This removes completed endorsements only from your department history. Generated schedules will remain unchanged.',
