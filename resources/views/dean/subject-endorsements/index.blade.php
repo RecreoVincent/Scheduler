@@ -13,6 +13,11 @@
     .endorsement-class-list { display:grid; gap:5px; min-width:260px; }
     .endorsement-class-item { padding:7px 9px; font-size:10px; line-height:1.45; color:#51485a; background:#faf8fb; border:1px solid #eee7f1; border-radius:7px; }
     .endorsement-class-item strong { color:var(--navy); }
+    .endorsement-lists { display:flex; flex-direction:column; gap:20px; }
+    .endorsement-lists > .card { margin:0 !important; }
+    .endorsement-received-card { order:1; }
+    .endorsement-pending-card { order:2; }
+    .endorsement-history-card { order:3; }
     @media(max-width:900px) { .endorsement-form-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
     @media(max-width:600px) { .endorsement-form-grid { grid-template-columns:1fr; } }
 </style>
@@ -77,7 +82,8 @@
     </form>
 </section>
 
-<section class="card" style="margin-bottom:20px">
+<div class="endorsement-lists">
+<section class="card endorsement-history-card" style="margin-bottom:20px">
     <div class="endorsement-history-header">
         <h3>Endorsement History</h3>
         <p>Completed endorsements are kept here, whether they were sent by your department or received from another department. Each generated class schedule is listed below its endorsement.</p>
@@ -117,7 +123,7 @@
 </section>
 
 @if($receivedEndorsements->isNotEmpty())
-<section class="card" style="margin-bottom:20px">
+<section class="card endorsement-received-card" style="margin-bottom:20px">
     <div class="endorsement-history-header">
         <h3>Endorsements Received</h3>
         <p>Use the schedule action to create a class schedule for the source department's sections using your department's instructors and rooms.</p>
@@ -140,7 +146,7 @@
 </section>
 @endif
 
-<section class="card">
+<section class="card endorsement-pending-card">
     <div class="endorsement-history-header">
         <h3>Pending Endorsements You Sent</h3>
         <p>These are the endorsements submitted by the {{ $course }} department that are still waiting to be scheduled by the receiving department.</p>
@@ -163,4 +169,5 @@
         </tbody>
     </table></div>
 </section>
+</div>
 @endsection

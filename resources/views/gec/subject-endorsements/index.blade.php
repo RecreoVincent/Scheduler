@@ -16,6 +16,10 @@
     .endorsement-class-list { display:grid; gap:5px; min-width:260px; }
     .endorsement-class-item { padding:7px 9px; font-size:10px; line-height:1.45; color:#51485a; background:#faf8fb; border:1px solid #eee7f1; border-radius:7px; }
     .endorsement-class-item strong { color:var(--navy); }
+    .endorsement-lists { display:flex; flex-direction:column; gap:20px; }
+    .endorsement-lists > .card { margin:0 !important; }
+    .endorsement-pending-card { order:1; }
+    .endorsement-history-card { order:2; }
     @media(max-width:900px) { .endorsement-form-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
     @media(max-width:600px) { .endorsement-form-grid { grid-template-columns:1fr; } }
 </style>
@@ -90,7 +94,8 @@
     </form>
 </section>
 
-<section class="card" style="margin-bottom:20px">
+<div class="endorsement-lists">
+<section class="card endorsement-history-card" style="margin-bottom:20px">
     <div class="endorsement-history-header">
         <h3>Endorsement History</h3>
         <p>Completed GEC endorsements remain here with every generated class schedule.</p>
@@ -128,9 +133,9 @@
     </table></div>
 </section>
 
-<section class="card">
+<section class="card endorsement-pending-card">
     <div class="endorsement-history-header">
-        <h3>Pending Endorsements</h3>
+        <h3>Pending Endorsements You Sent</h3>
         <p>These GEC endorsements are waiting for the receiving Dean / Program Head to create the schedule.</p>
     </div>
     <div class="table-wrap"><table>
@@ -151,6 +156,7 @@
         </tbody>
     </table></div>
 </section>
+</div>
 @endsection
 
 @push('scripts')
