@@ -49,11 +49,12 @@ class DashboardController extends DeanController
             'students' => $this->yearLevelCounts(clone $studentQuery),
             'subjects' => $this->yearLevelCounts(clone $subjectQuery),
             'sections' => $this->yearLevelCounts(clone $sectionQuery),
-            'rooms' => $roomQuery
-                ->withCount('schedules')
-                ->orderBy('name')
+            'rooms' => (clone $roomQuery)
+                ->selectRaw('room_type, COUNT(*) as rooms_count')
+                ->groupBy('room_type')
+                ->orderBy('room_type')
                 ->get()
-                ->mapWithKeys(fn (Room $room): array => [$room->name => (int) $room->getAttribute('schedules_count')])
+                ->mapWithKeys(fn (Room $room): array => [$room->room_type => (int) $room->getAttribute('rooms_count')])
                 ->all(),
         ];
 

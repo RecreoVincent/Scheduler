@@ -1220,7 +1220,7 @@ class DeanPortalTest extends TestCase
             'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 1, 'semester' => '2nd', 'units' => 3,
         ]);
         $firstRoom = Room::create(['course' => 'BSIT', 'name' => 'First Room', 'room_type' => 'Lecture']);
-        $secondRoom = Room::create(['course' => 'BSIT', 'name' => 'Second Room', 'room_type' => 'Lecture']);
+        $secondRoom = Room::create(['course' => 'BSIT', 'name' => 'Second Room', 'room_type' => 'Laboratory']);
         ClassSchedule::create([
             'course' => 'BSIT', 'section_id' => $firstSection->id, 'subject_id' => $firstSubject->id,
             'instructor_id' => $firstInstructor->id, 'room_id' => $firstRoom->id,
@@ -1243,6 +1243,10 @@ class DeanPortalTest extends TestCase
                 'subjects' => 1,
                 'sections' => 2,
                 'rooms' => 2,
+            ])
+            ->assertViewHas('analytics', fn (array $analytics): bool => $analytics['rooms'] === [
+                'Laboratory' => 1,
+                'Lecture' => 1,
             ]);
     }
 

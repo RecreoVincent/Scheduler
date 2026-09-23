@@ -75,7 +75,7 @@
 <div id="deanAnalyticsModal" class="analytics-modal" hidden>
     <section class="analytics-dialog" role="dialog" aria-modal="true" aria-labelledby="deanChartTitle">
         <div class="chart-header">
-            <div><h2 id="deanChartTitle">Department Analytics</h2><p>Compare {{ $semester }} Semester {{ $course }} department records.</p></div>
+            <div><h2 id="deanChartTitle">Department Analytics</h2><p>Compare {{ $course }} department records. Only subjects follow the active {{ $semester }} Semester.</p></div>
             <div class="chart-actions">
                 <div class="chart-toolbar" role="group" aria-label="Chart type">
                     <button type="button" class="chart-type active" data-chart-type="bar">Bar</button>
