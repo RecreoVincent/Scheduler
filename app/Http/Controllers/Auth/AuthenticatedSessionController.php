@@ -93,6 +93,8 @@ class AuthenticatedSessionController extends Controller
         $guard = in_array($role, ['admin', 'dean', 'gec', 'instructor', 'student'], true) ? $role : 'web';
         Auth::guard($guard)->logout();
 
-        return redirect('/');
+        return $guard === 'web'
+            ? redirect('/')
+            : redirect()->route('logout.transition', ['portal' => $guard]);
     }
 }

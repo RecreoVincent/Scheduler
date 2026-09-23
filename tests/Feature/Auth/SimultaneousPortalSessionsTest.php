@@ -38,7 +38,8 @@ class SimultaneousPortalSessionsTest extends TestCase
                 ->assertSee($user->name);
         }
 
-        $this->post(route('logout'), ['role' => 'dean'])->assertRedirect('/');
+        $this->post(route('logout'), ['role' => 'dean'])
+            ->assertRedirect(route('logout.transition', ['portal' => 'dean']));
 
         $this->assertFalse(Auth::guard('dean')->check());
         $this->assertTrue(Auth::guard('admin')->check());
@@ -48,5 +49,13 @@ class SimultaneousPortalSessionsTest extends TestCase
         $this->get(route('admin.dashboard'))->assertOk();
         $this->get(route('instructor.dashboard'))->assertOk();
         $this->get(route('student.dashboard'))->assertOk();
+
+        $this->get(route('logout.transition', ['portal' => 'dean']))
+            ->assertOk()
+            ->assertSee('Signing out securely')
+            ->assertSee('Logout successful')
+            ->assertSee('Dean / Program Head Portal')
+            ->assertSee('}, 2000);', false)
+            ->assertSee('window.location.replace(destinationUrl), 1000);', false);
     }
 }

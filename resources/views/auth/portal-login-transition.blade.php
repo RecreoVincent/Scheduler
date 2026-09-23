@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2d045f">
-    <title>Signing In | MCC Scheduler</title>
+    <title>{{ $isLogout ? 'Signing Out' : 'Signing In' }} | MCC Scheduler</title>
     <style>
         :root { color-scheme:dark; }
         * { box-sizing:border-box; }
@@ -132,17 +132,17 @@
     <div class="transition-background" aria-hidden="true"></div>
     <main id="loadingCard" class="loading-card" aria-live="polite">
         <div class="logo-shell"><img src="{{ asset('images/mcc-scheduler-logo-transparent.png') }}" alt="MCC Scheduler"></div>
-        <h1>Welcome to MCC Scheduler</h1>
-        <p>Preparing your {{ $portalLabel }} Portal workspace.</p>
+        <h1>{{ $isLogout ? 'Signing out securely' : 'Welcome to MCC Scheduler' }}</h1>
+        <p>{{ $isLogout ? "Completing logout from your {$portalLabel} Portal." : "Preparing your {$portalLabel} Portal workspace." }}</p>
         <div class="progress" aria-hidden="true"></div>
-        <div class="loading-copy">Signing you in</div>
+        <div class="loading-copy">{{ $isLogout ? 'Signing you out' : 'Signing you in' }}</div>
     </main>
 
     <div id="successOverlay" class="success-overlay" aria-hidden="true">
-        <section class="success-modal" role="status" aria-live="assertive" aria-label="Login successful">
+        <section class="success-modal" role="status" aria-live="assertive" aria-label="{{ $isLogout ? 'Logout successful' : 'Login successful' }}">
             <div class="success-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.2 4.2L19.5 6.5"/></svg></div>
-            <h2>Login successful</h2>
-            <p>Welcome to your {{ $portalLabel }} Portal.</p>
+            <h2>{{ $isLogout ? 'Logout successful' : 'Login successful' }}</h2>
+            <p>{{ $isLogout ? "You have been safely signed out of the {$portalLabel} Portal." : "Welcome to your {$portalLabel} Portal." }}</p>
         </section>
     </div>
 
@@ -150,14 +150,14 @@
         (() => {
             const loadingCard = document.getElementById('loadingCard');
             const successOverlay = document.getElementById('successOverlay');
-            const dashboardUrl = @json($dashboardUrl);
+            const destinationUrl = @json($destinationUrl);
 
             window.setTimeout(() => {
                 loadingCard.classList.add('is-fading');
                 successOverlay.classList.add('is-visible');
                 successOverlay.setAttribute('aria-hidden', 'false');
 
-                window.setTimeout(() => window.location.replace(dashboardUrl), 1000);
+                window.setTimeout(() => window.location.replace(destinationUrl), 1000);
             }, 2000);
         })();
     </script>

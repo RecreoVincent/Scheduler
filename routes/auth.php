@@ -44,6 +44,9 @@ Route::post('login/student', [StudentRosterLoginController::class, 'store'])
     ->name('login.student')
     ->middleware('throttle:5,1');
 
+Route::get('logout-transition/{portal}', [\App\Http\Controllers\Auth\PortalLoginTransitionController::class, 'showLogout'])
+    ->name('logout.transition');
+
 Route::middleware('auth')->group(function () {
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');

@@ -11,7 +11,7 @@ class PortalLoginTransitionController extends Controller
     /** @var array<string, string> */
     private const PORTAL_LABELS = [
         'admin' => 'Administration',
-        'dean' => 'Dean',
+        'dean' => 'Dean / Program Head',
         'gec' => 'General Education Course',
         'instructor' => 'Instructor',
         'student' => 'Student',
@@ -22,9 +22,24 @@ class PortalLoginTransitionController extends Controller
         $portal = (string) $request->route('portal');
         abort_unless(array_key_exists($portal, self::PORTAL_LABELS), 404);
 
+        return $this->transitionView($portal, route("{$portal}.dashboard"));
+    }
+
+    public function showLogout(Request $request): View
+    {
+        $portal = (string) $request->route('portal');
+
+        return $this->transitionView($portal, route('home'), true);
+    }
+
+    private function transitionView(string $portal, string $destinationUrl, bool $isLogout = false): View
+    {
+        abort_unless(array_key_exists($portal, self::PORTAL_LABELS), 404);
+
         return view('auth.portal-login-transition', [
             'portalLabel' => self::PORTAL_LABELS[$portal],
-            'dashboardUrl' => route("{$portal}.dashboard"),
+            'destinationUrl' => $destinationUrl,
+            'isLogout' => $isLogout,
         ]);
     }
 }

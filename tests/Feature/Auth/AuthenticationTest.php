@@ -129,7 +129,7 @@ class AuthenticationTest extends TestCase
                 ->assertSee('images/mcc-scheduler-logo-transparent.png')
                 ->assertSee('Login successful')
                 ->assertSee('}, 2000);', false)
-                ->assertSee('window.location.replace(dashboardUrl), 1000);', false)
+                ->assertSee('window.location.replace(destinationUrl), 1000);', false)
                 ->assertSee(str_replace('/', '\\/', route("{$role}.dashboard")), false);
         }
     }
