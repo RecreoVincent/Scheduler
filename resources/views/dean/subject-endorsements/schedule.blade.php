@@ -90,7 +90,11 @@
                         <select id="endorsementInstructor{{ $priority }}" class="input endorsement-instructor" name="instructor_ids[]" @required($priority === 1)>
                             <option value="">{{ $priority === 1 ? 'Select instructor' : 'Optional backup' }}</option>
                             @foreach($instructors as $instructor)
-                                <option value="{{ $instructor->id }}" @selected(old('instructor_ids.'.($priority - 1)) == $instructor->id)>{{ $instructor->name }}</option>
+                                <option
+                                    value="{{ $instructor->id }}"
+                                    data-instructor-name="{{ $instructor->name }}"
+                                    @selected(old('instructor_ids.'.($priority - 1)) == $instructor->id)
+                                >{{ $instructor->name }} &middot; Current load</option>
                             @endforeach
                         </select>
                     </div>
@@ -125,6 +129,17 @@
         const status = document.getElementById('sectionCountStatus');
         const generateButton = document.getElementById('generateButton');
         const instructors = [...document.querySelectorAll('.endorsement-instructor')];
+        const semester = document.getElementById('endorsementSemester');
+        const scheduledLoads = @json($scheduledInstructorLoads);
+        const instructorLimits = @json($instructorLimits);
+
+        const formatUnits = units => Number.isInteger(units) ? String(units) : units.toFixed(1).replace(/\.0$/, '');
+        const instructorLoad = instructorId => {
+            const used = Number(scheduledLoads[instructorId]?.[academicYear.value]?.[semester.value] ?? 0);
+            const limit = Number(instructorLimits[instructorId] ?? 0);
+
+            return `${formatUnits(used)}/${formatUnits(limit)} units`;
+        };
 
         const updateInstructors = () => {
             const selected = instructors.map(input => input.value).filter(Boolean);
@@ -133,6 +148,7 @@
                 [...input.options].forEach(option => {
                     if (!option.value) return;
                     option.disabled = selected.includes(option.value) && option.value !== ownValue;
+                    option.textContent = `${option.dataset.instructorName} · ${instructorLoad(option.value)}`;
                 });
             });
         };
@@ -149,7 +165,8 @@
             status.textContent = matching.length === 0 ? '0 sections available' : `Using ${selected.length} of ${matching.length} sections`;
         };
 
-        academicYear.addEventListener('change', updatePreview);
+        academicYear.addEventListener('change', () => { updateInstructors(); updatePreview(); });
+        semester.addEventListener('change', updateInstructors);
         countInput.addEventListener('input', updatePreview);
         instructors.forEach(input => input.addEventListener('change', () => { updateInstructors(); updatePreview(); }));
         updateInstructors();

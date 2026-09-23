@@ -12,6 +12,7 @@ use App\Services\ScheduleNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -38,6 +39,31 @@ class SubjectEndorsementScheduleController extends DeanController
             ->get();
         $instructors = $this->activeRecipientInstructors($request);
         $enabledSemesters = $this->enabledSemesters($request);
+        $instructorIds = $instructors->modelKeys();
+        $academicYears = $sections->pluck('academic_year')->filter()->unique()->values();
+        $scheduledInstructorLoads = $instructorIds === [] || $academicYears->isEmpty()
+            ? []
+            : DB::table('class_schedules')
+                ->join('subjects', 'subjects.id', '=', 'class_schedules.subject_id')
+                ->whereNull('class_schedules.deleted_at')
+                ->whereIn('class_schedules.instructor_id', $instructorIds)
+                ->whereIn('class_schedules.academic_year', $academicYears->all())
+                ->selectRaw('class_schedules.instructor_id, class_schedules.academic_year, class_schedules.semester, SUM(subjects.units) as units')
+                ->groupBy('class_schedules.instructor_id', 'class_schedules.academic_year', 'class_schedules.semester')
+                ->get()
+                ->groupBy('instructor_id')
+                ->map(fn (Collection $instructorLoads): array => $instructorLoads
+                    ->groupBy('academic_year')
+                    ->map(fn (Collection $yearLoads): array => $yearLoads
+                        ->mapWithKeys(fn (object $load): array => [(string) $load->semester => (float) $load->units])
+                        ->all())
+                    ->all())
+                ->all();
+        $instructorLimits = $instructors->mapWithKeys(
+            fn (User $instructor): array => [
+                (string) $instructor->id => (float) $this->generator->workloadRange($instructor)[1],
+            ],
+        )->all();
 
         return view('dean.subject-endorsements.schedule', compact(
             'endorsement',
@@ -45,6 +71,8 @@ class SubjectEndorsementScheduleController extends DeanController
             'sections',
             'instructors',
             'enabledSemesters',
+            'scheduledInstructorLoads',
+            'instructorLimits',
         ));
     }
 
