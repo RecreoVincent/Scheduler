@@ -97,7 +97,7 @@ class SubjectImporter
                 'units' => $units,
             ], [
                 'code' => ['required', 'string', 'max:30'],
-                'name' => ['required', 'string', 'max:150'],
+                'name' => ['required', 'string', 'max:255'],
                 'subject_type' => ['required', Rule::in($managedByGec ? ['Lecture', 'Laboratory'] : ['Lecture', 'Laboratory', 'Internship'])],
                 'classification' => ['required', Rule::in(['Major', 'Minor'])],
                 'year_level' => ['required', 'integer', 'between:1,4'],

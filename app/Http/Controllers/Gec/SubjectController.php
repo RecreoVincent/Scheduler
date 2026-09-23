@@ -7,6 +7,7 @@ use App\Models\Subject;
 use App\Services\SubjectImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -147,10 +148,14 @@ class SubjectController extends GecController
 
     private function validated(Request $request, ?Subject $subject = null): array
     {
+        $request->merge([
+            'name' => Str::squish((string) $request->input('name')),
+        ]);
+
         $validated = $request->validate([
             'course' => ['required', Rule::in(self::REAL_DEPARTMENTS)],
             'code' => ['required', 'string', 'max:30'],
-            'name' => ['required', 'string', 'max:150'],
+            'name' => ['required', 'string', 'max:255'],
             'subject_type' => ['required', Rule::in(['Lecture', 'Laboratory'])],
             'year_level' => ['required', 'integer', 'between:1,4'],
             'curriculum' => ['required', Rule::in(['New', 'Old'])],

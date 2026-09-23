@@ -168,6 +168,28 @@ class GecPortalTest extends TestCase
         $this->assertDatabaseMissing('subjects', ['id' => $subject->id]);
     }
 
+    public function test_gec_allows_and_normalizes_minor_subject_names_up_to_the_database_limit(): void
+    {
+        $gec = $this->gecUser();
+        $subjectName = '  '.str_repeat('A', 253).'  ';
+
+        $this->actingAs($gec)->post(route('gec.subjects.store'), [
+            'course' => 'BEED',
+            'code' => 'PATHFit 3',
+            'name' => $subjectName,
+            'subject_type' => 'Lecture',
+            'year_level' => 2,
+            'curriculum' => 'New',
+            'units' => 3,
+        ])->assertRedirect(route('gec.subjects.index'));
+
+        $this->assertDatabaseHas('subjects', [
+            'course' => 'BEED',
+            'code' => 'PATHFit 3',
+            'name' => str_repeat('A', 253),
+        ]);
+    }
+
     public function test_gec_can_import_minor_subjects_and_download_the_csv_template(): void
     {
         $gec = $this->gecUser();

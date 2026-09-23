@@ -138,7 +138,7 @@
                 </div>
                 <div class="admin-profile-field">
                     <label for="subject_name">Subject name</label>
-                    <input id="subject_name" class="input" name="name" value="{{ old('name', $editingSubject?->name) }}" required>
+                    <input id="subject_name" class="input" name="name" value="{{ old('name', $editingSubject?->name) }}" maxlength="255" required>
                     @error('name')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field">
