@@ -48,6 +48,9 @@ class SubjectController extends DeanController
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
+        // Minor subjects are created and managed through GEC. Every subject
+        // added manually from a Dean portal is therefore a Major subject.
+        $validated['classification'] = 'Major';
         $course = $this->course($request);
         $semester = $this->enabledSemesters($request)[0] ?? null;
 

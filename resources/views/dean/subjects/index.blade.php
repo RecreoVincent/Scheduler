@@ -129,13 +129,6 @@
                     @error('subject_type')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field">
-                    <label for="subject_classification">Subject classification</label>
-                    <select id="subject_classification" class="input" name="classification" required>
-                        @foreach(['Major','Minor'] as $classification)<option @selected(old('classification', $editingSubject?->classification ?? 'Major') === $classification)>{{ $classification }}</option>@endforeach
-                    </select>
-                    @error('classification')<span class="admin-profile-error">{{ $message }}</span>@enderror
-                </div>
-                <div class="admin-profile-field">
                     <label for="subject_year_level">Year level</label>
                     <select id="subject_year_level" class="input" name="year_level" required>
                         @for($i=1;$i<=4;$i++)<option value="{{ $i }}" @selected((int) old('year_level', $editingSubject?->year_level ?? 1) === $i)>Year {{ $i }}</option>@endfor
@@ -225,7 +218,7 @@
         modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
 
-        @if($errors->hasAny(['code', 'name', 'subject_type', 'classification', 'year_level', 'curriculum', 'units']) || $editingSubject)
+        @if($errors->hasAny(['code', 'name', 'subject_type', 'year_level', 'curriculum', 'units']) || $editingSubject)
             openModal();
         @endif
     })();

@@ -2203,6 +2203,7 @@ class DeanPortalTest extends TestCase
             'code' => 'IT202',
             'name' => 'Advanced Programming',
             'subject_type' => 'Lecture',
+            'classification' => 'Minor',
             'year_level' => 2,
             'semester' => '1st',
             'curriculum' => 'Old',
@@ -2212,6 +2213,7 @@ class DeanPortalTest extends TestCase
         $subject = Subject::where('code', 'IT202')->firstOrFail();
         $this->assertCount(0, $subject->instructors);
         $this->assertSame('Old', $subject->curriculum);
+        $this->assertSame('Major', $subject->classification);
         Subject::create([
             'course' => 'BSIT',
             'code' => 'IT299',
@@ -2235,6 +2237,7 @@ class DeanPortalTest extends TestCase
             ->assertOk()
             ->assertSee('Enter the curriculum information for BSIT')
             ->assertSee('type="hidden" name="curriculum" value="New"', false)
+            ->assertDontSee('id="subject_classification"', false)
             ->assertDontSee('name="instructor_department"', false)
             ->assertDontSee('name="instructor_ids[]"', false);
 
