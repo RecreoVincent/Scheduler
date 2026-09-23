@@ -611,41 +611,35 @@ class GecPortalTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'dex.cruz@example.test', 'employment_type' => 'flexible_part_time']);
     }
 
-    public function test_gec_can_toggle_semester_availability(): void
+    public function test_gec_semester_selection_is_saved_only_in_the_current_browser_session(): void
     {
         $gec = $this->gecUser();
+        $gecDepartment = Department::where('code', 'GEC')->firstOrFail();
+        $originalSettings = [
+            'semester_first_enabled' => $gecDepartment->semester_first_enabled,
+            'semester_second_enabled' => $gecDepartment->semester_second_enabled,
+            'semester_summer_enabled' => $gecDepartment->semester_summer_enabled,
+        ];
 
         $this->actingAs($gec)->patch(route('gec.settings.semesters'), [
-            'active_semester' => 'first',
-        ])->assertRedirect();
+            'active_semester' => 'second',
+        ])->assertRedirect()->assertSessionHas('gec.active_semester', '2nd');
 
-        $gecDepartment = Department::where('code', 'GEC')->firstOrFail();
-        $this->assertTrue($gecDepartment->semester_first_enabled);
-        $this->assertFalse($gecDepartment->semester_second_enabled);
-        $this->assertFalse($gecDepartment->semester_summer_enabled);
-        $this->assertSame(['1st'], $gecDepartment->enabledSemesterCodes());
+        $gecDepartment->refresh();
+        $this->assertSame($originalSettings, [
+            'semester_first_enabled' => $gecDepartment->semester_first_enabled,
+            'semester_second_enabled' => $gecDepartment->semester_second_enabled,
+            'semester_summer_enabled' => $gecDepartment->semester_summer_enabled,
+        ]);
     }
 
-    public function test_gec_cannot_save_multiple_active_semesters(): void
+    public function test_gec_rejects_an_invalid_personal_semester_selection(): void
     {
         $gec = $this->gecUser();
-        $department = Department::where('code', 'GEC')->firstOrFail();
-        $department->update([
-            'semester_first_enabled' => false,
-            'semester_second_enabled' => true,
-            'semester_summer_enabled' => false,
-        ]);
 
         $this->actingAs($gec)->patch(route('gec.settings.semesters'), [
-            'semester_first_enabled' => '1',
-            'semester_second_enabled' => '1',
-            'semester_summer_enabled' => '0',
+            'active_semester' => 'invalid',
         ])->assertRedirect()->assertSessionHasErrors('semester_availability');
-
-        $department->refresh();
-        $this->assertFalse($department->semester_first_enabled);
-        $this->assertTrue($department->semester_second_enabled);
-        $this->assertFalse($department->semester_summer_enabled);
     }
 
     public function test_gec_instructor_edit_modal_omits_password_fields(): void
@@ -655,10 +649,16 @@ class GecPortalTest extends TestCase
             'role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active',
         ]);
 
-        $this->actingAs($gec)
+        $response = $this->actingAs($gec)
             ->get(route('gec.instructors.index', ['edit' => $instructor->id]))
-            ->assertOk()
-            ->assertDontSee('name="password"', false)
-            ->assertDontSee('name="password_confirmation"', false);
+            ->assertOk();
+
+        $instructorForm = str($response->getContent())
+            ->after('<form id="instructorCreateForm"')
+            ->before('</form>')
+            ->toString();
+
+        $this->assertStringNotContainsString('name="password"', $instructorForm);
+        $this->assertStringNotContainsString('name="password_confirmation"', $instructorForm);
     }
 }

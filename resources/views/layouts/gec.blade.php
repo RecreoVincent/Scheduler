@@ -706,26 +706,32 @@
             </div>
 
             <div class="topbar-actions">
-                @php $gecDepartment = auth()->user()->department; @endphp
+                @php
+                    $gecDepartment = auth()->user()->department;
+                    $gecActiveSemester = session('gec.active_semester');
+                    if (! in_array($gecActiveSemester, ['1st', '2nd', 'Summer'], true)) {
+                        $gecActiveSemester = $gecDepartment?->enabledSemesterCodes()[0] ?? '1st';
+                    }
+                @endphp
                 <details class="topbar-settings-menu" @if($errors->has('semester_availability')) open @endif>
                     <summary class="topbar-settings-trigger" aria-label="Semester settings" title="Semester settings"><x-icon name="gear" /></summary>
                     <div class="topbar-settings-dropdown">
-                        <strong>Active Semester</strong>
-                        <p>Choose one active semester. Selecting a semester automatically turns the other semesters off.</p>
+                        <strong>Your Semester View</strong>
+                        <p>Your selection applies only to this browser. It will not change the semester shown on another device.</p>
                         <form method="POST" action="{{ route('gec.settings.semesters') }}">
                             @csrf
                             @method('PATCH')
                             <label class="switch-row">
                                 <span>1st Semester</span>
-                                <span class="switch"><input type="radio" name="active_semester" value="first" @checked($gecDepartment?->semester_first_enabled ?? true)><span class="switch-track"></span></span>
+                                <span class="switch"><input type="radio" name="active_semester" value="first" @checked($gecActiveSemester === '1st')><span class="switch-track"></span></span>
                             </label>
                             <label class="switch-row">
                                 <span>2nd Semester</span>
-                                <span class="switch"><input type="radio" name="active_semester" value="second" @checked($gecDepartment?->semester_second_enabled ?? true)><span class="switch-track"></span></span>
+                                <span class="switch"><input type="radio" name="active_semester" value="second" @checked($gecActiveSemester === '2nd')><span class="switch-track"></span></span>
                             </label>
                             <label class="switch-row">
                                 <span>Summer</span>
-                                <span class="switch"><input type="radio" name="active_semester" value="summer" @checked($gecDepartment?->semester_summer_enabled ?? true)><span class="switch-track"></span></span>
+                                <span class="switch"><input type="radio" name="active_semester" value="summer" @checked($gecActiveSemester === 'Summer')><span class="switch-track"></span></span>
                             </label>
                             @error('semester_availability')<p class="error" style="margin:10px 0 0">{{ $message }}</p>@enderror
                             <button class="button" type="submit" style="width:100%;margin-top:12px">Save</button>

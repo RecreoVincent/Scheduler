@@ -23,7 +23,7 @@ class InstructorUnitController extends GecController
         ]);
         $course = $this->course($request);
         $department = Department::where('code', $course)->first();
-        $enabledSemesters = $department?->enabledSemesterCodes() ?? ['1st', '2nd', 'Summer'];
+        $enabledSemesters = $this->enabledSemesters($request);
         $academicYears = ClassSchedule::query()
             ->forDepartment($course)
             ->distinct()

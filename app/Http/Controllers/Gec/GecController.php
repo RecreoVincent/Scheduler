@@ -22,6 +22,14 @@ abstract class GecController extends Controller
     /** @return array<int, string> */
     protected function enabledSemesters(Request $request): array
     {
+        $semester = $request->session()->get('gec.active_semester');
+
+        if (in_array($semester, ['1st', '2nd', 'Summer'], true)) {
+            return [$semester];
+        }
+
+        // Keep the existing department configuration as the first-visit default.
+        // Subsequent selections are stored in this browser session only.
         return $request->user()->department?->enabledSemesterCodes() ?? ['1st', '2nd', 'Summer'];
     }
 
