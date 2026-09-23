@@ -681,6 +681,7 @@
 
         <p class="menu-label">Academic Management</p>
         <a class="menu-link {{ request()->routeIs('gec.subjects.*') ? 'active' : '' }}" href="{{ route('gec.subjects.index') }}"><span class="menu-icon"><x-icon name="book" /></span>Minor Subjects</a>
+        <a class="menu-link {{ request()->routeIs('gec.subject-endorsements.*') ? 'active' : '' }}" href="{{ route('gec.subject-endorsements.index') }}"><span class="menu-icon"><x-icon name="send" /></span>Subject Endorsement</a>
 
         <p class="menu-label">Instructor Management</p>
         <a class="menu-link {{ request()->routeIs('gec.instructors.*') ? 'active' : '' }}" href="{{ route('gec.instructors.index') }}"><span class="menu-icon"><x-icon name="cap" /></span>Instructor List</a>

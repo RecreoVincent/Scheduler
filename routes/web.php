@@ -30,6 +30,7 @@ use App\Http\Controllers\Gec\ScheduleController as GecScheduleController;
 use App\Http\Controllers\Gec\SettingsController as GecSettingsController;
 use App\Http\Controllers\Gec\SubjectAssignmentController as GecSubjectAssignmentController;
 use App\Http\Controllers\Gec\SubjectController as GecSubjectController;
+use App\Http\Controllers\Gec\SubjectEndorsementController as GecSubjectEndorsementController;
 use App\Http\Controllers\Gec\TimetableController as GecTimetableController;
 use App\Http\Controllers\Instructor\DashboardController as InstructorDashboardController;
 use App\Http\Controllers\Instructor\PrintController as InstructorPrintController;
@@ -165,6 +166,8 @@ Route::middleware('gec')
         Route::post('/subjects/import', [GecSubjectController::class, 'import'])->name('subjects.import');
         Route::get('/subjects/import-template', [GecSubjectController::class, 'importTemplate'])->name('subjects.import-template');
         Route::resource('subjects', GecSubjectController::class)->except(['show']);
+        Route::get('/subject-endorsements', [GecSubjectEndorsementController::class, 'index'])->name('subject-endorsements.index');
+        Route::post('/subject-endorsements', [GecSubjectEndorsementController::class, 'store'])->name('subject-endorsements.store');
         Route::get('/subject-assignments', [GecSubjectAssignmentController::class, 'index'])->name('subject-assignments.index');
         Route::get('/subject-assignments/create', [GecSubjectAssignmentController::class, 'create'])->name('subject-assignments.create');
         Route::post('/subject-assignments', [GecSubjectAssignmentController::class, 'store'])->name('subject-assignments.store');

@@ -7,9 +7,11 @@ use App\Models\ClassSchedule;
 use App\Models\Department;
 use App\Models\Room;
 use App\Models\Subject;
+use App\Models\SubjectEndorsement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class GecPortalTest extends TestCase
@@ -33,6 +35,57 @@ class GecPortalTest extends TestCase
         $gec = $this->gecUser();
 
         $this->actingAs($gec)->get(route('gec.dashboard'))->assertOk();
+    }
+
+    public function test_gec_can_endorse_a_managed_minor_subject_to_another_department(): void
+    {
+        $gec = $this->gecUser();
+        $destinationDean = User::factory()->create([
+            'role' => 'dean',
+            'course' => 'BSBA',
+            'account_status' => 'active',
+        ]);
+        $subject = Subject::create([
+            'course' => 'BSIT',
+            'code' => 'GE 101',
+            'name' => 'Understanding the Self',
+            'subject_type' => 'Lecture',
+            'classification' => 'Minor',
+            'managed_by_gec' => true,
+            'year_level' => 1,
+            'semester' => '1st',
+            'curriculum' => 'New',
+            'units' => 3,
+        ]);
+        Notification::fake();
+
+        $this->actingAs($gec)->post(route('gec.subject-endorsements.store'), [
+            'from_department' => 'BSIT',
+            'to_department' => 'BSBA',
+            'subject_code' => 'ge 101',
+            'subject_name' => 'Understanding the Self',
+            'subject_type' => 'Lecture',
+            'units' => 3,
+        ])->assertRedirect(route('gec.subject-endorsements.index'));
+
+        $this->assertDatabaseHas('subject_endorsements', [
+            'subject_id' => $subject->id,
+            'from_department' => 'BSIT',
+            'to_department' => 'BSBA',
+            'endorsed_by' => $gec->id,
+        ]);
+
+        $endorsement = SubjectEndorsement::firstOrFail();
+        Notification::assertSentTo(
+            $destinationDean,
+            \App\Notifications\SubjectEndorsementReceivedNotification::class,
+            fn ($notification): bool => $notification->toArray($destinationDean)['url'] === route('dean.subject-endorsements.schedule.create', $endorsement),
+        );
+        $this->actingAs($gec)->get(route('gec.subject-endorsements.index'))
+            ->assertOk()
+            ->assertSee('Subject Endorsement')
+            ->assertSee('GE 101')
+            ->assertSee('BSBA');
     }
 
     public function test_gec_dashboard_analytics_only_use_the_active_semester(): void
