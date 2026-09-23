@@ -81,7 +81,6 @@ class UserAccountImportTest extends TestCase
         $this->actingAs($admin, 'admin')
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('GEC Status')
             ->assertViewHas('statistics', fn (array $statistics): bool => $statistics['total_gec'] === 1);
     }
 

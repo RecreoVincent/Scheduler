@@ -468,7 +468,6 @@
         $analyticsCards = [
             ['stat' => 'total_users', 'summary' => 'all', 'title' => 'Account Status', 'total_label' => 'Total Accounts', 'accent' => '#3b82f6', 'icon' => 'users'],
             ['stat' => 'total_deans', 'summary' => 'dean', 'title' => 'Dean / Program Head Status', 'total_label' => 'Total Deans / Program Heads', 'accent' => '#8b5cf6', 'icon' => 'cap'],
-            ['stat' => 'total_gec', 'summary' => 'gec', 'title' => 'GEC Status', 'total_label' => 'Total GEC Accounts', 'accent' => '#ec4899', 'icon' => 'board'],
             ['stat' => 'total_instructors', 'summary' => 'instructor', 'title' => 'Instructor Status', 'total_label' => 'Total Instructors', 'accent' => '#14b8a6', 'icon' => 'board'],
             ['stat' => 'total_students', 'summary' => 'student', 'title' => 'Student Status', 'total_label' => 'Total Students', 'accent' => '#f59e0b', 'icon' => 'book'],
         ];
