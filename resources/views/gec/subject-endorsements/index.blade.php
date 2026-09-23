@@ -4,7 +4,10 @@
 
 @push('styles')
 <style>
-    .endorsement-form-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+    .endorsement-form-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; }
+    .endorsement-form-grid .form-group { min-width:0; margin:0; }
+    .endorsement-form-grid .input { width:100%; min-width:0; }
+    .endorsement-form-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; padding-top:18px; border-top:1px solid #eee8f1; }
     .endorsement-source { color:var(--muted); background:#faf8fb; cursor:default; }
     .endorsement-help { margin:0 0 18px; padding:12px 14px; font-size:11px; line-height:1.55; color:#5e5367; background:#f8f2fc; border:1px solid #e4d0f1; border-radius:10px; }
     .endorsement-history-header { margin:0 0 14px; }
@@ -81,7 +84,7 @@
                 @error('units')<p class="error">{{ $message }}</p>@enderror
             </div>
         </div>
-        <div class="form-actions">
+        <div class="endorsement-form-actions">
             <button class="button" type="submit">Indorse</button>
         </div>
     </form>
