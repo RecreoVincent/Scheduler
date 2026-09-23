@@ -10,6 +10,9 @@
     .endorsement-history-header { margin:0 0 14px; }
     .endorsement-history-header h3 { margin:0 0 4px; color:var(--navy); }
     .endorsement-history-header p { font-size:11px; color:var(--muted); }
+    .endorsement-class-list { display:grid; gap:5px; min-width:260px; }
+    .endorsement-class-item { padding:7px 9px; font-size:10px; line-height:1.45; color:#51485a; background:#faf8fb; border:1px solid #eee7f1; border-radius:7px; }
+    .endorsement-class-item strong { color:var(--navy); }
     @media(max-width:900px) { .endorsement-form-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
     @media(max-width:600px) { .endorsement-form-grid { grid-template-columns:1fr; } }
 </style>
@@ -74,6 +77,45 @@
     </form>
 </section>
 
+<section class="card" style="margin-bottom:20px">
+    <div class="endorsement-history-header">
+        <h3>Endorsement History</h3>
+        <p>Completed endorsements are kept here, whether they were sent by your department or received from another department. Each generated class schedule is listed below its endorsement.</p>
+    </div>
+    <div class="table-wrap"><table>
+        <thead><tr><th>Direction</th><th>Departments</th><th>Subject</th><th>Generated Class Schedules</th><th>Scheduled</th></tr></thead>
+        <tbody>
+        @forelse($endorsementHistory as $endorsement)
+            <tr>
+                <td><span class="badge">{{ $endorsement->from_department === $course ? 'Sent' : 'Received' }}</span></td>
+                <td><strong>{{ $endorsement->from_department }}</strong> &rarr; <strong>{{ $endorsement->to_department }}</strong></td>
+                <td>
+                    <strong>{{ $endorsement->subject_code }}</strong><br>
+                    <small>{{ $endorsement->subject_name ?? $endorsement->subject?->name ?? 'Subject name unavailable' }} &middot; {{ $endorsement->subject_type }} &middot; {{ rtrim(rtrim(number_format($endorsement->units, 1), '0'), '.') }} units</small>
+                </td>
+                <td>
+                    <div class="endorsement-class-list">
+                    @forelse($endorsement->scheduledClasses as $schedule)
+                        <div class="endorsement-class-item">
+                            <strong>{{ $schedule->section?->name ?? 'Section unavailable' }}</strong>
+                            &middot; {{ $schedule->day }}
+                            &middot; {{ \Illuminate\Support\Carbon::parse($schedule->start_time)->format('g:i A') }}&ndash;{{ \Illuminate\Support\Carbon::parse($schedule->end_time)->format('g:i A') }}<br>
+                            {{ $schedule->instructor?->name ?? 'Instructor TBA' }} &middot; {{ $schedule->room?->name ?? 'Room TBA' }}
+                        </div>
+                    @empty
+                        <span class="muted">The generated schedules are no longer available.</span>
+                    @endforelse
+                    </div>
+                </td>
+                <td>{{ $endorsement->scheduled_at?->format('M j, Y g:i A') ?? '—' }}</td>
+            </tr>
+        @empty
+            <tr><td colspan="5">No completed endorsements yet. Scheduled endorsements will appear here.</td></tr>
+        @endforelse
+        </tbody>
+    </table></div>
+</section>
+
 @if($receivedEndorsements->isNotEmpty())
 <section class="card" style="margin-bottom:20px">
     <div class="endorsement-history-header">
@@ -100,8 +142,8 @@
 
 <section class="card">
     <div class="endorsement-history-header">
-        <h3>Endorsements You Sent</h3>
-        <p>These are the subject endorsements submitted by the {{ $course }} department.</p>
+        <h3>Pending Endorsements You Sent</h3>
+        <p>These are the endorsements submitted by the {{ $course }} department that are still waiting to be scheduled by the receiving department.</p>
     </div>
     <div class="table-wrap"><table>
         <thead><tr><th>From Department</th><th>Endorsed To</th><th>Subject</th><th>Subject Type</th><th>Units</th><th>Submitted</th></tr></thead>
@@ -116,7 +158,7 @@
                 <td>{{ $endorsement->created_at->format('M j, Y g:i A') }}</td>
             </tr>
         @empty
-            <tr><td colspan="6">No subject endorsements submitted yet.</td></tr>
+            <tr><td colspan="6">No pending subject endorsements submitted yet.</td></tr>
         @endforelse
         </tbody>
     </table></div>

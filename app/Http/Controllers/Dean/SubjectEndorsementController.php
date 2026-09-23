@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dean;
 
+use App\Models\ClassSchedule;
 use App\Models\Department;
 use App\Models\Subject;
 use App\Models\SubjectEndorsement;
@@ -26,15 +27,49 @@ class SubjectEndorsementController extends DeanController
             ->get(['code', 'name', 'program_name']);
         $endorsements = SubjectEndorsement::query()
             ->where('from_department', $course)
+            ->whereNull('scheduled_at')
             ->latest()
             ->get();
         $receivedEndorsements = SubjectEndorsement::query()
             ->with('subject')
             ->where('to_department', $course)
+            ->whereNull('scheduled_at')
             ->latest()
             ->get();
+        $endorsementHistory = SubjectEndorsement::query()
+            ->with(['subject', 'scheduledBy'])
+            ->whereNotNull('scheduled_at')
+            ->where(fn ($query) => $query
+                ->where('from_department', $course)
+                ->orWhere('to_department', $course))
+            ->latest('scheduled_at')
+            ->get();
 
-        return view('dean.subject-endorsements.index', compact('course', 'departments', 'endorsements', 'receivedEndorsements'));
+        $historySchedules = $endorsementHistory->isEmpty()
+            ? collect()
+            : ClassSchedule::query()
+                ->with(['section', 'instructor', 'room'])
+                ->whereIn('subject_id', $endorsementHistory->pluck('subject_id')->unique()->all())
+                ->whereIn('course', $endorsementHistory->pluck('from_department')->unique()->all())
+                ->orderBy('academic_year')
+                ->orderBy('semester')
+                ->orderByRaw(ClassSchedule::dayOrderSql())
+                ->orderBy('start_time')
+                ->get();
+        $endorsementHistory->each(function (SubjectEndorsement $endorsement) use ($historySchedules): void {
+            $endorsement->setRelation('scheduledClasses', $historySchedules
+                ->where('subject_id', $endorsement->subject_id)
+                ->where('course', $endorsement->from_department)
+                ->values());
+        });
+
+        return view('dean.subject-endorsements.index', compact(
+            'course',
+            'departments',
+            'endorsements',
+            'receivedEndorsements',
+            'endorsementHistory',
+        ));
     }
 
     public function store(Request $request): RedirectResponse

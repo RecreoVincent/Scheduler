@@ -1419,11 +1419,11 @@ class DeanPortalTest extends TestCase
             ->assertViewHas('schedulesBySection', fn ($schedules): bool => $schedules->count() === 2)
             ->assertSeeInOrder(['Time', 'Days', 'Subject Code', 'Subject Description', 'Unit', 'Room', 'Instructors'])
             ->assertDontSee('<th>Period</th>', false)
-            ->assertSee('Which class entry do you want to edit?', false)
+            ->assertSee('Which Major class entry do you want to edit?', false)
             ->assertSee('id="sendSchedulesToGecModal"', false)
             ->assertSee('Send Schedules to GEC?', false)
             ->assertDontSee('Send all class schedules to GEC?', false)
-            ->assertSee('Delete Section Schedule?');
+            ->assertSee('Delete Major Schedules for This Section?');
 
         $this->actingAs($dean)
             ->delete(route('dean.timetable.sections.destroy', $sections->first()))
@@ -1482,7 +1482,7 @@ class DeanPortalTest extends TestCase
         $this->actingAs($dean)
             ->get(route('dean.timetable.index'))
             ->assertOk()
-            ->assertSee('Delete All Schedules');
+            ->assertSee('Delete All Major Schedules');
 
         $this->actingAs($dean)
             ->delete(route('dean.timetable.destroy-all', [
@@ -1530,6 +1530,13 @@ class DeanPortalTest extends TestCase
             'instructor_id' => $gecInstructor->id, 'academic_year' => '2026-2027', 'semester' => '1st',
             'day' => 'T - Th', 'start_time' => '07:00', 'end_time' => '09:30',
         ]);
+
+        $this->actingAs($dean)
+            ->get(route('dean.timetable.index'))
+            ->assertOk()
+            ->assertSee('GEC Minor Subject')
+            ->assertSee('GEC Minor')
+            ->assertSee('Managed by GEC');
 
         $this->actingAs($dean)
             ->delete(route('dean.timetable.destroy-all', [

@@ -38,6 +38,8 @@
     .section-schedule[data-mode="edit"] .selection-column { display:table-cell; }
     .entry-action { display:none; min-width:108px; justify-content:center; }
     .section-schedule[data-mode="edit"] .edit-entry-action { display:inline-flex; }
+    .schedule-source-badge { display:inline-flex; margin:4px 0 0; padding:3px 6px; color:#5b21b6; font-size:8px; font-weight:800; letter-spacing:.35px; text-transform:uppercase; background:#f0e5ff; border-radius:999px; }
+    .gec-managed-entry { color:#766180; font-size:10px; font-weight:700; }
     .timetable-pagination { display:flex; justify-content:flex-end; align-items:center; gap:10px; margin-top:22px; }
     .timetable-pagination .button[aria-disabled="true"] { opacity:.45; pointer-events:none; }
     .timetable-page-count { color:#64748b; font-size:13px; font-weight:700; }
@@ -70,24 +72,24 @@
 <div class="page-header">
     <div>
         <h2>{{ $course }} Section Timetables</h2>
-        <p>Each section has its own complete schedule table. Edit a specific class entry or delete the section's entire schedule.</p>
+        <p>Each section includes its Major classes and GEC-created Minor classes. Only Major schedules can be edited or deleted here.</p>
     </div>
     <div class="timetable-header-actions">
         <a class="button" href="{{ route('dean.schedules.create') }}">Generate Schedule</a>
         <form id="sendSchedulesToGecForm" method="POST" action="{{ route('dean.timetable.send-to-gec') }}">
             @csrf
-            <button id="openSendSchedulesToGecConfirmation" type="button" class="button button-secondary" @disabled($filteredScheduleCount === 0)>Send to GEC</button>
+            <button id="openSendSchedulesToGecConfirmation" type="button" class="button button-secondary" @disabled($majorScheduleCount === 0)>Send to GEC</button>
         </form>
         <button
             type="button"
             class="button button-danger delete-confirmation-trigger"
             data-delete-url="{{ route('dean.timetable.destroy-all', request()->only(['section_id', 'year_level', 'academic_year', 'semester', 'day'])) }}"
-            data-delete-name="{{ $filteredScheduleCount }} matching class {{ Str::plural('entry', $filteredScheduleCount) }} in {{ $course }}"
-            data-delete-title="Delete All Schedules?"
-            data-delete-message="All schedules matching the current timetable filters will be moved to Archive. They can still be restored later."
-            data-delete-confirm-label="Delete All Schedules"
-            @disabled($filteredScheduleCount === 0)
-        >Delete All Schedules</button>
+            data-delete-name="{{ $majorScheduleCount }} matching Major class {{ Str::plural('entry', $majorScheduleCount) }} in {{ $course }}"
+            data-delete-title="Delete All Major Schedules?"
+            data-delete-message="Only Major schedules matching the current timetable filters will be moved to Archive. GEC-created Minor schedules will remain protected."
+            data-delete-confirm-label="Delete All Major Schedules"
+            @disabled($majorScheduleCount === 0)
+        >Delete All Major Schedules</button>
     </div>
 </div>
 
@@ -146,6 +148,7 @@
     <div class="timetable-list">
         @foreach($sectionPages as $section)
             @php($sectionSchedules = $schedulesBySection->get($section->id, collect()))
+            @php($hasMajorSchedules = $majorScheduleSectionIds->contains($section->id))
             <section class="card section-schedule" data-section-card>
                 <header class="section-schedule-header">
                     <div class="section-schedule-title">
@@ -156,14 +159,16 @@
                         </div>
                     </div>
                     <div class="section-schedule-controls">
-                        <button type="button" class="button button-secondary mode-button" data-selection-mode="edit">Edit Schedule</button>
+                        @if($hasMajorSchedules)
+                        <button type="button" class="button button-secondary mode-button" data-selection-mode="edit">Edit Major Schedule</button>
                         <button
                             type="button"
                             class="button button-danger delete-confirmation-trigger"
                             data-delete-url="{{ route('dean.timetable.sections.destroy', $section) }}"
-                            data-delete-name="{{ $section->name }} — entire section schedule"
-                        >Delete Schedule</button>
+                            data-delete-name="{{ $section->name }} Major class schedules"
+                        >Delete Major Schedules</button>
                         <button type="button" class="button button-secondary cancel-selection">Cancel Selection</button>
+                        @endif
                     </div>
                 </header>
 
@@ -198,16 +203,24 @@
                         </thead>
                         <tbody>
                             @foreach($sectionSchedules as $schedule)
+                                @php($isGecMinor = strcasecmp((string) $schedule->subject?->classification, 'Minor') === 0)
                                 <tr>
                                     <td>{{ date('g:i A', strtotime($schedule->start_time)) }} &ndash; {{ date('g:i A', strtotime($schedule->end_time)) }}</td>
                                     <td><strong>{{ $schedule->day }}</strong></td>
-                                    <td><strong>{{ $schedule->subject?->code }}</strong></td>
+                                    <td>
+                                        <strong>{{ $schedule->subject?->code }}</strong>
+                                        @if($isGecMinor)<span class="schedule-source-badge">GEC Minor</span>@endif
+                                    </td>
                                     <td>{{ $schedule->subject?->name }}</td>
                                     <td>{{ number_format((float) $schedule->subject?->units, 0) }}</td>
                                     <td>{{ $schedule->room?->name ?? 'TBA' }}</td>
                                     <td>{{ $schedule->instructor?->name }}</td>
                                     <td class="selection-column">
-                                        <a class="button button-secondary entry-action edit-entry-action" href="{{ route('dean.timetable.index', array_merge(request()->query(), ['edit' => $schedule->id])) }}#scheduleEditModal">Choose</a>
+                                        @if($isGecMinor)
+                                            <span class="gec-managed-entry">Managed by GEC</span>
+                                        @else
+                                            <a class="button button-secondary entry-action edit-entry-action" href="{{ route('dean.timetable.index', array_merge(request()->query(), ['edit' => $schedule->id])) }}#scheduleEditModal">Choose</a>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -222,9 +235,9 @@
 @endif
 
 @include('dean.partials.delete-confirmation', [
-    'title' => 'Delete Section Schedule?',
-    'message' => 'Every class schedule entry for this section will be moved to the archive and can be restored later.',
-    'confirmLabel' => 'Delete Schedule',
+    'title' => 'Delete Major Schedules for This Section?',
+    'message' => 'Only Major class schedule entries for this section will be moved to the archive and can be restored later. GEC Minor schedules will remain protected.',
+    'confirmLabel' => 'Delete Major Schedules',
 ])
 @endsection
 
@@ -324,7 +337,7 @@
             card.querySelectorAll('[data-selection-mode]').forEach(button => {
                 button.addEventListener('click', () => {
                     card.dataset.mode = 'edit';
-                    message.textContent = 'Which class entry do you want to edit?';
+                    message.textContent = 'Which Major class entry do you want to edit? GEC Minor schedules are read-only here.';
                 });
             });
 

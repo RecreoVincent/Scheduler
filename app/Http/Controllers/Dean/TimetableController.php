@@ -25,24 +25,30 @@ class TimetableController extends DeanController
     {
         $course = $this->course($request);
         $enabledSemesters = $this->enabledSemesters($request);
-        $query = ClassSchedule::query()
+        $baseQuery = ClassSchedule::query()
             ->forDepartment($course)
-            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'))
             ->whereIn('semester', $enabledSemesters);
 
         foreach (['section_id', 'academic_year', 'semester', 'day'] as $filter) {
             if ($request->filled($filter)) {
-                $query->where($filter, $request->input($filter));
+                $baseQuery->where($filter, $request->input($filter));
             }
         }
 
         if ($request->filled('year_level')) {
-            $query->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('year_level', (int) $request->input('year_level')));
+            $baseQuery->whereHas('section', fn ($sectionQuery) => $sectionQuery->where('year_level', (int) $request->input('year_level')));
         }
 
+        $query = (clone $baseQuery)
+            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->whereIn('classification', ['Major', 'Minor']));
+        $majorScheduleQuery = (clone $baseQuery)
+            ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Major'));
+
         $filteredScheduleCount = (clone $query)->count();
+        $majorScheduleCount = (clone $majorScheduleQuery)->count();
 
         $scheduledSectionIds = (clone $query)->distinct()->pluck('section_id');
+        $majorScheduleSectionIds = (clone $majorScheduleQuery)->distinct()->pluck('section_id');
         $sectionPages = AcademicSection::query()
             ->forDepartment($course)
             ->whereIn('id', $scheduledSectionIds)
@@ -78,7 +84,20 @@ class TimetableController extends DeanController
 
         $scheduleHandoffs = ScheduleHandoff::forDepartment($course)->orderByDesc('majors_sent_at')->get();
 
-        return view('dean.timetable.index', compact('course', 'sectionPages', 'schedulesBySection', 'sections', 'filteredScheduleCount', 'enabledSemesters', 'rooms', 'instructors', 'editingSchedule', 'scheduleHandoffs'));
+        return view('dean.timetable.index', compact(
+            'course',
+            'sectionPages',
+            'schedulesBySection',
+            'sections',
+            'filteredScheduleCount',
+            'majorScheduleCount',
+            'majorScheduleSectionIds',
+            'enabledSemesters',
+            'rooms',
+            'instructors',
+            'editingSchedule',
+            'scheduleHandoffs',
+        ));
     }
 
     public function sendToGec(Request $request): RedirectResponse
