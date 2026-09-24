@@ -1604,7 +1604,7 @@ class DeanPortalTest extends TestCase
     public function test_dean_can_generate_schedules_for_all_available_year_levels(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
-        User::factory()->count(2)->create([
+        User::factory()->count(3)->create([
             'role' => 'instructor',
             'course' => 'BSIT',
             'employment_type' => null,
@@ -1683,7 +1683,7 @@ class DeanPortalTest extends TestCase
     public function test_bsit_major_schedules_use_tba_after_laboratory_slots_are_full(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
-        User::factory()->count(2)->create([
+        User::factory()->count(3)->create([
             'role' => 'instructor',
             'course' => 'BSIT',
             'employment_type' => null,
@@ -1721,10 +1721,11 @@ class DeanPortalTest extends TestCase
             'number_of_sections' => 2,
         ])->assertRedirect()->assertSessionHas('success');
 
-        // One lab room now provides 3 fixed slots x 3 day pairs = 9 weekly
-        // room periods, one short of the 10 Laboratory classes requested.
-        $this->assertSame(9, ClassSchedule::whereNotNull('room_id')->count());
-        $this->assertSame(1, ClassSchedule::whereNull('room_id')->count());
+        // The selected coverage section uses all three day pairs. The other
+        // Year 2 section uses weekday pairs, leaving only two real weekday
+        // Lab slots after the coverage section is scheduled.
+        $this->assertSame(7, ClassSchedule::whereNotNull('room_id')->count());
+        $this->assertSame(3, ClassSchedule::whereNull('room_id')->count());
     }
 
     public function test_priority_laboratory_subjects_receive_rooms_before_non_priority_laboratories(): void
@@ -1973,7 +1974,7 @@ class DeanPortalTest extends TestCase
         $this->assertSame('16:30', substr($fourthYearSchedule->start_time, 0, 5));
     }
 
-    public function test_first_year_generation_rolls_back_when_monday_to_saturday_cannot_be_covered(): void
+    public function test_lower_year_generation_does_not_require_monday_to_saturday_when_no_section_has_three_subjects(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
         User::factory()->create([
@@ -1994,10 +1995,62 @@ class DeanPortalTest extends TestCase
             'academic_year' => '2026-2027', 'semester' => '1st', 'year_level' => 1,
             'number_of_sections' => 1,
         ])->assertRedirect()
-            ->assertSessionHas('error')
-            ->assertSessionHas('error_note', fn (string $note): bool => str_contains($note, 'M–W, T–Th, and F–S'));
+            ->assertSessionHas('success');
 
-        $this->assertDatabaseCount('class_schedules', 0);
+        $this->assertDatabaseCount('class_schedules', 1);
+    }
+
+    public function test_only_one_eligible_lower_year_section_is_scheduled_from_monday_to_saturday(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        User::factory()->count(3)->create([
+            'role' => 'instructor',
+            'course' => 'BSIT',
+            'employment_type' => null,
+            'account_status' => 'active',
+        ]);
+        Room::create(['course' => 'BSIT', 'name' => 'Room 101', 'room_type' => 'Lecture']);
+        $sections = collect(['1 - Alpha', '1 - Bravo', '1 - Charlie'])->map(
+            fn (string $name): AcademicSection => AcademicSection::create([
+                'course' => 'BSIT',
+                'name' => $name,
+                'year_level' => 1,
+                'academic_year' => '2026-2027',
+                'semester' => 'All',
+            ]),
+        );
+
+        foreach (range(1, 3) as $number) {
+            Subject::create([
+                'course' => 'BSIT',
+                'code' => "ITE {$number}",
+                'name' => "Coverage Subject {$number}",
+                'subject_type' => 'Lecture',
+                'classification' => 'Major',
+                'year_level' => 1,
+                'semester' => '1st',
+                'units' => 3,
+            ]);
+        }
+
+        $this->actingAs($dean)->post(route('dean.schedules.store'), [
+            'academic_year' => '2026-2027',
+            'semester' => '1st',
+            'year_level' => 1,
+            'number_of_sections' => 3,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $daysForSection = fn (AcademicSection $section): array => ClassSchedule::query()
+            ->where('section_id', $section->id)
+            ->pluck('day')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(['F - S', 'M - W', 'T - Th'], $daysForSection($sections[0]));
+        $this->assertNotContains('F - S', $daysForSection($sections[1]));
+        $this->assertNotContains('F - S', $daysForSection($sections[2]));
     }
 
     public function test_schedule_failure_note_identifies_the_specific_instructor_conflict(): void

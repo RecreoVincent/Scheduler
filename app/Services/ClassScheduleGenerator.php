@@ -118,6 +118,10 @@ class ClassScheduleGenerator
                     $this->randomRank($seed, 'section', $section->id),
                 ))
                 ->values();
+            // Only one eligible lower-year section needs a Monday-to-Saturday
+            // timetable. The remaining Year 1 and Year 2 sections are kept
+            // on weekday patterns where possible.
+            $mondayToSaturdayCoverageSectionId = $this->mondayToSaturdayCoverageSectionId($sections, $subjects);
 
             $schedulesToReplace = ClassSchedule::forDepartment($course)
                 ->whereIn('section_id', $sections->pluck('id'))
@@ -193,6 +197,12 @@ class ClassScheduleGenerator
 
                     foreach ($phaseSubjects as $subject) {
                         $subjectWorkloadHours = $this->workloadHoursForSubject($subject);
+                        $isMondayToSaturdayCoverageSection = $section->id === $mondayToSaturdayCoverageSectionId;
+                        $sectionDayPatterns = $this->dayPatternsForSection(
+                            $section,
+                            $subject,
+                            $isMondayToSaturdayCoverageSection,
+                        );
                         // Try only the room type required by the subject. TBA
                         // is used only when no compatible room is available.
                         $matchingRooms = $rooms
@@ -234,27 +244,25 @@ class ClassScheduleGenerator
                         }
 
                         $allowTbaFallback = $this->subjectCanUseTba($course, $subject);
-                        // First Year sections have a hard requirement to cover
-                        // every meeting pattern, so for them a still-needed
-                        // pattern filled via TBA beats a real room in a
-                        // pattern the section already has. Other year levels
-                        // have no such requirement, so they keep maximizing
-                        // real room usage first and only fall back to TBA
-                        // when nothing else works at all.
-                        $prioritizeSectionPattern = $allowTbaFallback && (int) $section->year_level === 1;
+                        // The selected lower-year coverage section must use
+                        // all three patterns. A still-needed pattern filled
+                        // via TBA therefore beats an already-covered pattern
+                        // with a real room. Other sections keep maximizing
+                        // real room usage on their available day patterns.
+                        $prioritizeSectionPattern = $allowTbaFallback && $isMondayToSaturdayCoverageSection;
 
                         if ($prioritizeSectionPattern) {
                             $diagnosticRooms = $matchingRooms->concat([null]);
-                            $assignment = $this->findAssignment($section, $subject, $candidates, $matchingRooms, $dayPatternLoads, true);
+                            $assignment = $this->findAssignment($section, $subject, $candidates, $matchingRooms, $dayPatternLoads, true, $sectionDayPatterns);
                         } else {
                             $diagnosticRooms = $matchingRooms;
                             $assignment = $matchingRooms->isEmpty()
                                 ? null
-                                : $this->findAssignment($section, $subject, $candidates, $matchingRooms, $dayPatternLoads);
+                                : $this->findAssignment($section, $subject, $candidates, $matchingRooms, $dayPatternLoads, false, $sectionDayPatterns);
 
                             if ($assignment === null && $allowTbaFallback) {
                                 $diagnosticRooms = collect([null]);
-                                $assignment = $this->findAssignment($section, $subject, $candidates, $diagnosticRooms, $dayPatternLoads);
+                                $assignment = $this->findAssignment($section, $subject, $candidates, $diagnosticRooms, $dayPatternLoads, false, $sectionDayPatterns);
                             }
                         }
 
@@ -266,6 +274,7 @@ class ClassScheduleGenerator
                                     $subject,
                                     $candidates,
                                     $diagnosticRooms,
+                                    $sectionDayPatterns,
                                 ),
                             );
                         }
@@ -307,11 +316,13 @@ class ClassScheduleGenerator
                 throw $this->workloadCapacityShortageException($workloadShortages);
             }
 
-            if (! $partialSubjectGeneration) {
-                foreach ($sections as $section) {
-                    $this->ensureFirstYearCoversAllDays(
-                        $section,
-                        $sectionPlans->get($section->id)['day_pattern_loads'],
+            if (! $partialSubjectGeneration && $mondayToSaturdayCoverageSectionId !== null) {
+                $coverageSection = $sections->firstWhere('id', $mondayToSaturdayCoverageSectionId);
+
+                if ($coverageSection !== null) {
+                    $this->ensureCoverageSectionCoversAllDays(
+                        $coverageSection,
+                        $sectionPlans->get($coverageSection->id)['day_pattern_loads'],
                     );
                 }
             }
@@ -545,31 +556,41 @@ class ClassScheduleGenerator
     }
 
     /** @param array<string, int> $dayPatternLoads */
-    private function ensureFirstYearCoversAllDays(AcademicSection $section, array $dayPatternLoads): void
+    private function ensureCoverageSectionCoversAllDays(AcademicSection $section, array $dayPatternLoads): void
     {
-        if ((int) $section->year_level !== 1) {
-            return;
-        }
-
         $missingPatterns = collect($dayPatternLoads)
             ->filter(fn (int $count): bool => $count === 0)
             ->keys()
             ->all();
 
         if ($missingPatterns !== []) {
-            throw new \RuntimeException("{$section->name} is a First Year section and must have classes from Monday to Saturday. Missing meeting pattern(s): ".implode(', ', $missingPatterns).'.');
+            throw new \RuntimeException(
+                "{$section->name} is the selected Year {$section->year_level} coverage section and must have classes from Monday to Saturday. Missing meeting pattern(s): ".implode(', ', $missingPatterns).'.',
+            );
         }
     }
 
     /**
      * @return array{instructor:User, room:Room|null, day:string, start:string, end:string}|null
      */
-    private function findAssignment(AcademicSection $section, Subject $subject, Collection $candidates, Collection $rooms, array $dayPatternLoads, bool $allowTbaFallback = false): ?array
+    private function findAssignment(
+        AcademicSection $section,
+        Subject $subject,
+        Collection $candidates,
+        Collection $rooms,
+        array $dayPatternLoads,
+        bool $prioritizeMissingPatterns = false,
+        ?array $allowedPatterns = null,
+    ): ?array
     {
-        $balancedPatterns = $this->balancedDayPatterns($section, $subject, $dayPatternLoads);
+        $balancedPatterns = $this->balancedDayPatterns(
+            $section,
+            $dayPatternLoads,
+            $allowedPatterns ?? $this->allowedDayPatterns($subject),
+        );
 
         // When a still-needed pattern must win out over an already-covered
-        // one (First Year pattern completion), the pattern has to be the
+        // one (coverage-section pattern completion), the pattern has to be the
         // outermost loop: every candidate instructor needs a chance at the
         // needed pattern before any instructor is allowed to settle for an
         // already-covered one. Looping instructor-first would let the first
@@ -577,13 +598,13 @@ class ClassScheduleGenerator
         // fall back to an already-covered pattern for that same instructor,
         // even when a later candidate still had room in the needed pattern —
         // occasionally starving the section of that pattern entirely.
-        [$outer, $inner] = $allowTbaFallback
+        [$outer, $inner] = $prioritizeMissingPatterns
             ? [$balancedPatterns, $candidates]
             : [$candidates, $balancedPatterns];
 
         foreach ($outer as $outerItem) {
             foreach ($inner as $innerItem) {
-                [$instructor, $day] = $allowTbaFallback ? [$innerItem, $outerItem] : [$outerItem, $innerItem];
+                [$instructor, $day] = $prioritizeMissingPatterns ? [$innerItem, $outerItem] : [$outerItem, $innerItem];
 
                 foreach ($this->timeSlotsFor($section->course, $section, $subject) as [$start, $end]) {
                     if (! $this->instructorIsAvailable($instructor, $day, $start)) {
@@ -593,7 +614,7 @@ class ClassScheduleGenerator
                     // Exhaust real rooms for this (instructor, pattern, time)
                     // combination before moving on, but don't let that search
                     // spill into a less-needed pattern before TBA is tried
-                    // here first — a First Year section still missing F - S
+                    // here first — a coverage section still missing F - S
                     // must not settle for a real room in an already-covered
                     // pattern while F - S could still be filled via TBA.
                     foreach ($rooms as $room) {
@@ -602,7 +623,7 @@ class ClassScheduleGenerator
                         }
                     }
 
-                    if ($allowTbaFallback && $this->slotIsAvailable($section->id, $instructor->id, null, $day, $start, $end)) {
+                    if ($prioritizeMissingPatterns && $this->slotIsAvailable($section->id, $instructor->id, null, $day, $start, $end)) {
                         $room = null;
 
                         return compact('instructor', 'room', 'day', 'start', 'end');
@@ -619,8 +640,9 @@ class ClassScheduleGenerator
         Subject $subject,
         Collection $candidates,
         Collection $rooms,
+        array $allowedPatterns,
     ): string {
-        $patterns = $this->allowedDayPatterns($subject);
+        $patterns = $allowedPatterns;
         $patternLabel = implode(' or ', $patterns);
         $duration = $this->meetingDurationLabel($subject);
         $requirement = "{$subject->code} is a {$subject->classification} {$subject->subject_type} subject. It requires {$duration} on {$patternLabel}.";
@@ -737,46 +759,55 @@ class ClassScheduleGenerator
         return $this->isMinor($subject) ? self::MINOR_DAY_PATTERNS : self::MAJOR_DAY_PATTERNS;
     }
 
-    /** @param array<string, int> $dayPatternLoads */
-    private function balancedDayPatterns(AcademicSection $section, Subject $subject, array $dayPatternLoads): Collection
+    /**
+     * Select one Year 1 or Year 2 section that has enough subjects to cover
+     * all three day patterns. Every other lower-year section is scheduled on
+     * weekdays where possible.
+     *
+     * @param Collection<int, AcademicSection> $sections
+     * @param Collection<int, Subject> $subjects
+     */
+    private function mondayToSaturdayCoverageSectionId(Collection $sections, Collection $subjects): ?int
     {
-        $patterns = collect($this->allowedDayPatterns($subject));
+        $coverageSection = $sections
+            ->filter(fn (AcademicSection $section): bool => in_array((int) $section->year_level, [1, 2], true))
+            ->filter(fn (AcademicSection $section): bool => $subjects
+                ->where('year_level', $section->year_level)
+                ->count() >= count(ClassSchedule::DAY_PATTERNS))
+            ->sortBy(
+                fn (AcademicSection $section): string => sprintf('%02d-%s', $section->year_level, $section->name),
+                SORT_NATURAL | SORT_FLAG_CASE,
+            )
+            ->first();
 
-        if (! $this->isMinor($subject)) {
-            // sortBy() is stable, so ties (e.g. every pattern still at 0 for a
-            // section's first subject) always resolved in fixed array order,
-            // meaning F - S — always last in MAJOR_DAY_PATTERNS — was
-            // systematically the last pattern offered whenever another
-            // section's assignment fell back onto an already-used pattern.
-            // Rotating the tie-break order per section spreads that risk
-            // evenly across all three patterns instead of always starving
-            // the same one.
-            $rotation = $patterns->count() > 0 ? $section->id % $patterns->count() : 0;
-            $rotatedPatterns = $patterns->slice($rotation)->concat($patterns->slice(0, $rotation))->values();
+        return $coverageSection?->id;
+    }
 
-            return $rotatedPatterns->sortBy(fn (string $pattern): int => $dayPatternLoads[$pattern] ?? 0)->values();
+    /** @return array<int, string> */
+    private function dayPatternsForSection(
+        AcademicSection $section,
+        Subject $subject,
+        bool $isMondayToSaturdayCoverageSection,
+    ): array {
+        $subjectPatterns = $this->allowedDayPatterns($subject);
+
+        if ($isMondayToSaturdayCoverageSection || ! in_array((int) $section->year_level, [1, 2], true)) {
+            return $subjectPatterns;
         }
 
-        if ((int) $section->year_level === 1 && ($dayPatternLoads['F - S'] ?? 0) === 0) {
-            return collect(['F - S'])
-                ->concat(collect(self::WEEKDAY_DAY_PATTERNS)->sortBy(fn (string $pattern): int => $dayPatternLoads[$pattern] ?? 0))
-                ->values();
-        }
+        return array_values(array_intersect($subjectPatterns, self::WEEKDAY_DAY_PATTERNS));
+    }
 
-        $underfilledWeekdays = collect(self::WEEKDAY_DAY_PATTERNS)
-            ->filter(fn (string $pattern): bool => ($dayPatternLoads[$pattern] ?? 0) <= 2)
+    /** @param array<string, int> $dayPatternLoads */
+    private function balancedDayPatterns(AcademicSection $section, array $dayPatternLoads, array $allowedPatterns): Collection
+    {
+        $patterns = collect($allowedPatterns)->values();
+        $rotation = $patterns->count() > 0 ? $section->id % $patterns->count() : 0;
+        $rotatedPatterns = $patterns->slice($rotation)->concat($patterns->slice(0, $rotation))->values();
+
+        return $rotatedPatterns
             ->sortBy(fn (string $pattern): int => $dayPatternLoads[$pattern] ?? 0)
             ->values();
-
-        if ($underfilledWeekdays->isNotEmpty()) {
-            return $underfilledWeekdays
-                ->concat(['F - S'])
-                ->concat(collect(self::WEEKDAY_DAY_PATTERNS)->diff($underfilledWeekdays))
-                ->unique()
-                ->values();
-        }
-
-        return $patterns->sortBy(fn (string $pattern): int => $dayPatternLoads[$pattern] ?? 0)->values();
     }
 
     /** @return array<int, array{0:string, 1:string}> */
