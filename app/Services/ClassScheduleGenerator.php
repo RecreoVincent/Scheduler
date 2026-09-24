@@ -144,6 +144,7 @@ class ClassScheduleGenerator
             $workloads = $this->workloadsFromSchedules($periodSchedules);
             $created = 0;
             $assignedInstructorIds = collect();
+            $workloadShortages = [];
             $sectionIndexesByYear = [];
             $sectionPlans = collect();
 
@@ -218,16 +219,24 @@ class ClassScheduleGenerator
                         $candidates = $candidates->values();
 
                         if ($candidates->isEmpty()) {
-                            $loadDetails = $instructorPool->map(function (User $instructor) use ($workloads): string {
-                                $currentHours = $workloads[$instructor->id] ?? 0.0;
+                            $shortageKey = (string) $subject->id;
+                            $workloadShortages[$shortageKey] ??= [
+                                'code' => (string) $subject->code,
+                                'name' => (string) $subject->name,
+                                'hours' => $subjectWorkloadHours,
+                                'sections' => [],
+                                'instructors' => $instructorPool->map(function (User $instructor) use ($workloads): string {
+                                    $currentHours = $workloads[$instructor->id] ?? 0.0;
 
-                                return "{$instructor->name}: {$currentHours}/{$this->targetWorkloadHours($instructor)} workload hours";
-                            })->join('; ');
+                                    return "{$instructor->name}: {$currentHours}/{$this->targetWorkloadHours($instructor)} hours";
+                                })->all(),
+                            ];
+                            $workloadShortages[$shortageKey]['sections'][] = (string) $section->name;
 
-                            throw new ScheduleGenerationException(
-                                "No assigned instructor has enough workload capacity for {$subject->code}.",
-                                "{$subject->code} needs {$subjectWorkloadHours} more workload hours. Current assigned-instructor loads: {$loadDetails}. Assign an instructor whose remaining capacity can accommodate this subject.",
-                            );
+                            // Keep checking the remaining subjects so one
+                            // schedule attempt produces one complete capacity
+                            // warning instead of a separate warning per subject.
+                            continue;
                         }
 
                         $allowTbaFallback = $this->subjectCanUseTba($course, $subject);
@@ -298,6 +307,10 @@ class ClassScheduleGenerator
                     $plan['day_pattern_loads'] = $dayPatternLoads;
                     $sectionPlans->put($section->id, $plan);
                 }
+            }
+
+            if ($workloadShortages !== []) {
+                throw $this->workloadCapacityShortageException($workloadShortages);
             }
 
             if (! $partialSubjectGeneration) {
@@ -491,6 +504,42 @@ class ClassScheduleGenerator
     private function canAcceptWorkloadHours(User $instructor, float $hours, array $workloads): bool
     {
         return ($workloads[$instructor->id] ?? 0.0) + $hours <= $this->targetWorkloadHours($instructor);
+    }
+
+    /**
+     * @param array<string, array{code:string, name:string, hours:float, sections:array<int, string>, instructors:array<int, string>}> $shortages
+     */
+    private function workloadCapacityShortageException(array $shortages): ScheduleGenerationException
+    {
+        $affectedSubjects = collect($shortages)->map(function (array $shortage): string {
+            $sectionCount = count($shortage['sections']);
+            $sectionLabel = $sectionCount === 1 ? 'section' : 'sections';
+            $hours = $this->formatWorkloadHours($shortage['hours']);
+
+            return "{$shortage['code']} ({$sectionCount} {$sectionLabel} × {$hours} hours)";
+        })->values();
+
+        $requiredHours = collect($shortages)->sum(
+            fn (array $shortage): float => count($shortage['sections']) * $shortage['hours'],
+        );
+        $instructorLoads = collect($shortages)
+            ->flatMap(fn (array $shortage): array => $shortage['instructors'])
+            ->unique()
+            ->values()
+            ->join('; ');
+
+        return new ScheduleGenerationException(
+            'Instructor workload capacity is insufficient for '.$affectedSubjects->join(', ').'.',
+            'The listed subject schedules require '.$this->formatWorkloadHours((float) $requiredHours)
+                .' workload hours, but their assigned priority instructors have no remaining capacity. '
+                .($instructorLoads !== '' ? "Current loads: {$instructorLoads}. " : '')
+                .'No schedules were changed. Add or reorder priority instructors with remaining hours, or adjust the workload-hour limit before trying again.',
+        );
+    }
+
+    private function formatWorkloadHours(float $hours): string
+    {
+        return number_format($hours, floor($hours) === $hours ? 0 : 1);
     }
 
     private function ensureCompletedWorkloadsAreValid(Collection $instructorIds, array $workloads): void

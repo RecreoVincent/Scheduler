@@ -517,6 +517,9 @@ class DeanPortalTest extends TestCase
             $this->assertStringContainsString('VILLARINO', $worksheet);
             $this->assertStringContainsString('ITE 221', $worksheet);
             $this->assertStringContainsString('DATA STRUCTURES AND ALGORITHMS', $worksheet);
+            $this->assertStringContainsString('<c r="G13" s="13"><v>2</v></c>', $worksheet);
+            $this->assertStringContainsString('<c r="H13" s="13"><v>1</v></c>', $worksheet);
+            $this->assertStringContainsString('<c r="I13" s="13"><v>5</v></c>', $worksheet);
             $this->assertStringContainsString('<c r="J13" s="13"><v>5</v></c>', $worksheet);
             $this->assertStringContainsString('BSIT-2EAST', $worksheet);
             $this->assertStringContainsString('IT-LR2', $worksheet);
@@ -2127,6 +2130,49 @@ class DeanPortalTest extends TestCase
             'number_of_sections' => 1,
         ])->assertRedirect()->assertSessionHas('error');
 
+        $this->assertDatabaseCount('class_schedules', 0);
+    }
+
+    public function test_schedule_generation_reports_all_workload_shortages_in_one_warning(): void
+    {
+        $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
+        $instructor = User::factory()->create([
+            'role' => 'instructor',
+            'course' => 'BSIT',
+            'employment_type' => 'full_time',
+            'account_status' => 'active',
+            'teaching_unit_limit' => 3,
+        ]);
+        Room::create(['course' => 'BSIT', 'name' => 'Room 101', 'room_type' => 'Lecture']);
+        AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - North', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+
+        foreach (range(1, 3) as $number) {
+            $subject = Subject::create([
+                'course' => 'BSIT',
+                'code' => "ITE {$number}",
+                'name' => "Capacity Subject {$number}",
+                'subject_type' => 'Lecture',
+                'classification' => 'Major',
+                'year_level' => 1,
+                'semester' => '1st',
+                'units' => 3,
+            ]);
+            $subject->instructors()->attach($instructor->id, ['priority' => 1]);
+        }
+
+        $this->actingAs($dean)->post(route('dean.schedules.store'), [
+            'academic_year' => '2026-2027',
+            'semester' => '1st',
+            'year_level' => 1,
+            'number_of_sections' => 1,
+        ])->assertRedirect()
+            ->assertSessionHas('error', fn (string $message): bool => str_contains($message, 'Instructor workload capacity is insufficient'))
+            ->assertSessionHas('error_note', fn (string $note): bool => str_contains($note, 'No schedules were changed.'));
+
+        $this->assertSame(2, substr_count((string) session('error'), '1 section × 3 hours'));
         $this->assertDatabaseCount('class_schedules', 0);
     }
 

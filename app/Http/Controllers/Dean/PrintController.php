@@ -206,7 +206,7 @@ class PrintController extends DeanController
             return $periods->map(function ($periodSchedules) use ($instructor, $defaultPeriod): array {
                 $first = $periodSchedules->first() ?? $defaultPeriod;
                 $totalUnits = (float) $periodSchedules->sum(
-                    fn (ClassSchedule $schedule): float => (float) ($schedule->subject?->units ?? 0),
+                    fn (ClassSchedule $schedule): float => FacultyLoadWeeklyHours::totalUnitsForSubject($schedule->subject),
                 );
                 $totalHours = (float) $periodSchedules->sum(
                     fn (ClassSchedule $schedule): float => FacultyLoadWeeklyHours::forSubject($schedule->subject),

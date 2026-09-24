@@ -168,9 +168,7 @@ class IndividualFacultyLoadExcelExporter
         $basicStartRow = $rowNumber;
 
         foreach ($schedules as $schedule) {
-            $hours = FacultyLoadWeeklyHours::forSubject($schedule->subject);
-            $units = (float) ($schedule->subject?->units ?? 0);
-            $isLaboratory = strcasecmp((string) $schedule->subject?->subject_type, 'Laboratory') === 0;
+            $load = FacultyLoadWeeklyHours::loadForSubject($schedule->subject);
             $sectionName = $course.'-'.preg_replace('/\s*-\s*/', '', strtoupper((string) $schedule->section?->name));
 
             $rows[] = $this->row($rowNumber, [
@@ -180,10 +178,10 @@ class IndividualFacultyLoadExcelExporter
                 $this->textCell('D'.$rowNumber, date('g:i A', strtotime($schedule->start_time)).'–'.date('g:i A', strtotime($schedule->end_time)), 11),
                 $this->textCell('E'.$rowNumber, $sectionName, 11),
                 $this->textCell('F'.$rowNumber, (string) ($schedule->room?->name ?? 'TBA'), 11),
-                $this->numberCell('G'.$rowNumber, $isLaboratory ? 0 : $units, 13),
-                $this->numberCell('H'.$rowNumber, $isLaboratory ? $units : 0, 13),
-                $this->numberCell('I'.$rowNumber, $units, 13),
-                $this->numberCell('J'.$rowNumber, $hours, 13),
+                $this->numberCell('G'.$rowNumber, $load['lecture_units'], 13),
+                $this->numberCell('H'.$rowNumber, $load['laboratory_units'], 13),
+                $this->numberCell('I'.$rowNumber, $load['total_units'], 13),
+                $this->numberCell('J'.$rowNumber, $load['total_hours'], 13),
             ], 21);
             $rowNumber++;
         }

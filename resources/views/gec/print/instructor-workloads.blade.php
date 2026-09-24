@@ -161,9 +161,7 @@
                         <tbody>
                             @foreach($report['schedules'] as $schedule)
                                 @php
-                                    $units = (float) ($schedule->subject?->units ?? 0);
-                                    $isLaboratory = strcasecmp((string) $schedule->subject?->subject_type, 'Laboratory') === 0;
-                                    $hours = ((strtotime($schedule->end_time) - strtotime($schedule->start_time)) / 3600) * count(\App\Models\ClassSchedule::daysForPattern($schedule->day));
+                                    $load = \App\Services\FacultyLoadWeeklyHours::loadForSubject($schedule->subject);
                                     $sectionName = $course.'-'.preg_replace('/\s*-\s*/', '', strtoupper((string) $schedule->section?->name));
                                 @endphp
                                 <tr>
@@ -173,10 +171,10 @@
                                     <td>{{ date('g:i A', strtotime($schedule->start_time)) }}&ndash;{{ date('g:i A', strtotime($schedule->end_time)) }}</td>
                                     <td>{{ $sectionName }}</td>
                                     <td>{{ $schedule->room?->name ?? 'TBA' }}</td>
-                                    <td>{{ $isLaboratory ? '—' : $formatNumber($units) }}</td>
-                                    <td>{{ $isLaboratory ? $formatNumber($units) : '—' }}</td>
-                                    <td>{{ $formatNumber($units) }}</td>
-                                    <td>{{ $formatNumber($hours) }}</td>
+                                    <td>{{ $formatNumber($load['lecture_units']) }}</td>
+                                    <td>{{ $formatNumber($load['laboratory_units']) }}</td>
+                                    <td>{{ $formatNumber($load['total_units']) }}</td>
+                                    <td>{{ $formatNumber($load['total_hours']) }}</td>
                                 </tr>
                             @endforeach
                             @for($row = $report['schedules']->count(); $row < 5; $row++)
