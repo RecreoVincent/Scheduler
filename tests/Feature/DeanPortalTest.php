@@ -2420,9 +2420,9 @@ class DeanPortalTest extends TestCase
             'curriculum' => 'New',
         ])->assertRedirect(route('dean.subjects.index'));
 
-        // Subjects are created once per semester enabled for the department (all
-        // three by default), so each store() call fans out into multiple rows.
-        $this->assertSame(6, Subject::where('course', 'BSIT')->where('code', 'ITE 111')->count());
+        // A Dean-created subject belongs only to the currently active semester,
+        // so one record is kept for each selected curriculum.
+        $this->assertSame(2, Subject::where('course', 'BSIT')->where('code', 'ITE 111')->count());
 
         $this->actingAs($dean)->post(route('dean.subjects.store'), [
             ...$subjectData,
@@ -2433,7 +2433,7 @@ class DeanPortalTest extends TestCase
         ]);
 
         $this->assertSame(
-            3,
+            1,
             Subject::where('course', 'BSIT')->where('curriculum', 'New')->where('code', 'ITE 111')->count(),
         );
     }

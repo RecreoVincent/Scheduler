@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dean;
 
 use App\Models\ClassSchedule;
 use App\Models\Subject;
+use App\Services\FacultyLoadWeeklyHours;
 use App\Services\SubjectImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -214,6 +215,20 @@ class SubjectController extends DeanController
             ]);
         }
 
+        $this->ensureStandardUnits($validated);
+
         return $validated;
+    }
+
+    /** @param array<string, mixed> $subject */
+    private function ensureStandardUnits(array $subject): void
+    {
+        $requiredUnits = FacultyLoadWeeklyHours::requiredCreditUnits((string) $subject['subject_type']);
+
+        if (abs((float) $subject['units'] - $requiredUnits) > 0.001) {
+            throw ValidationException::withMessages([
+                'units' => "{$subject['subject_type']} subjects must use {$requiredUnits} units.",
+            ]);
+        }
     }
 }

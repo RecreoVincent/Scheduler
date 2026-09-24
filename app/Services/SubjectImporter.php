@@ -120,6 +120,14 @@ class SubjectImporter
                 continue;
             }
 
+            $requiredUnits = FacultyLoadWeeklyHours::requiredCreditUnits((string) $subjectType);
+            if (abs((float) $units - $requiredUnits) > 0.001) {
+                $skipped++;
+                $errors[] = "Row {$rowNumber}: {$subjectType} subjects must use {$requiredUnits} units.";
+
+                continue;
+            }
+
             $duplicate = Subject::query()
                 ->forDepartment($course)
                 ->where('curriculum', $curriculum)

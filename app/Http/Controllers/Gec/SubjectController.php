@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Gec;
 
 use App\Models\ClassSchedule;
 use App\Models\Subject;
+use App\Services\FacultyLoadWeeklyHours;
 use App\Services\SubjectImporter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -176,6 +177,13 @@ class SubjectController extends GecController
         }
 
         $validated['classification'] = 'Minor';
+
+        $requiredUnits = FacultyLoadWeeklyHours::requiredCreditUnits((string) $validated['subject_type']);
+        if (abs((float) $validated['units'] - $requiredUnits) > 0.001) {
+            throw ValidationException::withMessages([
+                'units' => "{$validated['subject_type']} subjects must use {$requiredUnits} units.",
+            ]);
+        }
 
         return $validated;
     }

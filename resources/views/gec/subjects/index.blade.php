@@ -157,7 +157,8 @@
                 </div>
                 <div class="admin-profile-field full">
                     <label for="subject_units">Units</label>
-                    <input id="subject_units" class="input" type="number" step="0.5" min="0.5" max="12" name="units" value="{{ old('units', $editingSubject?->units ?? 3) }}" required>
+                    <input id="subject_units" class="input" type="number" name="units" value="3" readonly required>
+                    <p style="margin-top:5px;color:var(--muted);font-size:10px">General Education Lecture and Laboratory subjects use 3 units.</p>
                     @error('units')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
             </div>

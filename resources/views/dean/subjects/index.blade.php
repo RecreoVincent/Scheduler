@@ -137,7 +137,8 @@
                 </div>
                 <div class="admin-profile-field full">
                     <label for="subject_units">Units</label>
-                    <input id="subject_units" class="input" type="number" step="0.5" min="0.5" max="12" name="units" value="{{ old('units', $editingSubject?->units ?? 3) }}" required>
+                    <input id="subject_units" class="input" type="number" name="units" value="{{ old('units', $editingSubject?->units ?? 3) }}" readonly required>
+                    <p style="margin-top:5px;color:var(--muted);font-size:10px">Lecture and Laboratory use 3 units. Internship uses 6 units.</p>
                     @error('units')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
             </div>
@@ -196,6 +197,12 @@
         const openButton = document.getElementById('openSubjectCreate');
         const closeButtons = [...modal.querySelectorAll('[data-close-subject-create]')];
         const firstInput = document.getElementById('subject_code');
+        const subjectType = document.getElementById('subject_type');
+        const subjectUnits = document.getElementById('subject_units');
+
+        const syncSubjectUnits = () => {
+            subjectUnits.value = subjectType.value === 'Internship' ? '6' : '3';
+        };
 
         function openModal() {
             modal.hidden = false;
@@ -214,9 +221,11 @@
         }
 
         openButton.addEventListener('click', openModal);
+        subjectType.addEventListener('change', syncSubjectUnits);
         closeButtons.forEach(button => button.addEventListener('click', closeModal));
         modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
+        syncSubjectUnits();
 
         @if($errors->hasAny(['code', 'name', 'subject_type', 'year_level', 'curriculum', 'units']) || $editingSubject)
             openModal();

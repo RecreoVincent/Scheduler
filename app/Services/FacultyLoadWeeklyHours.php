@@ -16,21 +16,23 @@ final class FacultyLoadWeeklyHours
         }
 
         $subjectType = strtolower(trim((string) $subject->subject_type));
-        $classification = strtolower(trim((string) $subject->classification));
-
         return match (true) {
             $subjectType === 'internship' => 6.0,
-            $classification === 'major' && $subjectType === 'laboratory' => 5.0,
+            $subjectType === 'laboratory' => 5.0,
             default => 3.0,
         };
+    }
+
+    public static function requiredCreditUnits(string $subjectType): float
+    {
+        return strtolower(trim($subjectType)) === 'internship' ? 6.0 : 3.0;
     }
 
     public static function sqlExpression(string $subjectTable = 'subjects'): string
     {
         return "CASE
             WHEN LOWER(TRIM({$subjectTable}.subject_type)) = 'internship' THEN 6
-            WHEN LOWER(TRIM({$subjectTable}.classification)) = 'major'
-                AND LOWER(TRIM({$subjectTable}.subject_type)) = 'laboratory' THEN 5
+            WHEN LOWER(TRIM({$subjectTable}.subject_type)) = 'laboratory' THEN 5
             ELSE 3
         END";
     }

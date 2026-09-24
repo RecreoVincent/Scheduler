@@ -30,8 +30,26 @@ class FacultyLoadWeeklyHoursTest extends TestCase
             'major lecture' => ['Major', 'Lecture', 3.0],
             'major laboratory' => ['Major', 'Laboratory', 5.0],
             'minor lecture' => ['Minor', 'Lecture', 3.0],
-            'minor laboratory' => ['Minor', 'Laboratory', 3.0],
+            'minor laboratory' => ['Minor', 'Laboratory', 5.0],
             'internship' => ['Major', 'Internship', 6.0],
+        ];
+    }
+
+    #[DataProvider('requiredCreditUnits')]
+    public function test_it_uses_the_standard_credit_units_for_each_subject_type(
+        string $subjectType,
+        float $expectedUnits,
+    ): void {
+        $this->assertSame($expectedUnits, FacultyLoadWeeklyHours::requiredCreditUnits($subjectType));
+    }
+
+    /** @return array<string, array{string, float}> */
+    public static function requiredCreditUnits(): array
+    {
+        return [
+            'lecture' => ['Lecture', 3.0],
+            'laboratory' => ['Laboratory', 3.0],
+            'internship' => ['Internship', 6.0],
         ];
     }
 }
