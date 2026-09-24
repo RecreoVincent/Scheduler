@@ -30,6 +30,7 @@
     .assignment-actions .button { min-width:100px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }
+    .assignment-page-heading { color:#ec4899; }
     .assignment-filters { grid-template-columns:repeat(4,minmax(0,1fr)) auto; }
     .assignment-filter-submit { align-self:end; white-space:nowrap; }
     @media(max-width:1100px) { .assignment-table { min-width:940px; } }
@@ -56,7 +57,7 @@
         >Remove All Subject Assignments</button>
     </div>
     <div style="order:-1">
-        <h2>Existing Subject Assignments</h2>
+        <h2 class="assignment-page-heading">Existing Subject Assignments</h2>
         <p>Search, filter, and update GEC instructor priorities for a minor subject.</p>
     </div>
 </div>
