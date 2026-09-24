@@ -29,14 +29,19 @@
         const storageKey = 'mccscheduler.table-scroll-position';
 
         const rememberTablePosition = () => {
-            if (!document.querySelector('.portal-pagination-bar')) {
+            const paginationBar = document.querySelector('.portal-pagination-bar');
+
+            if (!paginationBar) {
                 return;
             }
 
             try {
+                const tableTop = window.scrollY + paginationBar.getBoundingClientRect().top;
+
                 sessionStorage.setItem(storageKey, JSON.stringify({
                     path: window.location.pathname,
                     top: window.scrollY,
+                    offsetFromTable: window.scrollY - tableTop,
                 }));
             } catch (_) {
                 // Browsers that block session storage can still use the tables normally.
@@ -61,7 +66,7 @@
             if ((method === 'GET' && updatesTable) || (method !== 'GET' && (isEditingTableRecord || isRecordUpdate))) {
                 rememberTablePosition();
             }
-        });
+        }, true);
 
         document.addEventListener('click', event => {
             const link = event.target.closest('a[href]');
@@ -78,9 +83,16 @@
             if (staysOnCurrentPage && updatesTable) {
                 rememberTablePosition();
             }
-        });
+        }, true);
 
-        window.addEventListener('pageshow', () => {
+        let restoreQueued = false;
+
+        const restoreTablePosition = () => {
+            if (restoreQueued) {
+                return;
+            }
+
+            restoreQueued = true;
             let savedPosition;
 
             try {
@@ -94,9 +106,26 @@
             }
 
             sessionStorage.removeItem(storageKey);
-            window.requestAnimationFrame(() => {
-                window.scrollTo(0, Math.max(0, Number(savedPosition.top) || 0));
-            });
-        });
+            window.setTimeout(() => {
+                const paginationBar = document.querySelector('.portal-pagination-bar');
+                const tableTop = paginationBar
+                    ? window.scrollY + paginationBar.getBoundingClientRect().top
+                    : null;
+                const savedOffset = Number(savedPosition.offsetFromTable);
+                const targetPosition = tableTop !== null && Number.isFinite(savedOffset)
+                    ? tableTop + savedOffset
+                    : Number(savedPosition.top) || 0;
+
+                window.scrollTo(0, Math.max(0, targetPosition));
+            }, 120);
+        };
+
+        if (document.readyState === 'complete') {
+            restoreTablePosition();
+        } else {
+            window.addEventListener('load', restoreTablePosition, { once: true });
+        }
+
+        window.addEventListener('pageshow', restoreTablePosition, { once: true });
     })();
 </script>
