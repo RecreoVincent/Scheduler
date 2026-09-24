@@ -340,16 +340,19 @@
 </div>
 @stack('portal-profile-overlay')
 
-@php $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')&&!old('section_modal')&&!old('subject_modal')&&!old('assignment_modal')&&!old('room_modal')&&!old('instructor_modal')&&!old('instructor_import_modal')&&!old('student_modal')&&!old('student_import_modal')&&!old('section_import_modal')&&!old('subject_import_modal')&&!old('room_import_modal')); @endphp
+@php
+    $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')&&!old('section_modal')&&!old('subject_modal')&&!old('assignment_modal')&&!old('room_modal')&&!old('instructor_modal')&&!old('instructor_import_modal')&&!old('student_modal')&&!old('student_import_modal')&&!old('section_import_modal')&&!old('subject_import_modal')&&!old('room_import_modal'));
+    $isWorkloadCapacityNotice = str_starts_with((string) session('error'), 'Schedule was not created because these classes do not have an instructor');
+@endphp
 @if($hasNotice)
 <div id="deanNotice" class="notice-modal"><section class="notice-dialog" role="dialog" aria-modal="true" aria-labelledby="deanNoticeTitle">
     <div class="notice-icon"><x-icon :name="session()->has('success') ? 'check' : 'warning'" /></div>
-    <h2 id="deanNoticeTitle">{{ session()->has('success') ? 'Success' : 'Action unsuccessful' }}</h2>
+    <h2 id="deanNoticeTitle">{{ session()->has('success') ? 'Success' : ($isWorkloadCapacityNotice ? 'Not enough instructor hours' : 'Action unsuccessful') }}</h2>
     @if(session('success'))<p>{{ session('success') }}</p>@endif
     @if(session('error'))<p>{{ session('error') }}</p>@endif
     @if(session('error_note'))
         <div class="notice-guidance">
-            <strong>What you can do</strong>
+            <strong>{{ $isWorkloadCapacityNotice ? 'How to fix it' : 'What you can do' }}</strong>
             <p>{{ session('error_note') }}</p>
         </div>
     @endif

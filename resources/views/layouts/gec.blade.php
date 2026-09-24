@@ -805,6 +805,7 @@
 @php
     $notificationIsSuccess = session()->has('success');
     $notificationIsError = session()->has('error') || ($errors->any() && ! old('profile_modal'));
+    $isWorkloadCapacityNotice = str_starts_with((string) session('error'), 'Schedule was not created because these classes do not have an instructor');
 @endphp
 
 @if ($notificationIsSuccess || $notificationIsError)
@@ -815,7 +816,7 @@
             </div>
 
             <h2 id="notificationTitle">
-                {{ $notificationIsSuccess ? 'Success' : 'Action unsuccessful' }}
+                {{ $notificationIsSuccess ? 'Success' : ($isWorkloadCapacityNotice ? 'Not enough instructor hours' : 'Action unsuccessful') }}
             </h2>
 
             @if ($notificationIsSuccess)
@@ -826,7 +827,7 @@
 
             @if (session('error_note'))
                 <div class="notification-guidance">
-                    <strong>What you can do</strong>
+                    <strong>{{ $isWorkloadCapacityNotice ? 'How to fix it' : 'What you can do' }}</strong>
                     <p>{{ session('error_note') }}</p>
                 </div>
             @endif

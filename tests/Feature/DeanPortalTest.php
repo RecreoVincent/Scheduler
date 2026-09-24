@@ -2169,10 +2169,10 @@ class DeanPortalTest extends TestCase
             'year_level' => 1,
             'number_of_sections' => 1,
         ])->assertRedirect()
-            ->assertSessionHas('error', fn (string $message): bool => str_contains($message, 'Instructor workload capacity is insufficient'))
-            ->assertSessionHas('error_note', fn (string $note): bool => str_contains($note, 'No schedules were changed.'));
+            ->assertSessionHas('error', fn (string $message): bool => str_contains($message, 'Schedule was not created because these classes do not have an instructor'))
+            ->assertSessionHas('error_note', fn (string $note): bool => str_contains($note, 'Open Subject Assignment.'));
 
-        $this->assertSame(2, substr_count((string) session('error'), '1 section × 3 hours'));
+        $this->assertSame(2, substr_count((string) session('error'), '1 section, 3 hours each'));
         $this->assertDatabaseCount('class_schedules', 0);
     }
 
