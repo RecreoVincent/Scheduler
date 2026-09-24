@@ -30,10 +30,11 @@
     .assignment-actions .button { min-width:100px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }
-    .assignment-filters { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .assignment-filters { grid-template-columns:repeat(4,minmax(0,1fr)) auto; }
+    .assignment-filter-submit { align-self:end; white-space:nowrap; }
     @media(max-width:1100px) { .assignment-table { min-width:940px; } }
     @media(max-width:900px) { .assignment-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media(max-width:560px) { .assignment-filters { grid-template-columns:1fr; } }
+    @media(max-width:560px) { .assignment-filters { grid-template-columns:1fr; } .assignment-filter-submit { width:100%; } }
 </style>
 @endpush
 
@@ -61,7 +62,7 @@
 </div>
 
 <section class="card">
-    <form class="filters assignment-filters" method="GET" data-auto-filter>
+    <form class="filters assignment-filters" method="GET">
         <div class="assignment-search">
             <label for="assignmentSearch">Search subject</label>
             <input
@@ -99,6 +100,7 @@
                 <option value="unassigned" @selected(request('assignment_status') === 'unassigned')>Unassigned</option>
             </select>
         </div>
+        <button class="button assignment-filter-submit" type="submit">Search</button>
     </form>
 
     <div class="table-wrap">
