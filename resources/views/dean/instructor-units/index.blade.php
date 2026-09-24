@@ -43,10 +43,10 @@
 @section('content')
 <div class="page-header">
     <div>
-        <h2>{{ $course }} Instructor Units</h2>
-        <p>Set a fair maximum teaching load for every instructor based on performance and department needs.</p>
+        <h2>{{ $course }} Instructor Workload Hours</h2>
+        <p>Set the maximum workload hours for every instructor based on performance and department needs.</p>
     </div>
-    <button id="openDefaultUnit" class="button button-secondary" type="button">Default Unit</button>
+    <button id="openDefaultUnit" class="button button-secondary" type="button">Default Hour Limit</button>
 </div>
 
 <div class="card" style="margin-bottom:20px">
@@ -81,14 +81,14 @@
         <div>
             <h3>Instructor capacity shortage</h3>
             <p>
-                {{ $semester }} Semester Major subjects require <strong>{{ $formatUnits($capacitySummary['totalSubjectUnits']) }} units</strong>,
-                while the department's active instructors can carry only <strong>{{ $formatUnits($capacitySummary['totalInstructorCapacity']) }} units</strong>.
-                The shortfall is <strong>{{ $formatUnits($capacitySummary['unitShortfall']) }} units</strong>.
+                {{ $semester }} Semester Major subjects require <strong>{{ $formatUnits($capacitySummary['totalSubjectUnits']) }} workload hours</strong>,
+                while the department's active instructors can carry only <strong>{{ $formatUnits($capacitySummary['totalInstructorCapacity']) }} workload hours</strong>.
+                The shortfall is <strong>{{ $formatUnits($capacitySummary['unitShortfall']) }} workload hours</strong>.
                 @if($capacitySummary['recommendedHires'] !== null)
                     Hire at least <strong>{{ $capacitySummary['recommendedHires'] }} additional full-time {{ Str::plural('instructor', $capacitySummary['recommendedHires']) }}</strong>
-                    at the current {{ $capacitySummary['fullTimeCapacity'] }}-unit default, or increase approved capacity before generating schedules.
+                    at the current {{ $capacitySummary['fullTimeCapacity'] }}-hour default, or increase approved capacity before generating schedules.
                 @else
-                    Set a positive full-time unit default, then add enough instructors to cover the shortfall before generating schedules.
+                    Set a positive full-time workload-hour default, then add enough instructors to cover the shortfall before generating schedules.
                 @endif
             </p>
         </div>
@@ -108,8 +108,8 @@
                     <tr>
                         <th>Instructor</th>
                         <th>Employment</th>
-                        <th>Scheduled Units</th>
-                        <th>Unit Limit</th>
+                        <th>Scheduled Hours</th>
+                        <th>Hour Limit</th>
                         <th>Capacity</th>
                         <th>Last Adjustment</th>
                         <th>Action</th>
@@ -140,7 +140,7 @@
                             <td class="unit-capacity">
                                 <strong>{{ number_format(abs($remaining),0) }} {{ $isOver ? 'over limit' : 'available' }}</strong>
                                 <div class="unit-meter {{ $isOver ? 'over' : '' }}"><span style="width:{{ $percentage }}%"></span></div>
-                                <span class="capacity-copy {{ $isOver ? 'over' : '' }}">{{ number_format($usedUnits,0) }} of {{ $unitLimit }} units used</span>
+                                <span class="capacity-copy {{ $isOver ? 'over' : '' }}">{{ number_format($usedUnits,0) }} of {{ $unitLimit }} hours used</span>
                             </td>
                             <td>
                                 @if($instructor->unit_limit_updated_at)
@@ -159,7 +159,7 @@
                                         data-current-units="{{ $usedUnits }}"
                                         data-unit-limit="{{ $unitLimit }}"
                                         data-unit-note="{{ $instructor->unit_limit_note }}"
-                                    >Adjust Units</button>
+                                    >Adjust Hours</button>
                                 </div>
                             </td>
                         </tr>
@@ -176,22 +176,22 @@
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="unitAdjustmentTitle">
         <header class="admin-profile-header">
             <div>
-                <h2 id="unitAdjustmentTitle">Adjust Teaching Units</h2>
+                <h2 id="unitAdjustmentTitle">Adjust Workload Hours</h2>
                 <p id="unitAdjustmentIntro"></p>
             </div>
             <button id="closeUnitAdjustment" class="admin-profile-close" type="button" aria-label="Close unit adjustment form">&times;</button>
         </header>
         <div class="unit-current-summary">
-            <div><span>Currently scheduled</span><strong id="modalScheduledUnits">0 units</strong></div>
-            <div><span>Current limit</span><strong id="modalCurrentLimit">0 units</strong></div>
+            <div><span>Currently scheduled</span><strong id="modalScheduledUnits">0 hours</strong></div>
+            <div><span>Current limit</span><strong id="modalCurrentLimit">0 hours</strong></div>
         </div>
         <form id="unitAdjustmentForm" method="POST">
             @csrf
             @method('PATCH')
             <div class="admin-profile-field">
-                <label for="modalUnitLimit">New teaching-unit limit</label>
+                <label for="modalUnitLimit">New workload-hour limit</label>
                 <input id="modalUnitLimit" class="input" type="number" name="teaching_unit_limit" min="0" max="60" step="1" required>
-                <p style="margin-top:5px;color:var(--muted);font-size:10px">Allowed range: 0 to 60 units.</p>
+                <p style="margin-top:5px;color:var(--muted);font-size:10px">Allowed range: 0 to 60 hours.</p>
             </div>
             <div class="admin-profile-field" style="margin-top:14px">
                 <label for="modalUnitNote">Reason for adjustment</label>
@@ -200,7 +200,7 @@
             <p id="unitLimitWarning" class="unit-warning" hidden>The new limit is below this instructor's current scheduled load. Existing classes will remain, but no additional subjects can be assigned until the load is reduced.</p>
             <footer class="admin-profile-actions">
                 <button id="cancelUnitAdjustment" type="button" class="button button-secondary">Cancel</button>
-                <button id="saveUnitAdjustment" type="submit" class="button">Save Unit Limit</button>
+                <button id="saveUnitAdjustment" type="submit" class="button">Save Hour Limit</button>
             </footer>
         </form>
     </section>
@@ -212,8 +212,8 @@
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="defaultUnitTitle">
         <header class="admin-profile-header">
             <div>
-                <h2 id="defaultUnitTitle">Default Teaching-Unit Limits</h2>
-                <p>Set the {{ $course }} department-wide default limit used for instructors who don't have an individual custom override.</p>
+                <h2 id="defaultUnitTitle">Default Workload-Hour Limits</h2>
+                <p>Set the {{ $course }} department-wide default workload-hour limit used for instructors who don't have an individual custom override.</p>
             </div>
             <button id="closeDefaultUnit" class="admin-profile-close" type="button" aria-label="Close default unit form">&times;</button>
         </header>
@@ -266,8 +266,8 @@
             scheduledUnits=Number(trigger.dataset.currentUnits||0);
             form.action=trigger.dataset.updateUrl;
             document.getElementById('unitAdjustmentIntro').textContent=`Set the maximum teaching load for ${trigger.dataset.instructorName}.`;
-            document.getElementById('modalScheduledUnits').textContent=`${scheduledUnits} units`;
-            document.getElementById('modalCurrentLimit').textContent=`${trigger.dataset.unitLimit} units`;
+            document.getElementById('modalScheduledUnits').textContent=`${scheduledUnits} hours`;
+            document.getElementById('modalCurrentLimit').textContent=`${trigger.dataset.unitLimit} hours`;
             input.value=trigger.dataset.unitLimit;
             note.value=trigger.dataset.unitNote||'';
             updateWarning();

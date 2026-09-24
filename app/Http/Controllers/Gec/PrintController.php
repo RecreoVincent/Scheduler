@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Gec;
 
 use App\Models\ClassSchedule;
 use App\Models\User;
+use App\Services\FacultyLoadWeeklyHours;
 use App\Services\IndividualFacultyLoadExcelExporter;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -190,11 +191,9 @@ class PrintController extends GecController
                 $totalUnits = (float) $periodSchedules->sum(
                     fn (ClassSchedule $schedule): float => (float) ($schedule->subject?->units ?? 0),
                 );
-                $totalHours = (float) $periodSchedules->sum(function (ClassSchedule $schedule): float {
-                    $duration = (strtotime($schedule->end_time) - strtotime($schedule->start_time)) / 3600;
-
-                    return $duration * count(ClassSchedule::daysForPattern($schedule->day));
-                });
+                $totalHours = (float) $periodSchedules->sum(
+                    fn (ClassSchedule $schedule): float => FacultyLoadWeeklyHours::forSubject($schedule->subject),
+                );
 
                 return [
                     'instructor' => $instructor,

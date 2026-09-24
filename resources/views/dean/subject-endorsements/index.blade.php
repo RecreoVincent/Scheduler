@@ -12,6 +12,7 @@
     .endorsement-history-header p { font-size:11px; color:var(--muted); }
     .endorsement-history-card .endorsement-history-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
     .endorsement-history-card .endorsement-history-header .button { flex:0 0 auto; white-space:nowrap; }
+    .endorsement-history-card .button-danger:disabled { color:#9ca3af; background:#f8fafc; border-color:#e5e7eb; cursor:not-allowed; opacity:1; }
     .endorsement-class-list { display:grid; gap:5px; min-width:260px; }
     .endorsement-class-item { padding:7px 9px; font-size:10px; line-height:1.45; color:#51485a; background:#faf8fb; border:1px solid #eee7f1; border-radius:7px; }
     .endorsement-class-item strong { color:var(--navy); }
@@ -21,7 +22,7 @@
     .endorsement-pending-card { order:2; }
     .endorsement-history-card { order:3; }
     @if(auth()->user()?->course === 'BSIT')
-        .page-header h2 { color:#ec4899; }
+        body.dean-department-portal .page-header h2 { color:#ec4899; }
     @endif
     @media(max-width:900px) { .endorsement-form-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
     @media(max-width:600px) { .endorsement-form-grid { grid-template-columns:1fr; } }
@@ -89,22 +90,23 @@
 
 <div class="endorsement-lists">
 <section class="card endorsement-history-card" style="margin-bottom:20px">
+    @php($canClearEndorsementHistory = $historyArchiveSupported && $endorsementHistory->isNotEmpty())
     <div class="endorsement-history-header">
         <div>
             <h3>Endorsement History</h3>
             <p>Completed endorsements are kept here, whether they were sent by your department or received from another department. Each generated class schedule is listed below its endorsement.</p>
         </div>
-        @if($historyArchiveSupported && $endorsementHistory->isNotEmpty())
-            <button
-                type="button"
-                class="button button-danger delete-confirmation-trigger"
-                data-delete-url="{{ route('dean.subject-endorsements.history.destroy') }}"
-                data-delete-name="{{ $endorsementHistory->count() }} completed {{ Str::plural('endorsement', $endorsementHistory->count()) }}"
-                data-delete-title="Delete All Endorsement History?"
-                data-delete-message="This removes completed endorsements only from your department's history. Generated schedules and the other department's history will remain unchanged."
-                data-delete-confirm-label="Delete All History"
-            >Delete All History</button>
-        @endif
+        <button
+            type="button"
+            class="button button-danger delete-confirmation-trigger"
+            data-delete-url="{{ route('dean.subject-endorsements.history.destroy') }}"
+            data-delete-name="{{ $endorsementHistory->count() }} completed {{ Str::plural('endorsement', $endorsementHistory->count()) }}"
+            data-delete-title="Delete All Endorsement History?"
+            data-delete-message="This removes completed endorsements only from your department's history. Generated schedules and the other department's history will remain unchanged."
+            data-delete-confirm-label="Delete All History"
+            title="{{ $historyArchiveSupported ? 'Remove completed endorsements from this department history.' : 'Run the latest database migration before clearing endorsement history.' }}"
+            @disabled(! $canClearEndorsementHistory)
+        >Delete All History</button>
     </div>
     <div class="table-wrap"><table>
         <thead><tr><th>Direction</th><th>Departments</th><th>Subject</th><th>Generated Class Schedules</th><th>Scheduled</th></tr></thead>
@@ -188,7 +190,7 @@
     </table></div>
 </section>
 </div>
-@if($historyArchiveSupported && $endorsementHistory->isNotEmpty())
+@if($canClearEndorsementHistory)
     @include('dean.partials.delete-confirmation', [
         'title' => 'Delete All Endorsement History?',
         'message' => 'This removes completed endorsements only from your department history. Generated schedules will remain unchanged.',

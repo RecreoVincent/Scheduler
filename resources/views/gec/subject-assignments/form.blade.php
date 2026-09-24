@@ -123,8 +123,8 @@
                     <p id="noDepartmentInstructors" class="priority-empty" role="status" aria-live="polite"></p>
                 </div>
                 <div class="priority-explanation">
-                    Priority 1 receives sections first. When that instructor reaches the configured unit limit or has no conflict-free time, the scheduler continues through the selected backup priorities, up to Priority 10. The same instructor cannot occupy two priority positions.
-                    Instructors who cannot accept the selected subject without exceeding their unit limit are hidden.
+                    Priority 1 receives sections first. When that instructor reaches the configured workload-hour limit or has no conflict-free time, the scheduler continues through the selected backup priorities, up to Priority 10. The same instructor cannot occupy two priority positions.
+                    Instructors who cannot accept the selected subject without exceeding their workload-hour limit are hidden.
                     @if($activeAcademicYear) Current generated loads are checked against A.Y. {{ $activeAcademicYear }}. @endif
                 </div>
                 @error('instructor_ids')<div class="error">{{ $message }}</div>@enderror
@@ -197,7 +197,7 @@
         }
 
         function refreshInstructorOptions(){
-            const assignment=assignments[subject.value]??{instructor_ids:[],units:0,semester:semester.value};
+            const assignment=assignments[subject.value]??{instructor_ids:[],workload_hours:0,semester:semester.value};
             const alreadyAssigned=assignment.instructor_ids.map(Number);
             const selectedIds=selectedPriorityIds();
             let availableCount=0;
@@ -211,11 +211,11 @@
                     const subjectUnits=Number(assignedLoads[id]?.[semester.value]??0);
                     const currentUnits=Math.max(scheduledUnits,subjectUnits);
                     const limit=Number(instructorLimits[id]??0);
-                    const hasCapacity=currentUnits+Number(assignment.units||0)<=limit||alreadyAssigned.includes(id);
+                    const hasCapacity=currentUnits+Number(assignment.workload_hours||0)<=limit||alreadyAssigned.includes(id);
                     const duplicate=selectedIds.includes(id)&&id!==ownValue;
                     option.hidden=false;
                     option.disabled=!hasCapacity||duplicate;
-                    option.textContent=`${option.dataset.instructorName} · ${option.dataset.employment} · ${currentUnits}/${limit} units`;
+                    option.textContent=`${option.dataset.instructorName} · ${option.dataset.employment} · ${currentUnits}/${limit} hours`;
                     if(hasCapacity&&!duplicate)availableCount++;
                 });
                 if(select.value&&select.selectedOptions[0]?.disabled)select.value='';
@@ -223,7 +223,7 @@
 
             emptyMessage.style.display=availableCount===0?'block':'none';
             emptyMessage.textContent=availableCount===0
-                ?'No GEC instructor currently has enough available units for this subject.':'';
+                ?'No GEC instructor currently has enough available workload hours for this subject.':'';
         }
 
         function loadSubjectAssignment(){

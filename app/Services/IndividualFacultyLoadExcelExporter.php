@@ -168,8 +168,7 @@ class IndividualFacultyLoadExcelExporter
         $basicStartRow = $rowNumber;
 
         foreach ($schedules as $schedule) {
-            $duration = (strtotime($schedule->end_time) - strtotime($schedule->start_time)) / 3600;
-            $hours = $duration * count(ClassSchedule::daysForPattern($schedule->day));
+            $hours = FacultyLoadWeeklyHours::forSubject($schedule->subject);
             $units = (float) ($schedule->subject?->units ?? 0);
             $isLaboratory = strcasecmp((string) $schedule->subject?->subject_type, 'Laboratory') === 0;
             $sectionName = $course.'-'.preg_replace('/\s*-\s*/', '', strtoupper((string) $schedule->section?->name));

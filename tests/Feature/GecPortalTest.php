@@ -399,32 +399,27 @@ class GecPortalTest extends TestCase
             'teaching_unit_limit' => 30,
         ]);
 
-        foreach ([
-            ['BSIT', 'GE 201'],
-            ['BSBA', 'GE 202'],
-            ['BSHM', 'GE 203'],
-            ['BEED', 'GE 204'],
-        ] as [$course, $code]) {
+        foreach (range(1, 11) as $number) {
             Subject::create([
-                'course' => $course,
-                'code' => $code,
-                'name' => "Subject {$code}",
+                'course' => 'BSIT',
+                'code' => "GE {$number}",
+                'name' => "Subject GE {$number}",
                 'subject_type' => 'Lecture',
                 'classification' => 'Minor',
                 'year_level' => 1,
                 'semester' => '1st',
                 'curriculum' => 'New',
-                'units' => 10,
+                'units' => 3,
             ]);
         }
 
         $this->actingAs($gec)->get(route('gec.instructor-units.index'))
             ->assertOk()
             ->assertSee('GEC instructor capacity shortage')
-            ->assertSee('40 units')
-            ->assertSee('30 units')
+            ->assertSee('33 workload hours')
+            ->assertSee('30 workload hours')
             ->assertSee('shortfall is')
-            ->assertSee('10 units')
+            ->assertSee('3 workload hours')
             ->assertSee('1 additional full-time GEC instructor');
     }
 

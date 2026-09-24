@@ -162,9 +162,9 @@ class ScheduleController extends GecController
     private function failureGuidance(string $message): string
     {
         return match (true) {
-            str_contains($message, 'every allowed day and time') => 'Check the section timetable for occupied periods, assign another GEC instructor who still has available units, and verify the instructor is not already booked. If resources are limited, generate fewer sections at one time.',
-            str_contains($message, 'No assigned instructor has enough workload capacity') => 'Every GEC instructor assigned to this subject has reached or would exceed their configured teaching-unit limit. Assign an instructor with remaining units or adjust the limit on the Instructor Units page.',
-            str_contains($message, 'teaching units') => 'The generated load exceeds the instructor’s configured maximum. Reduce the assigned load or adjust the maximum on the Instructor Units page; instructors do not need to use all available units.',
+            str_contains($message, 'every allowed day and time') => 'Check the section timetable for occupied periods, assign another GEC instructor who still has available workload hours, and verify the instructor is not already booked. If resources are limited, generate fewer sections at one time.',
+            str_contains($message, 'No assigned instructor has enough workload capacity') => 'Every GEC instructor assigned to this subject has reached or would exceed their configured workload-hour limit. Assign an instructor with remaining workload hours or adjust the limit on the Instructor Units page.',
+            str_contains($message, 'workload hours') => 'The generated load exceeds the instructor’s configured maximum workload hours. Reduce the assigned load or adjust the maximum on the Instructor Units page; instructors do not need to use all available hours.',
             str_contains($message, 'required minor subject or active GEC instructor is missing') => 'Review the Minor Subjects, Subject Assignment, and Instructor List pages. Complete the missing information, then create the schedule again.',
             default => 'Review the selected department, academic period, sections, subject assignments, and instructor unit limits before trying again.',
         };

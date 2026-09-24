@@ -14,7 +14,12 @@
     .priority-number { width:25px; height:25px; display:grid; place-items:center; color:white; background:var(--primary); border-radius:7px; }
     .priority-row:first-child { border-color:rgba(69,6,147,.34); box-shadow:0 7px 18px rgba(69,6,147,.07); }
     .priority-row:first-child .priority-number { background:linear-gradient(135deg,var(--primary),var(--primary-light)); }
-    .priority-select option[hidden] { display:none; }
+    .priority-combobox { position:relative; min-width:0; }
+    .priority-search { width:100%; min-width:0; }
+    .priority-options { position:absolute; z-index:30; top:calc(100% + 4px); right:0; left:0; max-height:180px; overflow-y:auto; padding:4px; background:#fff; border:1px solid rgba(69,6,147,.28); border-radius:8px; box-shadow:0 12px 24px rgba(47,16,82,.16); }
+    .priority-option { display:block; width:100%; padding:8px 9px; color:var(--navy); text-align:left; font:inherit; font-size:10px; font-weight:700; background:transparent; border:0; border-radius:5px; cursor:pointer; }
+    .priority-option:hover,.priority-option:focus-visible { color:#fff; background:var(--primary); outline:0; }
+    .priority-no-results { margin:0; padding:8px 9px; color:var(--muted); font-size:10px; }
     .priority-empty { display:none; margin:0; padding:14px; color:var(--muted); text-align:center; font-size:10px; background:rgba(255,255,255,.66); border-radius:8px; }
     .priority-explanation { margin-top:7px; padding:9px 11px; color:#584663; background:#f7f1fb; border-left:3px solid var(--primary); border-radius:7px; font-size:9px; line-height:1.5; }
     .assignment-form-card .admin-profile-actions { margin-top:18px; }
@@ -117,25 +122,40 @@
                     @for($priority=1;$priority<=4;$priority++)
                         <div class="priority-row">
                             <span class="priority-label"><span class="priority-number">{{ $priority }}</span>Priority {{ $priority }}</span>
-                            <select class="input priority-select" name="instructor_ids[]" data-priority="{{ $priority }}" @required($priority===1)>
-                                <option value="">{{ $priority===1?'Select the primary instructor':'Optional backup instructor' }}</option>
-                                @foreach($instructors as $instructor)
-                                    <option
-                                        value="{{ $instructor->id }}"
-                                        data-department="{{ $instructor->course }}"
-                                        data-instructor-name="{{ $instructor->name }}"
-                                        data-employment="{{ str($instructor->employment_type??'Unspecified')->replace('_',' ')->title() }}"
-                                        @selected(($selectedInstructorIds[$priority-1]??null)===$instructor->id)
-                                    >{{ $instructor->name }} &middot; {{ str($instructor->employment_type??'Unspecified')->replace('_',' ')->title() }}</option>
-                                @endforeach
-                            </select>
+                            <div class="priority-combobox">
+                                <input
+                                    id="priorityInstructor{{ $priority }}"
+                                    class="input priority-search"
+                                    type="search"
+                                    autocomplete="off"
+                                    role="combobox"
+                                    aria-autocomplete="list"
+                                    aria-expanded="false"
+                                    aria-controls="priorityInstructorOptions{{ $priority }}"
+                                    aria-label="Search for Priority {{ $priority }} instructor"
+                                    placeholder="{{ $priority===1?'Search for the primary instructor':'Search for a backup instructor' }}"
+                                >
+                                <select class="priority-select" name="instructor_ids[]" data-priority="{{ $priority }}" hidden aria-hidden="true" tabindex="-1">
+                                    <option value="">{{ $priority===1?'Select the primary instructor':'Optional backup instructor' }}</option>
+                                    @foreach($instructors as $instructor)
+                                        <option
+                                            value="{{ $instructor->id }}"
+                                            data-department="{{ $instructor->course }}"
+                                            data-instructor-name="{{ $instructor->name }}"
+                                            data-employment="{{ str($instructor->employment_type??'Unspecified')->replace('_',' ')->title() }}"
+                                            @selected(($selectedInstructorIds[$priority-1]??null)===$instructor->id)
+                                        >{{ $instructor->name }} &middot; {{ str($instructor->employment_type??'Unspecified')->replace('_',' ')->title() }}</option>
+                                    @endforeach
+                                </select>
+                                <div id="priorityInstructorOptions{{ $priority }}" class="priority-options" role="listbox" hidden></div>
+                            </div>
                         </div>
                     @endfor
                     <p id="noDepartmentInstructors" class="priority-empty" role="status" aria-live="polite"></p>
                 </div>
                 <div class="priority-explanation">
-                    Priority 1 receives sections first. When that instructor reaches the configured unit limit or has no conflict-free time, the scheduler tries Priority 2, followed by Priority 3 and Priority 4. The same instructor cannot occupy two priority positions.
-                    Instructors who cannot accept the selected subject without exceeding their unit limit are hidden.
+                    Priority 1 receives sections first. When that instructor reaches the configured workload-hour limit or has no conflict-free time, the scheduler tries Priority 2, followed by Priority 3 and Priority 4. The same instructor cannot occupy two priority positions.
+                    Instructors who cannot accept the selected subject without exceeding their workload-hour limit are hidden.
                     @if($activeAcademicYear) Current generated loads are checked against A.Y. {{ $activeAcademicYear }}. @endif
                 </div>
                 @error('instructor_ids')<div class="error">{{ $message }}</div>@enderror
@@ -221,8 +241,13 @@
             priorityAssignmentGroup.hidden=external;
             prioritySelects.forEach((select,index)=>{
                 select.disabled=external;
-                select.required=!external&&index===0;
-                if(external)select.value='';
+                select.required=false;
+                const searchControl=prioritySearchControls[index];
+                if(searchControl)searchControl.search.disabled=external;
+                if(external){
+                    select.value='';
+                    if(searchControl)searchControl.search.value='';
+                }
             });
             submitButton.textContent=external
                 ?`Request ${department.value} Instructor`
@@ -233,7 +258,7 @@
         }
 
         function refreshInstructorOptions(){
-            const assignment=assignments[subject.value]??{instructor_ids:[],units:0,semester:semester.value};
+            const assignment=assignments[subject.value]??{instructor_ids:[],workload_hours:0,semester:semester.value};
             const alreadyAssigned=assignment.instructor_ids.map(Number);
             const selectedIds=selectedPriorityIds();
             let availableCount=0;
@@ -248,11 +273,11 @@
                     const subjectUnits=Number(assignedLoads[id]?.[semester.value]??0);
                     const currentUnits=Math.max(scheduledUnits,subjectUnits);
                     const limit=Number(instructorLimits[id]??0);
-                    const hasCapacity=currentUnits+Number(assignment.units||0)<=limit||alreadyAssigned.includes(id);
+                    const hasCapacity=currentUnits+Number(assignment.workload_hours||0)<=limit||alreadyAssigned.includes(id);
                     const duplicate=selectedIds.includes(id)&&id!==ownValue;
                     option.hidden=!correctDepartment;
                     option.disabled=!correctDepartment||!hasCapacity||duplicate;
-                    option.textContent=`${option.dataset.instructorName} · ${option.dataset.employment} · ${currentUnits}/${limit} units`;
+                    option.textContent=`${option.dataset.instructorName} · ${option.dataset.employment} · ${currentUnits}/${limit} hours`;
                     if(correctDepartment&&hasCapacity&&!duplicate)availableCount++;
                 });
                 if(select.value&&select.selectedOptions[0]?.disabled)select.value='';
@@ -260,7 +285,68 @@
 
             emptyMessage.style.display=availableCount===0?'block':'none';
             emptyMessage.textContent=availableCount===0
-                ?'No department instructor currently has enough available units for this subject.':'';
+                ?'No department instructor currently has enough available workload hours for this subject.':'';
+            syncPrioritySearches();
+        }
+
+        const prioritySearchControls=[...document.querySelectorAll('.priority-combobox')].map(combobox=>({
+            combobox,
+            search:combobox.querySelector('.priority-search'),
+            select:combobox.querySelector('.priority-select'),
+            options:combobox.querySelector('.priority-options'),
+        }));
+
+        function syncPrioritySearches(){
+            prioritySearchControls.forEach(control=>{
+                const selected=control.select.selectedOptions[0];
+
+                if(selected?.value){
+                    control.search.value=selected.textContent.trim();
+                }else if(document.activeElement!==control.search){
+                    control.search.value='';
+                }
+            });
+        }
+
+        function closePrioritySearchOptions(except=null){
+            prioritySearchControls.forEach(control=>{
+                if(control===except)return;
+                control.options.hidden=true;
+                control.search.setAttribute('aria-expanded','false');
+            });
+        }
+
+        function renderPrioritySearchOptions(control, query=control.search.value){
+            const searchTerm=query.trim().toLocaleLowerCase();
+            const candidates=[...control.select.options].filter(option=>option.value&&!option.hidden&&!option.disabled&&option.textContent.toLocaleLowerCase().includes(searchTerm));
+            control.options.replaceChildren();
+
+            if(candidates.length===0){
+                const message=document.createElement('p');
+                message.className='priority-no-results';
+                message.textContent='No available instructor found.';
+                control.options.append(message);
+            }else{
+                candidates.forEach(candidate=>{
+                    const option=document.createElement('button');
+                    option.type='button';
+                    option.className='priority-option';
+                    option.setAttribute('role','option');
+                    option.textContent=candidate.textContent.trim();
+                    option.addEventListener('mousedown',event=>event.preventDefault());
+                    option.addEventListener('click',()=>{
+                        control.select.value=candidate.value;
+                        control.search.value=candidate.textContent.trim();
+                        control.search.setCustomValidity('');
+                        refreshInstructorOptions();
+                        closePrioritySearchOptions();
+                    });
+                    control.options.append(option);
+                });
+            }
+
+            control.options.hidden=false;
+            control.search.setAttribute('aria-expanded','true');
         }
 
         function loadSubjectAssignment(){
@@ -281,6 +367,36 @@
         subject.addEventListener('change',loadSubjectAssignment);
         department.addEventListener('change',()=>{updateAssignmentMode();refreshInstructorOptions();});
         prioritySelects.forEach(select=>select.addEventListener('change',refreshInstructorOptions));
+        prioritySearchControls.forEach(control=>{
+            control.search.addEventListener('focus',()=>{
+                closePrioritySearchOptions(control);
+                if(control.select.value)control.search.select();
+                renderPrioritySearchOptions(control,control.select.value?'':control.search.value);
+            });
+            control.search.addEventListener('input',()=>{
+                control.select.value='';
+                control.search.setCustomValidity('');
+                refreshInstructorOptions();
+                renderPrioritySearchOptions(control);
+            });
+            control.search.addEventListener('keydown',event=>{
+                if(event.key==='Escape')closePrioritySearchOptions();
+            });
+            control.search.addEventListener('blur',()=>window.setTimeout(()=>closePrioritySearchOptions(),120));
+        });
+        document.addEventListener('click',event=>{
+            if(!event.target.closest('.priority-combobox'))closePrioritySearchOptions();
+        });
+        document.getElementById('priorityAssignmentForm').addEventListener('submit',event=>{
+            const primary=prioritySearchControls[0];
+            if(!isExternalDepartment()&&!primary.select.value){
+                event.preventDefault();
+                primary.search.setCustomValidity('Select a Priority 1 instructor from the search results.');
+                primary.search.reportValidity();
+                primary.search.focus();
+                renderPrioritySearchOptions(primary);
+            }
+        });
         openButtons.forEach(button=>button.addEventListener('click',openModal));
         closeButton.addEventListener('click',closeModal);
         cancelButton.addEventListener('click',closeModal);

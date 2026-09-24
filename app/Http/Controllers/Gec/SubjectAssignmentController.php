@@ -6,6 +6,7 @@ use App\Models\AcademicSection;
 use App\Models\Subject;
 use App\Models\User;
 use App\Services\ClassScheduleGenerator;
+use App\Services\FacultyLoadWeeklyHours;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -104,29 +105,29 @@ class SubjectAssignmentController extends GecController
                 ->whereNull('class_schedules.deleted_at')
                 ->where('class_schedules.academic_year', $activeAcademicYear)
                 ->whereIn('class_schedules.instructor_id', $instructorIds)
-                ->selectRaw('class_schedules.instructor_id, class_schedules.semester, SUM(subjects.units) as units')
+                ->selectRaw('class_schedules.instructor_id, class_schedules.semester, SUM('.FacultyLoadWeeklyHours::sqlExpression().') as hours')
                 ->groupBy('class_schedules.instructor_id', 'class_schedules.semester')
                 ->get()
                 ->groupBy('instructor_id')
                 ->map(fn ($loads) => $loads->mapWithKeys(
-                    fn ($load): array => [(string) $load->semester => (float) $load->units],
+                    fn ($load): array => [(string) $load->semester => (float) $load->hours],
                 )->all())
                 ->all()
             : [];
         $assignedInstructorLoads = DB::table('subject_instructor')
             ->join('subjects', 'subjects.id', '=', 'subject_instructor.subject_id')
             ->whereIn('subject_instructor.instructor_id', $instructorIds)
-            ->selectRaw('subject_instructor.instructor_id, subjects.semester, SUM(subjects.units) as units')
+            ->selectRaw('subject_instructor.instructor_id, subjects.semester, SUM('.FacultyLoadWeeklyHours::sqlExpression().') as hours')
             ->groupBy('subject_instructor.instructor_id', 'subjects.semester')
             ->get()
             ->groupBy('instructor_id')
             ->map(fn ($loads) => $loads->mapWithKeys(
-                fn ($load): array => [(string) $load->semester => (float) $load->units],
+                fn ($load): array => [(string) $load->semester => (float) $load->hours],
             )->all())
             ->all();
         $instructorLimits = $instructors->mapWithKeys(
             fn (User $instructor): array => [
-                (string) $instructor->id => (float) $this->generator->workloadRange($instructor)[1],
+                (string) $instructor->id => $this->generator->workloadHourLimit($instructor),
             ],
         )->all();
         $semesters = collect($enabledSemesters);
@@ -145,7 +146,7 @@ class SubjectAssignmentController extends GecController
                     ->pluck('id')
                     ->map(fn ($id): int => (int) $id)
                     ->all(),
-                'units' => (float) $subject->units,
+                'workload_hours' => $this->generator->workloadHoursForSubject($subject),
                 'semester' => $subject->semester,
                 'year_level' => (int) $subject->year_level,
             ],
@@ -232,17 +233,17 @@ class SubjectAssignmentController extends GecController
                 ->whereIn('class_schedules.instructor_id', $instructors->pluck('id'))
                 ->where('class_schedules.academic_year', $activeAcademicYear)
                 ->where('class_schedules.semester', $subject->semester)
-                ->selectRaw('class_schedules.instructor_id, SUM(subjects.units) as units')
+                ->selectRaw('class_schedules.instructor_id, SUM('.FacultyLoadWeeklyHours::sqlExpression().') as hours')
                 ->groupBy('class_schedules.instructor_id')
-                ->pluck('units', 'instructor_id')
+                ->pluck('hours', 'instructor_id')
             : collect();
         $assignedLoads = DB::table('subject_instructor')
             ->join('subjects', 'subjects.id', '=', 'subject_instructor.subject_id')
             ->whereIn('subject_instructor.instructor_id', $instructors->pluck('id'))
             ->where('subjects.semester', $subject->semester)
-            ->selectRaw('subject_instructor.instructor_id, SUM(subjects.units) as units')
+            ->selectRaw('subject_instructor.instructor_id, SUM('.FacultyLoadWeeklyHours::sqlExpression().') as hours')
             ->groupBy('subject_instructor.instructor_id')
-            ->pluck('units', 'subject_instructor.instructor_id');
+            ->pluck('hours', 'subject_instructor.instructor_id');
 
         $overCapacityInstructor = $instructors->first(function (User $instructor) use (
             $subject,
@@ -254,24 +255,25 @@ class SubjectAssignmentController extends GecController
                 return false;
             }
 
-            $currentUnits = max(
+            $currentHours = max(
                 (float) ($scheduledLoads[$instructor->id] ?? 0),
                 (float) ($assignedLoads[$instructor->id] ?? 0),
             );
-            $maximumUnits = (float) $this->generator->workloadRange($instructor)[1];
+            $maximumHours = $this->generator->workloadHourLimit($instructor);
 
-            return $currentUnits + (float) $subject->units > $maximumUnits;
+            return $currentHours + $this->generator->workloadHoursForSubject($subject) > $maximumHours;
         });
 
         if ($overCapacityInstructor) {
-            $currentUnits = max(
+            $currentHours = max(
                 (float) ($scheduledLoads[$overCapacityInstructor->id] ?? 0),
                 (float) ($assignedLoads[$overCapacityInstructor->id] ?? 0),
             );
-            $maximumUnits = (float) $this->generator->workloadRange($overCapacityInstructor)[1];
+            $maximumHours = $this->generator->workloadHourLimit($overCapacityInstructor);
+            $subjectWorkloadHours = $this->generator->workloadHoursForSubject($subject);
 
             throw ValidationException::withMessages([
-                'instructor_ids' => "{$overCapacityInstructor->name} already has {$currentUnits} assigned units and cannot accept {$subject->units} more. The maximum is {$maximumUnits} units.",
+                'instructor_ids' => "{$overCapacityInstructor->name} already has {$currentHours} workload hours and cannot accept {$subjectWorkloadHours} more. The maximum is {$maximumHours} hours.",
             ]);
         }
 

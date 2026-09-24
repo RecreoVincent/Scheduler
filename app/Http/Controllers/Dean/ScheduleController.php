@@ -158,11 +158,11 @@ class ScheduleController extends DeanController
     private function failureGuidance(string $message): string
     {
         return match (true) {
-            str_contains($message, 'every allowed day and time') => 'Check the section timetable for occupied periods, assign another instructor who still has available units, and verify that a compatible room is free. If resources are limited, generate fewer sections at one time.',
-            str_contains($message, 'No assigned instructor has enough workload capacity') => 'Every instructor assigned to this subject has reached or would exceed their configured teaching-unit limit. Assign an instructor with remaining units or adjust the limit on the Instructor Units page.',
+            str_contains($message, 'every allowed day and time') => 'Check the section timetable for occupied periods, assign another instructor who still has available workload hours, and verify that a compatible room is free. If resources are limited, generate fewer sections at one time.',
+            str_contains($message, 'No assigned instructor has enough workload capacity') => 'Every instructor assigned to this subject has reached or would exceed their configured workload-hour limit. Assign an instructor with remaining workload hours or adjust the limit on the Instructor Units page.',
             str_contains($message, 'room is available'), str_contains($message, 'matching room') => 'There are not enough rooms of the required type for the selected sections. Add a compatible room, free an occupied room period, or generate fewer sections.',
             str_contains($message, 'First Year section') => 'First-year schedules must include the M–W, T–Th, and F–S meeting patterns. Add the missing Major subjects for the affected day pattern and make sure instructors and rooms are available on those days.',
-            str_contains($message, 'teaching units') => 'The generated load exceeds the instructor’s configured maximum. Reduce the assigned load or adjust the maximum on the Instructor Units page; instructors do not need to use all available units.',
+            str_contains($message, 'workload hours') => 'The generated load exceeds the instructor’s configured maximum workload hours. Reduce the assigned load or adjust the maximum on the Instructor Units page; instructors do not need to use all available hours.',
             str_contains($message, 'required subject, compatible room, or active instructor is missing') => 'Review the Subjects, Subject Assignment, Instructor List, and Rooms pages. Complete the missing information, then create the schedule again.',
             default => 'Review the selected academic period, sections, subject assignments, instructor unit limits, room types, and existing timetable conflicts before trying again.',
         };

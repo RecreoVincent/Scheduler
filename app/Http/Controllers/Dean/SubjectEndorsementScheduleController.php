@@ -8,6 +8,7 @@ use App\Models\Room;
 use App\Models\SubjectEndorsement;
 use App\Models\User;
 use App\Services\ClassScheduleGenerator;
+use App\Services\FacultyLoadWeeklyHours;
 use App\Services\ScheduleNotificationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,20 +49,20 @@ class SubjectEndorsementScheduleController extends DeanController
                 ->whereNull('class_schedules.deleted_at')
                 ->whereIn('class_schedules.instructor_id', $instructorIds)
                 ->whereIn('class_schedules.academic_year', $academicYears->all())
-                ->selectRaw('class_schedules.instructor_id, class_schedules.academic_year, class_schedules.semester, SUM(subjects.units) as units')
+                ->selectRaw('class_schedules.instructor_id, class_schedules.academic_year, class_schedules.semester, SUM('.FacultyLoadWeeklyHours::sqlExpression().') as hours')
                 ->groupBy('class_schedules.instructor_id', 'class_schedules.academic_year', 'class_schedules.semester')
                 ->get()
                 ->groupBy('instructor_id')
                 ->map(fn (Collection $instructorLoads): array => $instructorLoads
                     ->groupBy('academic_year')
                     ->map(fn (Collection $yearLoads): array => $yearLoads
-                        ->mapWithKeys(fn (object $load): array => [(string) $load->semester => (float) $load->units])
+                        ->mapWithKeys(fn (object $load): array => [(string) $load->semester => (float) $load->hours])
                         ->all())
                     ->all())
                 ->all();
         $instructorLimits = $instructors->mapWithKeys(
             fn (User $instructor): array => [
-                (string) $instructor->id => (float) $this->generator->workloadRange($instructor)[1],
+                (string) $instructor->id => $this->generator->workloadHourLimit($instructor),
             ],
         )->all();
 

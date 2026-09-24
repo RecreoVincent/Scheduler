@@ -517,6 +517,7 @@ class DeanPortalTest extends TestCase
             $this->assertStringContainsString('VILLARINO', $worksheet);
             $this->assertStringContainsString('ITE 221', $worksheet);
             $this->assertStringContainsString('DATA STRUCTURES AND ALGORITHMS', $worksheet);
+            $this->assertStringContainsString('<c r="J13" s="13"><v>5</v></c>', $worksheet);
             $this->assertStringContainsString('BSIT-2EAST', $worksheet);
             $this->assertStringContainsString('IT-LR2', $worksheet);
             $this->assertStringContainsString('Suffix:', $worksheet);
@@ -1397,27 +1398,27 @@ class DeanPortalTest extends TestCase
             'teaching_unit_limit' => 30,
         ]);
 
-        foreach ([['ITE 101', 10], ['ITE 102', 10], ['ITE 103', 10], ['ITE 104', 10]] as [$code, $units]) {
+        foreach (range(1, 11) as $number) {
             Subject::create([
                 'course' => 'BSIT',
-                'code' => $code,
-                'name' => "Subject {$code}",
+                'code' => "ITE {$number}",
+                'name' => "Subject ITE {$number}",
                 'subject_type' => 'Lecture',
                 'classification' => 'Major',
                 'year_level' => 1,
                 'semester' => '1st',
                 'curriculum' => 'New',
-                'units' => $units,
+                'units' => 3,
             ]);
         }
 
         $this->actingAs($dean)->get(route('dean.instructor-units.index'))
             ->assertOk()
             ->assertSee('Instructor capacity shortage')
-            ->assertSee('40 units')
-            ->assertSee('30 units')
+            ->assertSee('33 workload hours')
+            ->assertSee('30 workload hours')
             ->assertSee('shortfall is')
-            ->assertSee('10 units')
+            ->assertSee('3 workload hours')
             ->assertSee('1 additional full-time instructor');
     }
 
@@ -2322,6 +2323,8 @@ class DeanPortalTest extends TestCase
             ->assertSee('name="subject_id"', false)
             ->assertSee('name="instructor_department"', false)
             ->assertSee('name="instructor_ids[]"', false)
+            ->assertSee('type="search"', false)
+            ->assertSee('Search for the primary instructor', false)
             ->assertSee('value="Summer"', false)
             ->assertSee('label="Second Year"', false)
             ->assertSeeInOrder(['Semester', 'Year Level', 'Subject', 'Instructor Priorities', 'Submit Assignment']);
@@ -2515,7 +2518,7 @@ class DeanPortalTest extends TestCase
         $this->actingAs($dean)
             ->get(route('dean.subject-assignments.create', ['subject_id' => $targetSubject->id]))
             ->assertOk()
-            ->assertSee('Instructors who cannot accept the selected subject without exceeding their unit limit are hidden.')
+            ->assertSee('Instructors who cannot accept the selected subject without exceeding their workload-hour limit are hidden.')
             ->assertSee('"'.$maxedInstructor->id.'":{"1st":30}', false)
             ->assertSee('"'.$availableInstructor->id.'":{"1st":27}', false);
 
@@ -2768,7 +2771,7 @@ class DeanPortalTest extends TestCase
         Notification::assertSentTo($bsbaDean, \App\Notifications\CrossDepartmentInstructorRequestNotification::class);
     }
 
-    public function test_scheduler_assigns_subject_sections_using_the_deans_instructor_priority_order(): void
+    public function test_scheduler_moves_major_laboratory_overflow_to_the_next_instructor_priority_by_workload_hours(): void
     {
         $dean = User::factory()->create(['role' => 'dean', 'course' => 'BSIT']);
         $priorityOne = User::factory()->create([
@@ -2783,7 +2786,7 @@ class DeanPortalTest extends TestCase
         ]);
         $subject = Subject::create([
             'course' => 'BSIT', 'code' => 'ITE 211', 'name' => 'Computer Programming 2',
-            'subject_type' => 'Lecture', 'classification' => 'Major', 'year_level' => 2,
+            'subject_type' => 'Laboratory', 'classification' => 'Major', 'year_level' => 2,
             'semester' => '1st', 'units' => 3,
         ]);
         $sections = collect(['2 - North', '2 - East', '2 - West'])->map(fn (string $name) => AcademicSection::create([
@@ -2791,7 +2794,7 @@ class DeanPortalTest extends TestCase
             'academic_year' => '2026-2027', 'semester' => 'All',
         ]));
         $room = Room::create([
-            'course' => 'BSIT', 'name' => 'Lecture 1', 'room_type' => 'Lecture', 'capacity' => 40,
+            'course' => 'BSIT', 'name' => 'Laboratory 1', 'room_type' => 'Laboratory', 'capacity' => 40,
         ]);
 
         $this->actingAs($dean)->post(route('dean.subject-assignments.store'), [
@@ -2818,8 +2821,10 @@ class DeanPortalTest extends TestCase
             ['academic_year' => '2026-2027', 'semester' => '1st'],
         );
 
-        $this->assertSame(2, ClassSchedule::where('subject_id', $subject->id)->where('instructor_id', $priorityOne->id)->count());
-        $this->assertSame(1, ClassSchedule::where('subject_id', $subject->id)->where('instructor_id', $priorityTwo->id)->count());
+        // Priority 1 has a six-hour limit. A Major Laboratory consumes five
+        // workload hours, so its second section must move to Priority 2.
+        $this->assertSame(1, ClassSchedule::where('subject_id', $subject->id)->where('instructor_id', $priorityOne->id)->count());
+        $this->assertSame(2, ClassSchedule::where('subject_id', $subject->id)->where('instructor_id', $priorityTwo->id)->count());
     }
 
     public function test_non_dean_cannot_access_dean_portal(): void

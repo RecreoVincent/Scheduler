@@ -135,7 +135,7 @@ class ClassScheduleGenerator
             $schedulesToReplace->delete();
 
             // Serialize competing generators against the existing schedules in this period.
-            $periodSchedules = ClassSchedule::with('subject:id,code,units')
+            $periodSchedules = ClassSchedule::with('subject:id,code,units,subject_type,classification')
                 ->forAcademicPeriod($period['academic_year'], $period['semester'])
                 ->lockForUpdate()
                 ->get();
@@ -191,6 +191,7 @@ class ClassScheduleGenerator
                     );
 
                     foreach ($phaseSubjects as $subject) {
+                        $subjectWorkloadHours = $this->workloadHoursForSubject($subject);
                         // Try only the room type required by the subject. TBA
                         // is used only when no compatible room is available.
                         $matchingRooms = $rooms
@@ -202,7 +203,7 @@ class ClassScheduleGenerator
                             ->unique('id')
                             ->values();
                         $candidates = $instructorPool
-                            ->filter(fn (User $instructor): bool => $this->canAcceptUnits($instructor, (float) $subject->units, $workloads));
+                            ->filter(fn (User $instructor): bool => $this->canAcceptWorkloadHours($instructor, $subjectWorkloadHours, $workloads));
 
                         // Subject instructors are stored in the Dean's chosen
                         // priority order. Preserve that order so Priority 1
@@ -210,7 +211,7 @@ class ClassScheduleGenerator
                         // followed by each selected backup priority.
                         if ($preferred->isEmpty()) {
                             $candidates = $candidates->sortByDesc(
-                                fn (User $instructor): float => $this->targetUnits($instructor) - ($workloads[$instructor->id] ?? 0.0),
+                                fn (User $instructor): float => $this->targetWorkloadHours($instructor) - ($workloads[$instructor->id] ?? 0.0),
                             );
                         }
 
@@ -218,14 +219,14 @@ class ClassScheduleGenerator
 
                         if ($candidates->isEmpty()) {
                             $loadDetails = $instructorPool->map(function (User $instructor) use ($workloads): string {
-                                $currentUnits = $workloads[$instructor->id] ?? 0.0;
+                                $currentHours = $workloads[$instructor->id] ?? 0.0;
 
-                                return "{$instructor->name}: {$currentUnits}/{$this->targetUnits($instructor)} units";
+                                return "{$instructor->name}: {$currentHours}/{$this->targetWorkloadHours($instructor)} workload hours";
                             })->join('; ');
 
                             throw new ScheduleGenerationException(
                                 "No assigned instructor has enough workload capacity for {$subject->code}.",
-                                "{$subject->code} needs {$subject->units} more units. Current assigned-instructor loads: {$loadDetails}. Assign an instructor whose remaining capacity can accommodate this subject.",
+                                "{$subject->code} needs {$subjectWorkloadHours} more workload hours. Current assigned-instructor loads: {$loadDetails}. Assign an instructor whose remaining capacity can accommodate this subject.",
                             );
                         }
 
@@ -288,7 +289,7 @@ class ClassScheduleGenerator
                             (string) $subject->code,
                         );
 
-                        $workloads[$assignment['instructor']->id] = ($workloads[$assignment['instructor']->id] ?? 0.0) + (float) $subject->units;
+                        $workloads[$assignment['instructor']->id] = ($workloads[$assignment['instructor']->id] ?? 0.0) + $subjectWorkloadHours;
                         $dayPatternLoads[$assignment['day']]++;
                         $assignedInstructorIds->push($assignment['instructor']->id);
                         $created++;
@@ -317,6 +318,11 @@ class ClassScheduleGenerator
     public function isLaboratoryPrioritySubject(Subject $subject): bool
     {
         return in_array($this->normalizedSubjectCode($subject), self::LABORATORY_PRIORITY_SUBJECT_CODES, true);
+    }
+
+    public function workloadHoursForSubject(?Subject $subject): float
+    {
+        return FacultyLoadWeeklyHours::forSubject($subject);
     }
 
     public function subjectCanUseTba(string $course, Subject $subject): bool
@@ -434,15 +440,16 @@ class ClassScheduleGenerator
             return $instructor->name.' already has the maximum of 3 schedules on '.$day.'.';
         }
 
-        $existingUnits = ClassSchedule::with('subject')
+        $existingWorkloadHours = ClassSchedule::with('subject')
             ->forAcademicPeriod($schedule->academic_year, $schedule->semester)
             ->where('instructor_id', $instructor->id)
             ->whereKeyNot($schedule->id)
             ->get()
-            ->sum(fn (ClassSchedule $entry): float => (float) $entry->subject?->units);
+            ->sum(fn (ClassSchedule $entry): float => $this->workloadHoursForSubject($entry->subject));
+        $subjectWorkloadHours = $this->workloadHoursForSubject($subject);
 
-        if ($existingUnits + (float) $subject->units > $this->targetUnits($instructor)) {
-            return $instructor->name.' would exceed the '.$this->workloadLabel($instructor).' teaching-unit limit.';
+        if ($existingWorkloadHours + $subjectWorkloadHours > $this->targetWorkloadHours($instructor)) {
+            return $instructor->name.' would exceed the '.$this->workloadLabel($instructor).' workload-hour limit.';
         }
 
         return null;
@@ -454,16 +461,19 @@ class ClassScheduleGenerator
         return [0, $instructor->effectiveTeachingUnitLimit()];
     }
 
-    private function targetUnits(User $instructor): float
+    public function workloadHourLimit(User $instructor): float
     {
         return (float) $this->workloadRange($instructor)[1];
     }
 
+    private function targetWorkloadHours(User $instructor): float
+    {
+        return $this->workloadHourLimit($instructor);
+    }
+
     private function workloadLabel(User $instructor): string
     {
-        [$minimum, $maximum] = $this->workloadRange($instructor);
-
-        return $minimum === $maximum ? "{$maximum}-unit" : "{$minimum}-{$maximum}-unit";
+        return $this->targetWorkloadHours($instructor).'-hour';
     }
 
     /**
@@ -474,27 +484,27 @@ class ClassScheduleGenerator
     {
         return $schedules
             ->groupBy('instructor_id')
-            ->map(fn (Collection $entries): float => $entries->sum(fn (ClassSchedule $entry): float => (float) $entry->subject?->units))
+            ->map(fn (Collection $entries): float => $entries->sum(fn (ClassSchedule $entry): float => $this->workloadHoursForSubject($entry->subject)))
             ->all();
     }
 
-    private function canAcceptUnits(User $instructor, float $units, array $workloads): bool
+    private function canAcceptWorkloadHours(User $instructor, float $hours, array $workloads): bool
     {
-        return ($workloads[$instructor->id] ?? 0.0) + $units <= $this->targetUnits($instructor);
+        return ($workloads[$instructor->id] ?? 0.0) + $hours <= $this->targetWorkloadHours($instructor);
     }
 
     private function ensureCompletedWorkloadsAreValid(Collection $instructorIds, array $workloads): void
     {
         foreach (User::whereIn('id', $instructorIds)->get() as $instructor) {
-            [, $maximum] = $this->workloadRange($instructor);
-            $units = $workloads[$instructor->id] ?? 0.0;
+            $maximum = $this->targetWorkloadHours($instructor);
+            $hours = $workloads[$instructor->id] ?? 0.0;
 
-            if ($units > $maximum) {
-                $excessUnits = $units - $maximum;
+            if ($hours > $maximum) {
+                $excessHours = $hours - $maximum;
 
                 throw new ScheduleGenerationException(
-                    "{$instructor->name} received {$units} teaching units, which is {$excessUnits} units above the {$maximum}-unit limit.",
-                    "Remove at least {$excessUnits} units from {$instructor->name} or increase the instructor's configured unit limit before generating again. Instructors are not required to use their full limit.",
+                    "{$instructor->name} received {$hours} workload hours, which is {$excessHours} hours above the {$maximum}-hour limit.",
+                    "Remove at least {$excessHours} workload hours from {$instructor->name} or increase the instructor's configured limit before generating again. Instructors are not required to use their full limit.",
                 );
             }
         }

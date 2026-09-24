@@ -133,12 +133,12 @@
         const scheduledLoads = @json($scheduledInstructorLoads);
         const instructorLimits = @json($instructorLimits);
 
-        const formatUnits = units => Number.isInteger(units) ? String(units) : units.toFixed(1).replace(/\.0$/, '');
+        const formatHours = hours => Number.isInteger(hours) ? String(hours) : hours.toFixed(1).replace(/\.0$/, '');
         const instructorLoad = instructorId => {
             const used = Number(scheduledLoads[instructorId]?.[academicYear.value]?.[semester.value] ?? 0);
             const limit = Number(instructorLimits[instructorId] ?? 0);
 
-            return `${formatUnits(used)}/${formatUnits(limit)} units`;
+            return `${formatHours(used)}/${formatHours(limit)} hours`;
         };
 
         const updateInstructors = () => {

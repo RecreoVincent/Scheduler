@@ -6,6 +6,7 @@ use App\Models\ClassSchedule;
 use App\Models\Department;
 use App\Models\Subject;
 use App\Models\User;
+use App\Services\FacultyLoadWeeklyHours;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,7 +67,7 @@ class InstructorUnitController extends DeanController
                 ->where('class_schedules.academic_year', $academicYear)
                 ->where('class_schedules.semester', $semester)
                 ->whereIn('class_schedules.instructor_id', $instructors->getCollection()->modelKeys())
-                ->selectRaw('class_schedules.instructor_id, SUM(subjects.units) as units')
+                ->selectRaw('class_schedules.instructor_id, SUM('.FacultyLoadWeeklyHours::sqlExpression().') as units')
                 ->groupBy('class_schedules.instructor_id')
                 ->pluck('units', 'instructor_id');
         }
@@ -77,12 +78,13 @@ class InstructorUnitController extends DeanController
             'flexible_part_time' => $department?->default_unit_limit_flexible_part_time ?? User::DEFAULT_UNIT_LIMITS['flexible_part_time'],
         ];
 
-        $totalSubjectUnits = (float) Subject::query()
+        $totalSubjectUnits = (float) (Subject::query()
             ->forDepartment($course)
             ->where('managed_by_gec', false)
             ->where('classification', 'Major')
             ->where('semester', $semester)
-            ->sum('units');
+            ->selectRaw('SUM('.FacultyLoadWeeklyHours::sqlExpression().') as hours')
+            ->first()?->hours ?? 0);
         $totalInstructorCapacity = (float) $capacityInstructors
             ->sum(fn (User $instructor): int => $instructor->effectiveTeachingUnitLimit());
         $unitShortfall = max(0, $totalSubjectUnits - $totalInstructorCapacity);
@@ -122,7 +124,7 @@ class InstructorUnitController extends DeanController
         $department = Department::where('code', $this->course($request))->firstOrFail();
         $department->update($validated);
 
-        return back()->with('success', 'Default teaching-unit limits updated successfully.');
+        return back()->with('success', 'Default workload-hour limits updated successfully.');
     }
 
     public function update(Request $request, User $instructor): RedirectResponse
@@ -148,7 +150,7 @@ class InstructorUnitController extends DeanController
 
         return back()->with(
             'success',
-            "{$instructor->name}'s teaching-unit limit was changed from {$previousLimit} to {$validated['teaching_unit_limit']} units.",
+            "{$instructor->name}'s workload-hour limit was changed from {$previousLimit} to {$validated['teaching_unit_limit']} hours.",
         );
     }
 
@@ -160,7 +162,7 @@ class InstructorUnitController extends DeanController
             && strtoupper((string) $instructor->course) === $this->course($request),
             404,
         );
-        abort_if($instructor->teaching_unit_limit === null, 422, 'This instructor already uses the default teaching-unit limit.');
+        abort_if($instructor->teaching_unit_limit === null, 422, 'This instructor already uses the default workload-hour limit.');
 
         $instructor->update([
             'teaching_unit_limit' => null,
@@ -168,6 +170,6 @@ class InstructorUnitController extends DeanController
             'unit_limit_updated_at' => null,
         ]);
 
-        return back()->with('success', "{$instructor->name}'s teaching-unit limit was reset to the default.");
+        return back()->with('success', "{$instructor->name}'s workload-hour limit was reset to the default.");
     }
 }
