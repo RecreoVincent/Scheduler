@@ -58,6 +58,7 @@
 </div>
 
 <div class="card">
+    <x-pagination :paginator="$students" label="Student pages" />
     <div class="table-wrap">
         <table>
             <thead><tr><th>Name</th><th>MS365 Email</th><th>Year Level</th><th>Section</th><th>Status</th><th>Actions</th></tr></thead>
@@ -86,7 +87,6 @@
             </tbody>
         </table>
     </div>
-    <x-pagination :paginator="$students" label="Student pages" />
 </div>
 
 @include('dean.partials.delete-confirmation', [

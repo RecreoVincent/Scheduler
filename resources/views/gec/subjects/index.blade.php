@@ -68,6 +68,7 @@
 </div>
 
 <div class="card">
+    <x-pagination :paginator="$subjects" label="Minor subject pages" />
     <div class="table-wrap">
         <table class="subjects-table">
             <thead><tr><th>Department</th><th>Code</th><th>Description</th><th>Type</th><th>Year</th><th>Semester</th><th>Units</th><th>Instructors</th><th>Actions</th></tr></thead>
@@ -95,7 +96,6 @@
             </tbody>
         </table>
     </div>
-    <x-pagination :paginator="$subjects" label="Minor subject pages" />
 </div>
 
 @include('dean.partials.delete-confirmation', [

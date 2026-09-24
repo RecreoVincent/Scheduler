@@ -154,6 +154,7 @@
 @if($archivePages->isEmpty())
     <div class="card archive-empty"><h3>No archived schedules</h3><p>No deleted minor-subject schedules match the selected filters.</p></div>
 @else
+    <x-pagination :paginator="$archivePages" label="Archived schedule pages" />
     @php
         $archiveDateGroups = $archivePages->getCollection()
             ->groupBy('deletion_date')
@@ -248,7 +249,6 @@
         @endforeach
     </div>
 
-    <x-pagination :paginator="$archivePages" label="Archived schedule pages" />
 @endif
 
 <div id="archiveActionModal" class="archive-modal" hidden>

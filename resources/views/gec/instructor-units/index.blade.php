@@ -102,6 +102,7 @@
             <p style="color:var(--muted);font-size:12px">Try another search or approve an instructor account first.</p>
         </div>
     @else
+        <x-pagination :paginator="$instructors" label="Instructor unit pages" />
         <div class="table-wrap">
             <table class="unit-table">
                 <thead>
@@ -167,7 +168,6 @@
                 </tbody>
             </table>
         </div>
-        <x-pagination :paginator="$instructors" label="Instructor unit pages" />
     @endif
 </div>
 

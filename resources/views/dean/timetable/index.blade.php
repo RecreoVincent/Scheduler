@@ -145,6 +145,7 @@
         <a class="button" href="{{ route('dean.schedules.create') }}">Generate Schedule</a>
     </div>
 @else
+    <x-pagination :paginator="$sectionPages" label="Timetable section pages" />
     <div class="timetable-list">
         @foreach($sectionPages as $section)
             @php($sectionSchedules = $schedulesBySection->get($section->id, collect()))
@@ -231,7 +232,6 @@
         @endforeach
     </div>
 
-    <x-pagination :paginator="$sectionPages" label="Timetable section pages" />
 @endif
 
 @include('dean.partials.delete-confirmation', [

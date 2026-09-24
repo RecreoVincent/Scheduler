@@ -502,15 +502,15 @@
     .pagination-link:hover { color:var(--primary); background:#f5eefb; border-color:#caa8df; }
     .pagination-link.active { color:#fff; background:var(--primary); border-color:var(--primary); }
     .portal-pagination-bar {
-        display:grid;
-        grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+        display:flex;
         align-items:center;
+        justify-content:flex-start;
+        flex-wrap:wrap;
         gap:16px;
-        margin-top:24px;
+        margin:0 0 14px;
     }
     .portal-pagination-meta {
         display:flex;
-        grid-column:1;
         align-items:center;
         gap:12px;
         min-width:0;
@@ -550,8 +550,7 @@
     .portal-pagination-separator { margin:0 5px; color:#9b8ca7; }
     .portal-pagination {
         display:flex;
-        grid-column:2;
-        justify-content:center;
+        justify-content:flex-start;
         align-items:center;
         flex-wrap:wrap;
         gap:8px;
@@ -825,11 +824,11 @@
         .page-header { align-items:flex-start; flex-direction:column; }
         .page-header .button { width:100%; }
         .card { padding:20px; }
-        .portal-pagination-bar { grid-template-columns:1fr; justify-items:center; gap:12px; }
-        .portal-pagination-meta { grid-column:1; justify-content:center; }
-        .portal-pagination-summary { padding-left:0; border-left:0; text-align:center; }
+        .portal-pagination-bar { justify-content:flex-start; gap:12px; }
+        .portal-pagination-meta { justify-content:flex-start; }
+        .portal-pagination-summary { padding-left:0; border-left:0; text-align:left; }
         .portal-pagination-separator { display:none; }
-        .portal-pagination { grid-column:1; }
+        .portal-pagination { justify-content:flex-start; }
 
         /* These menus anchor to their trigger via right:0, which can push
            them off-screen once the trigger no longer sits at the true
