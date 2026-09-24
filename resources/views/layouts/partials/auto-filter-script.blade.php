@@ -55,8 +55,10 @@
                 || form.querySelector('[name="search"], [name="per_page"]');
 
             const isEditingTableRecord = new URLSearchParams(window.location.search).has('edit');
+            const updateMethod = form.querySelector('input[name="_method"]')?.value?.toUpperCase();
+            const isRecordUpdate = ['PATCH', 'PUT'].includes(updateMethod);
 
-            if ((method === 'GET' && updatesTable) || (method !== 'GET' && isEditingTableRecord)) {
+            if ((method === 'GET' && updatesTable) || (method !== 'GET' && (isEditingTableRecord || isRecordUpdate))) {
                 rememberTablePosition();
             }
         });
