@@ -25,8 +25,6 @@
 <section class="card">
     <p class="deleted-accounts-description">The ten most recently deleted accounts are shown on each page.</p>
 
-    <x-pagination :paginator="$deletedUsers" label="Deleted account pages" />
-
     <div class="table-wrapper">
         <table class="deleted-accounts-table">
             <thead>
@@ -68,6 +66,7 @@
             </tbody>
         </table>
     </div>
+    <x-pagination :paginator="$deletedUsers" label="Deleted account pages" />
 
 </section>
 @endsection

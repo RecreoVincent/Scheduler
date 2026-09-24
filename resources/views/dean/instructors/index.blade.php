@@ -65,7 +65,6 @@
 </div>
 
 <div class="card active-card">
-    <x-pagination :paginator="$instructors" label="Instructor account pages" />
     <div class="table-wrap">
         <table>
             <thead><tr><th>Name</th><th>Email</th><th>Employment</th><th>Status</th><th>Action</th></tr></thead>
@@ -89,6 +88,7 @@
             </tbody>
         </table>
     </div>
+    <x-pagination :paginator="$instructors" label="Instructor account pages" />
 </div>
 
 <div id="accountConfirmationModal" class="account-confirmation" hidden>

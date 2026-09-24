@@ -504,14 +504,17 @@
     .portal-pagination-bar {
         display:flex;
         align-items:center;
-        justify-content:flex-start;
+        flex-direction:column;
+        justify-content:center;
         flex-wrap:wrap;
-        gap:16px;
-        margin:0 0 14px;
+        gap:12px;
+        margin:18px 0 0;
+        text-align:center;
     }
     .portal-pagination-meta {
         display:flex;
         align-items:center;
+        justify-content:center;
         gap:12px;
         min-width:0;
         flex-wrap:wrap;
@@ -550,7 +553,7 @@
     .portal-pagination-separator { margin:0 5px; color:#9b8ca7; }
     .portal-pagination {
         display:flex;
-        justify-content:flex-start;
+        justify-content:center;
         align-items:center;
         flex-wrap:wrap;
         gap:8px;
@@ -824,11 +827,11 @@
         .page-header { align-items:flex-start; flex-direction:column; }
         .page-header .button { width:100%; }
         .card { padding:20px; }
-        .portal-pagination-bar { justify-content:flex-start; gap:12px; }
-        .portal-pagination-meta { justify-content:flex-start; }
-        .portal-pagination-summary { padding-left:0; border-left:0; text-align:left; }
+        .portal-pagination-bar { justify-content:center; gap:12px; }
+        .portal-pagination-meta { justify-content:center; }
+        .portal-pagination-summary { padding-left:0; border-left:0; text-align:center; }
         .portal-pagination-separator { display:none; }
-        .portal-pagination { justify-content:flex-start; }
+        .portal-pagination { justify-content:center; }
 
         /* These menus anchor to their trigger via right:0, which can push
            them off-screen once the trigger no longer sits at the true
