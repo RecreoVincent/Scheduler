@@ -167,6 +167,7 @@
         <a class="button" href="{{ route('gec.schedules.create') }}">Generate Schedule</a>
     </div>
 @else
+    <x-pagination :paginator="$sectionPages" label="Timetable section pages" mode="summary" />
     <div class="timetable-list">
         @foreach($sectionPages as $section)
             @php($sectionSchedules = $schedulesBySection->get($section->id, collect()))
@@ -241,7 +242,7 @@
             </section>
         @endforeach
     </div>
-    <x-pagination :paginator="$sectionPages" label="Timetable section pages" />
+    <x-pagination :paginator="$sectionPages" label="Timetable section pages" mode="navigation" />
 
 @endif
 

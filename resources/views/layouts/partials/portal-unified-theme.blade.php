@@ -504,20 +504,19 @@
     .portal-pagination-bar {
         display:flex;
         align-items:center;
-        flex-direction:column;
         justify-content:center;
         flex-wrap:wrap;
         gap:12px;
         margin:18px 0 0;
-        text-align:center;
     }
     .portal-pagination-meta {
         display:flex;
         align-items:center;
-        justify-content:center;
+        justify-content:flex-start;
         gap:12px;
         min-width:0;
         flex-wrap:wrap;
+        margin:0 0 14px;
     }
     .portal-page-size label {
         display:inline-flex;
@@ -557,7 +556,7 @@
         align-items:center;
         flex-wrap:wrap;
         gap:8px;
-        margin:0;
+        margin:18px 0 0;
     }
     .portal-page-button {
         width:46px;
@@ -828,8 +827,8 @@
         .page-header .button { width:100%; }
         .card { padding:20px; }
         .portal-pagination-bar { justify-content:center; gap:12px; }
-        .portal-pagination-meta { justify-content:center; }
-        .portal-pagination-summary { padding-left:0; border-left:0; text-align:center; }
+        .portal-pagination-meta { justify-content:flex-start; }
+        .portal-pagination-summary { padding-left:0; border-left:0; text-align:left; }
         .portal-pagination-separator { display:none; }
         .portal-pagination { justify-content:center; }
 

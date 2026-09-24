@@ -263,6 +263,7 @@
 
     </form>
 
+    <x-pagination :paginator="$users" label="User account pages" mode="summary" />
     <div class="table-wrapper">
         <table>
             <thead>
@@ -322,7 +323,7 @@
             </tbody>
         </table>
     </div>
-    <x-pagination :paginator="$users" label="User account pages" />
+    <x-pagination :paginator="$users" label="User account pages" mode="navigation" />
 
 </div>
 

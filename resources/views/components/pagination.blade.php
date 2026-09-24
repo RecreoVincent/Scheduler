@@ -2,6 +2,7 @@
     'paginator',
     'label' => 'Pagination',
     'perPageOptions' => [5, 10, 25, 50],
+    'mode' => 'full',
 ])
 
 @if ($paginator->total() > 0)
@@ -19,7 +20,11 @@
         $previousRenderedPage = null;
     @endphp
 
+    @if ($mode === 'full')
     <div class="portal-pagination-bar">
+    @endif
+
+        @if ($mode !== 'navigation')
         <div class="portal-pagination-meta">
             <form class="portal-page-size" method="GET" action="{{ url()->current() }}">
                 @foreach (request()->except(['page', 'per_page']) as $name => $value)
@@ -47,8 +52,9 @@
                 of <strong>{{ number_format($paginator->total()) }}</strong> records
             </p>
         </div>
+        @endif
 
-        @if ($paginator->hasPages())
+        @if ($mode !== 'summary' && $paginator->hasPages())
             <nav class="portal-pagination" role="navigation" aria-label="{{ $label }}">
             @if ($paginator->onFirstPage())
                 <span class="portal-page-button is-disabled" aria-disabled="true" aria-label="Previous page">
@@ -85,5 +91,8 @@
             @endif
             </nav>
         @endif
+
+    @if ($mode === 'full')
     </div>
+    @endif
 @endif

@@ -60,6 +60,7 @@
         data-delete-confirm-label="Delete All Rooms">Delete All Rooms</button>
 </div>
 
+<x-pagination :paginator="$rooms" label="Room pages" mode="summary" />
 @forelse($rooms as $room)
 <div class="card room-card">
     <div class="room-head">
@@ -101,7 +102,7 @@
 @empty
 <div class="card">{{ request()->hasAny(['search', 'room_type']) ? 'No rooms match the current filters.' : 'No rooms added yet.' }}</div>
 @endforelse
-<x-pagination :paginator="$rooms" label="Room pages" />
+<x-pagination :paginator="$rooms" label="Room pages" mode="navigation" />
 @push('portal-profile-overlay')
 <div id="roomQrModal" class="admin-profile-modal" hidden>
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="roomQrTitle">

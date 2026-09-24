@@ -33,6 +33,7 @@
             data-delete-confirm-label="Delete All Sections">Delete All Sections</button>
     </div>
 
+    <x-pagination :paginator="$sections" label="Section pages" mode="summary" />
     <div class="table-wrap">
         <table>
             <thead><tr><th>Section</th><th>Year</th><th>Academic Year</th><th>Actions</th></tr></thead>
@@ -55,7 +56,7 @@
             </tbody>
         </table>
     </div>
-    <x-pagination :paginator="$sections" label="Section pages" />
+    <x-pagination :paginator="$sections" label="Section pages" mode="navigation" />
 </div>
 
 @push('portal-profile-overlay')

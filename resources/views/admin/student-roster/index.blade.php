@@ -70,6 +70,7 @@
         <input class="input" type="search" name="search" value="{{ $search }}" placeholder="Search student ID, name, department, or section">
         <button class="button" type="submit">Search</button>
     </form>
+    <x-pagination :paginator="$roster" label="Student roster pages" mode="summary" />
     <div class="table-wrap">
         <table class="roster-table">
             <thead><tr><th>Student ID</th><th>Name</th><th>Department</th><th>Section</th><th>Status</th><th>Last Imported</th><th>Actions</th></tr></thead>
@@ -93,7 +94,7 @@
             </tbody>
         </table>
     </div>
-    <x-pagination :paginator="$roster" label="Student roster pages" />
+    <x-pagination :paginator="$roster" label="Student roster pages" mode="navigation" />
 </div>
 
 <div id="rosterFormModal" class="admin-profile-modal" hidden>

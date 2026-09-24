@@ -60,6 +60,7 @@
         <input class="input" type="search" name="search" value="{{ $search }}" placeholder="Search student number, name, or MS365 email">
         <button class="button" type="submit">Search</button>
     </form>
+    <x-pagination :paginator="$accounts" label="MS365 account pages" mode="summary" />
     <div class="table-wrap ms365-table-wrap">
         <table class="ms365-table">
             <colgroup>
@@ -86,7 +87,7 @@
             </tbody>
         </table>
     </div>
-    <x-pagination :paginator="$accounts" label="MS365 account pages" />
+    <x-pagination :paginator="$accounts" label="MS365 account pages" mode="navigation" />
 </div>
 
 @php($selectedStatus = old('status', $editingAccount?->soft_deleted_at ? 'soft_deleted' : ($editingAccount?->is_blocked ? 'blocked' : 'eligible')))
