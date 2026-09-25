@@ -7,17 +7,19 @@
     .unit-filters { grid-template-columns:2fr 1fr; align-items:end; }
     #unitSearch, #unitAcademicYear { width:100%; border:1.5px solid var(--primary-light); }
     #unitSearch:focus, #unitAcademicYear:focus { border-color:var(--primary); }
-    .unit-table { min-width:980px; }
-    .unit-table th,.unit-table td { padding:11px 12px; vertical-align:middle; }
-    .unit-table th:last-child,.unit-table td:last-child { width:145px; text-align:center; white-space:nowrap; }
+    .unit-table { width:100%; min-width:0; table-layout:fixed; }
+    .unit-table th,.unit-table td { padding:11px 10px; vertical-align:middle; }
+    .unit-table th:last-child,.unit-table td:last-child { width:auto; text-align:center; white-space:normal; }
     .unit-table td:last-child .actions { justify-content:center; flex-wrap:nowrap; }
-    .instructor-cell { display:flex; align-items:center; gap:10px; min-width:210px; }
-    .instructor-mark { width:38px; height:38px; display:grid; place-items:center; flex:0 0 38px; font-weight:850; color:white; background:var(--primary); border-radius:10px; }
+    .unit-table td:last-child .actions .button { min-width:0; min-height:38px; padding:8px 10px; font-size:11px; white-space:nowrap; }
+    .instructor-cell { display:flex; align-items:center; gap:10px; min-width:0; }
+    .instructor-mark { width:50px; height:50px; display:grid; place-items:center; flex:0 0 50px; color:#fff !important; font-size:18px !important; font-weight:850; line-height:1; background:var(--primary); border-radius:12px; }
     .instructor-cell strong,.instructor-cell span { display:block; }
-    .instructor-cell > .instructor-mark { display:grid; place-items:center; margin-top:0; color:#fff !important; line-height:1; }
+    .instructor-cell > .instructor-mark { display:grid; place-items:center; margin-top:0; color:#fff !important; font-size:18px !important; line-height:1; }
     .instructor-cell span { margin-top:2px; color:var(--muted); font-size:10px; }
     .unit-number { font-size:18px; font-weight:850; color:var(--navy); }
-    .unit-capacity { min-width:145px; }
+    .instructor-cell strong { min-width:0; overflow-wrap:anywhere; }
+    .unit-capacity { min-width:0; }
     .unit-meter { height:7px; margin-top:7px; overflow:hidden; background:#ede6f1; border-radius:10px; }
     .unit-meter span { display:block; height:100%; background:var(--primary); border-radius:inherit; }
     .unit-meter.over span { background:var(--danger); }
@@ -105,6 +107,9 @@
         <x-pagination :paginator="$instructors" label="Instructor unit pages" mode="summary" />
         <div class="table-wrap">
             <table class="unit-table">
+                <colgroup>
+                    <col style="width:15%"><col style="width:15%"><col style="width:14%"><col style="width:14%"><col style="width:15%"><col style="width:14%"><col style="width:13%">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Instructor</th>
@@ -129,7 +134,7 @@
                             <td>
                                 <div class="instructor-cell">
                                     <span class="instructor-mark">{{ strtoupper(substr($instructor->first_name ?: 'I',0,1)) }}</span>
-                                    <span><strong>{{ $instructor->name }}</strong><span>{{ $instructor->email }}</span></span>
+                                    <strong>{{ $instructor->name }}</strong>
                                 </div>
                             </td>
                             <td>{{ str($instructor->employment_type ?? 'Unspecified')->replace('_',' ')->title() }}</td>

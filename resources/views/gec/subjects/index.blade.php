@@ -5,10 +5,6 @@
 @push('styles')
 <style>
     .subjects-filters { grid-template-columns:repeat(4,minmax(0,1fr)); }
-    /* Keep the department label content-sized instead of giving it a share of a
-       wide, horizontally scrollable subjects table. */
-    .subjects-table th:first-child,
-    .subjects-table td:first-child { width:1%; white-space:nowrap; }
     .subjects-table .department-badge {
         display:inline-flex !important;
         width:auto !important;
@@ -16,6 +12,10 @@
         align-items:center;
         white-space:nowrap;
     }
+    .subjects-table .instructors-cell { min-width:0; overflow-wrap:anywhere; }
+    .subjects-table .subject-actions-cell { padding-right:14px !important; padding-left:14px !important; }
+    .subjects-table .subject-actions-cell .actions { width:100%; min-width:0; }
+    .subjects-table .subject-actions-cell .button { flex:1 1 0; min-width:0; padding-right:10px; padding-left:10px; }
     @media(max-width:900px) { .subjects-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media(max-width:560px) { .subjects-filters { grid-template-columns:1fr; } }
 </style>
@@ -71,6 +71,10 @@
     <x-pagination :paginator="$subjects" label="Minor subject pages" mode="summary" />
     <div class="table-wrap">
         <table class="subjects-table">
+            <colgroup>
+                <col style="width:9%"><col style="width:11%"><col style="width:16%"><col style="width:10%"><col style="width:8%">
+                <col style="width:9%"><col style="width:7%"><col style="width:15%"><col style="width:15%">
+            </colgroup>
             <thead><tr><th>Department</th><th>Code</th><th>Description</th><th>Type</th><th>Year</th><th>Semester</th><th>Units</th><th>Instructors</th><th>Actions</th></tr></thead>
             <tbody>
                 @forelse($subjects as $subject)
@@ -82,8 +86,8 @@
                         <td>Year {{ $subject->year_level }}</td>
                         <td>{{ $subject->semester }}</td>
                         <td>{{ number_format((float) $subject->units, 0) }}</td>
-                        <td>{{ $subject->instructors->pluck('name')->join(', ') ?: 'Unassigned' }}</td>
-                        <td>
+                        <td class="instructors-cell">{{ $subject->instructors->pluck('name')->join(', ') ?: 'Unassigned' }}</td>
+                        <td class="subject-actions-cell">
                             <div class="actions">
                                 <a class="button button-secondary" href="{{ route('gec.subjects.index', array_merge(request()->query(), ['edit' => $subject->id])) }}#subjectCreateModal">Edit</a>
                                 <button type="button" class="button button-danger delete-confirmation-trigger" data-delete-url="{{ route('gec.subjects.destroy', $subject) }}" data-delete-name="{{ $subject->course }} {{ $subject->code }} — {{ $subject->name }}">Delete</button>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Gec;
 
+use App\Models\AcademicSection;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,17 +15,16 @@ class DashboardController extends GecController
         $instructorQuery = User::query()
             ->forDepartment('GEC')
             ->where('role', 'instructor')
-            ->where('account_status', 'active')
-            ->whereHas('classSchedules', fn ($query) => $query
-                ->where('semester', $semester)
-                ->whereHas('subject', fn ($subjectQuery) => $subjectQuery->where('classification', 'Minor')));
+            ->where('account_status', 'active');
         $subjectsQuery = $this->minorSubjects()->where('semester', $semester);
         $schedulesQuery = $this->minorSchedules()->where('semester', $semester);
+        $sectionQuery = AcademicSection::query()->whereIn('course', self::REAL_DEPARTMENTS);
 
         $statistics = [
             'instructors' => (clone $instructorQuery)->count(),
             'subjects' => (clone $subjectsQuery)->count(),
             'assignments' => (clone $subjectsQuery)->whereHas('instructors')->count(),
+            'sections' => (clone $sectionQuery)->count(),
             'schedules' => (clone $schedulesQuery)->count(),
         ];
 
@@ -40,6 +40,7 @@ class DashboardController extends GecController
                 'Assigned' => (clone $subjectsQuery)->whereHas('instructors')->count(),
                 'Unassigned' => (clone $subjectsQuery)->whereDoesntHave('instructors')->count(),
             ],
+            'sections' => $this->departmentCounts(fn (string $department) => (clone $sectionQuery)->where('course', $department)->count()),
             'schedules' => $this->departmentCounts(fn (string $department) => (clone $schedulesQuery)->where('course', $department)->count()),
         ];
 

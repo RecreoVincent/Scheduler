@@ -332,6 +332,32 @@
     @media(max-width:600px){.admin-profile-modal{padding:12px}.admin-profile-dialog{padding:20px}.admin-profile-form-grid{grid-template-columns:1fr}.admin-profile-field.full{grid-column:auto}.admin-profile-actions{align-items:stretch;flex-direction:column-reverse}.admin-profile-actions .button{width:100%}}
 
     .content { width:100%; max-width:1440px; margin-right:auto; margin-left:auto; padding:clamp(26px,3vw,40px) clamp(18px,3vw,40px) 50px; }
+    /*
+       Shared portal page standard
+       ---------------------------
+       The Student List is the visual reference for every portal: the page
+       purpose stays on the left, related controls stay together on the right,
+       filters occupy one predictable toolbar, and data tables use the available
+       width evenly. Individual scheduling/print tables keep their deliberate
+       column definitions below.
+    */
+    .content .page-header {
+        align-items:flex-end;
+        gap:16px;
+        margin-bottom:24px;
+    }
+    .content .page-header > :first-child { min-width:0; }
+    .content .page-header :is(.actions,.page-header-actions,.roster-page-actions) {
+        display:flex;
+        align-items:center;
+        justify-content:flex-end;
+        flex-wrap:wrap;
+        gap:9px;
+    }
+    .content .page-header :is(.actions,.page-header-actions,.roster-page-actions) .button {
+        min-width:0;
+        white-space:nowrap;
+    }
     .page-header { margin-bottom:32px; }
     .page-header h2 { margin-bottom:7px; color:var(--navy); font-size:28px; font-weight:850; letter-spacing:-.9px; }
     .page-header p { color:var(--navy); font-size:12.5px; line-height:1.6; opacity:.8; }
@@ -416,8 +442,13 @@
     .input:hover,input.input:hover,select.input:hover,textarea.input:hover { background:rgba(255,255,255,.88); border-color:var(--primary); }
     .input:focus,input.input:focus,select.input:focus,textarea.input:focus { border-color:var(--primary); box-shadow:0 0 0 4px rgba(69,6,147,.22); background:#fff; }
     label { color:#413649; font-size:11.5px; font-weight:800; letter-spacing:.1px; }
-    .filters {
-        padding:19px;
+    .content .filters {
+        display:grid;
+        grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));
+        align-items:end;
+        gap:12px;
+        margin-bottom:18px;
+        padding:16px;
         color:#302638;
         background-color:#d9bfea;
         background-image:var(--portal-panel-image);
@@ -427,6 +458,9 @@
         border:1px solid rgba(69,6,147,.18);
         border-radius:16px;
     }
+    .content .filters > * { min-width:0; }
+    .content .filters > :is(input,select,button,.button) { align-self:end; }
+    .content .filters :is(label,input,select) { width:100%; }
     .form-actions { flex-wrap:wrap; padding-top:20px; border-top:1px solid #eee8f1; }
 
     .table-wrap { overflow-x:auto; background:rgba(255,255,255,.68); border:1px solid rgba(69,6,147,.14); border-radius:16px; }
@@ -456,8 +490,14 @@
         width:100%;
         margin:0;
     }
+    /* Regular data tables distribute their usable space consistently. Tables
+       with a schedule-specific colgroup retain their intentional proportions. */
+    .content :is(.table-wrap,.table-wrapper) > table:not(.schedule-table):not(.room-usage-table) {
+        table-layout:fixed;
+    }
     .content :is(.table-wrap,.table-wrapper) > table :is(th,td) {
         vertical-align:middle;
+        padding:15px 18px;
     }
     .content :is(.table-wrap,.table-wrapper) > table th {
         line-height:1.28;
@@ -465,7 +505,7 @@
     }
     .content :is(.table-wrap,.table-wrapper) > table td {
         line-height:1.45;
-        overflow-wrap:anywhere;
+        overflow-wrap:break-word;
     }
     .content :is(.table-wrap,.table-wrapper) > table td[colspan] {
         padding:34px 20px;
@@ -474,12 +514,68 @@
     }
     .content :is(.table-wrap,.table-wrapper) > table .actions {
         align-items:center;
+        justify-content:flex-end;
+        flex-wrap:nowrap;
+        gap:7px;
+    }
+    .content :is(.table-wrap,.table-wrapper) > table :is(th,td):has(> .actions) {
+        width:184px;
+        padding-right:14px;
+        padding-left:14px;
+        white-space:nowrap;
     }
     .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar { height:9px; }
     .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar-track { background:rgba(69,6,147,.09); border-radius:999px; }
     .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar-thumb { background:rgba(69,6,147,.56); border-radius:999px; }
     .content :is(.table-wrap,.table-wrapper)::-webkit-scrollbar-thumb:hover { background:var(--primary); }
 
+    /* Summary controls sit at the upper-left of a table, while page navigation
+       remains centered beneath it, matching the Student List. */
+    .content .portal-pagination-meta { margin:0 0 14px; }
+    .content .portal-pagination { margin:18px auto 0; }
+
+    /* One full-viewport backdrop for every portal modal.  Some dashboard
+       overlays used to begin below the top bar and beside the sidebar; this
+       rule deliberately covers both so every open modal has the same focused
+       full-screen blur as the student import dialog. */
+    body :is(
+        .portal-profile-modal,
+        .admin-profile-modal,
+        .notification-modal,
+        .notice-modal,
+        .delete-modal,
+        .delete-confirmation-modal,
+        .account-confirmation,
+        .archive-modal,
+        .analytics-modal,
+        .chart-modal,
+        .portal-data-modal
+    ) {
+        position:fixed;
+        z-index:3000;
+        inset:0;
+        display:grid;
+        place-items:center;
+        padding:20px;
+        overflow:auto;
+        overscroll-behavior:contain;
+        background:rgba(31,5,57,.60);
+        backdrop-filter:blur(16px) saturate(.86);
+        -webkit-backdrop-filter:blur(16px) saturate(.86);
+    }
+    body :is(
+        .portal-profile-modal,
+        .admin-profile-modal,
+        .notification-modal,
+        .notice-modal,
+        .delete-modal,
+        .delete-confirmation-modal,
+        .account-confirmation,
+        .archive-modal,
+        .analytics-modal,
+        .chart-modal,
+        .portal-data-modal
+    )[hidden] { display:none !important; }
     .chart-modal,.delete-modal { background:rgba(31,5,57,.62); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
     .chart-panel,.delete-dialog {
         color:#302638;
@@ -824,7 +920,11 @@
         .main { padding-top:0; }
         .content { padding-top:24px; }
         .page-header { align-items:flex-start; flex-direction:column; }
+        .content .page-header { align-items:flex-start; flex-direction:column; }
+        .content .page-header :is(.actions,.page-header-actions,.roster-page-actions) { width:100%; justify-content:flex-start; }
         .page-header .button { width:100%; }
+        .content .filters { grid-template-columns:1fr; }
+        .content :is(.table-wrap,.table-wrapper) > table:not(.schedule-table):not(.room-usage-table) { min-width:680px; }
         .card { padding:20px; }
         .portal-pagination-bar { justify-content:center; gap:12px; }
         .portal-pagination-meta { justify-content:flex-start; }
@@ -857,3 +957,53 @@
         .portal-page-button svg { width:17px; height:17px; }
     }
 </style>
+<script>
+    (() => {
+        const modalSelector = [
+            '.portal-profile-modal',
+            '.admin-profile-modal',
+            '.notification-modal',
+            '.notice-modal',
+            '.delete-modal',
+            '.delete-confirmation-modal',
+            '.account-confirmation',
+            '.archive-modal',
+            '.analytics-modal',
+            '.chart-modal',
+            '.portal-data-modal',
+        ].join(',');
+
+        const moveToViewportLayer = (modal) => {
+            if (!(modal instanceof HTMLElement) || modal.parentElement === document.body) {
+                return;
+            }
+
+            // A fixed child of .content remains trapped below the sidebar/topbar
+            // when its portal creates a stacking context. Moving overlays to the
+            // document body lets their shared full-screen backdrop cover it all.
+            document.body.append(modal);
+        };
+
+        const moveAllModalsToViewportLayer = (root = document) => {
+            if (root instanceof HTMLElement && root.matches(modalSelector)) {
+                moveToViewportLayer(root);
+            }
+
+            root.querySelectorAll?.(modalSelector).forEach(moveToViewportLayer);
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            moveAllModalsToViewportLayer();
+
+            new MutationObserver((changes) => {
+                changes.forEach((change) => {
+                    change.addedNodes.forEach((node) => {
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            moveAllModalsToViewportLayer(node);
+                        }
+                    });
+                });
+            }).observe(document.body, { childList:true, subtree:true });
+        }, { once:true });
+    })();
+</script>

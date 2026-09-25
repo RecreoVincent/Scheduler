@@ -68,7 +68,11 @@
         }
     }
     $selectedRoleLabel=$selectedRole==='dean'?'Dean / Program Head':($selectedRole==='gec'?'GEC':ucfirst($selectedRole));
-    $usesStudentRosterLogin=$selectedRole==='student';
+    $usesPortalIdLogin=in_array($selectedRole,['instructor','student'],true);
+    $portalIdLabel=$selectedRole==='instructor'?'Instructor ID':'Student ID';
+    $portalIdPlaceholder=$selectedRole==='instructor'?'e.g. 2026-0000':'e.g. 2026-0000';
+    $portalIdValue=trim((string) request('portal_id',old('portal_id','')));
+    $portalPasswordStep=$usesPortalIdLogin&&request('step')==='sign-in'&&$portalIdValue!=='';
     $isBrandedPortal=$portalBrand!==null;
     $usesMccLogo=$isBrandedPortal&&!$isDepartmentDean;
     $usesDepartmentLogo=$isDepartmentDean;
@@ -223,22 +227,33 @@
             <header class="heading"><span class="heading-kicker">Secure portal access</span><h1>{{ $portalBrand['welcome'] }}</h1><p>{{ $portalBrand['description'] }}</p></header>
 
             <div class="portal-card"><span @class(['portal-symbol','mcc-portal-symbol'=>$usesMccLogo,'department-portal-symbol'=>$usesDepartmentLogo,'bsit-portal-symbol'=>$usesBsitLogo,$departmentLogoClass=>$usesDepartmentLogo])><img src="{{ asset($portalBrand['logo']) }}" alt="{{ $portalBrand['logoAlt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ $selectedRoleLabel }} Portal @if($selectedRole==='dean'&&$selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}">Change</a></div>
-            @if($errors->any())<div class="alert alert-error" role="alert">@if($errors->has('student_id')){{ $errors->first('student_id') }}@elseif($errors->has('last_name')){{ $errors->first('last_name') }}@else Please check your login information and try again.@endif</div>@endif
+            @if($errors->any())<div class="alert alert-error" role="alert">@if($errors->has('portal_id')){{ $errors->first('portal_id') }}@else Please check your login information and try again.@endif</div>@endif
+            @if(session('error'))<div class="alert alert-error" role="alert">{{ session('error') }}</div>@endif
             @if(session('success'))<div class="alert alert-success" role="status">{{ session('success') }}</div>@endif
 
-            @if($usesStudentRosterLogin)
-            <form method="POST" action="{{ route('login.student') }}">
+            @if($usesPortalIdLogin && ! $portalPasswordStep)
+            <form method="POST" action="{{ route('login.identify') }}">
                 @csrf
+                <input type="hidden" name="role" value="{{ $selectedRole }}">
                 <div class="form-group">
-                    <label for="student_id">Student number</label>
+                    <label for="portal_id">{{ $portalIdLabel }}</label>
                     <div class="input-wrap">
                         <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
-                        <input id="student_id" class="form-control" type="text" name="student_id" value="{{ old('student_id') }}" placeholder="e.g. 2023-00123" required autocomplete="username" autofocus>
+                        <input id="portal_id" class="form-control" type="text" name="portal_id" value="{{ $portalIdValue }}" placeholder="{{ $portalIdPlaceholder }}" required autocomplete="username" autofocus>
                     </div>
-                    @error('student_id')<p class="field-error">{{ $message }}</p>@enderror
+                    @error('portal_id')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
-                <div class="form-group"><label for="last_name">Last name</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0M12 13a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg><input id="last_name" class="form-control" type="text" name="last_name" value="{{ old('last_name') }}" placeholder="Enter your last name" required autocomplete="family-name"></div>@error('last_name')<p class="field-error">{{ $message }}</p>@enderror</div>
-                <button class="login-button" type="submit">Sign In to Student Portal <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                <p class="register-prompt" style="margin:0 0 17px;text-align:left">Enter your ID to sign in or create your portal account.</p>
+                <button class="login-button" type="submit">Continue <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+            </form>
+            @elseif($usesPortalIdLogin)
+            <form method="POST" action="{{ route('login') }}">
+                @csrf
+                <input type="hidden" name="role" value="{{ $selectedRole }}">
+                <div class="form-group"><label for="portal_id">{{ $portalIdLabel }}</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><input id="portal_id" class="form-control" type="text" name="portal_id" value="{{ $portalIdValue }}" readonly autocomplete="username"></div>@error('portal_id')<p class="field-error">{{ $message }}</p>@enderror</div>
+                <div class="form-group"><label for="password">Password</label><div class="input-wrap"><svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></svg><input id="password" class="form-control" type="password" name="password" placeholder="Enter your password" required autofocus autocomplete="current-password"><button id="togglePassword" class="toggle-password" type="button">Show</button></div>@error('password')<p class="field-error">{{ $message }}</p>@enderror</div>
+                <div class="form-options"><a class="forgot" href="{{ route('login', ['role' => $selectedRole]) }}">Use a different ID</a>@if(Route::has('password.request'))<a class="forgot" href="{{ route('password.request') }}">Forgot password?</a>@endif</div>
+                <button class="login-button" type="submit">Sign In to {{ $selectedRoleLabel }} Portal <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
             </form>
             @else
             <form method="POST" action="{{ route('login') }}">

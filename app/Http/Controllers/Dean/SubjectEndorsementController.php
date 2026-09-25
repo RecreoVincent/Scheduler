@@ -26,6 +26,15 @@ class SubjectEndorsementController extends DeanController
             ->orderBy('sort_order')
             ->orderBy('code')
             ->get(['code', 'name', 'program_name']);
+        $endorsementSubjects = Subject::query()
+            ->forDepartment($course)
+            ->where('managed_by_gec', false)
+            ->whereNotNull('year_level')
+            ->whereIn('semester', $this->enabledSemesters($request))
+            ->orderBy('year_level')
+            ->orderBy('code')
+            ->orderBy('name')
+            ->get(['id', 'course', 'code', 'name', 'subject_type', 'year_level', 'units']);
         $endorsements = SubjectEndorsement::query()
             ->where('from_department', $course)
             ->whereNull('scheduled_at')
@@ -86,6 +95,7 @@ class SubjectEndorsementController extends DeanController
         return view('dean.subject-endorsements.index', compact(
             'course',
             'departments',
+            'endorsementSubjects',
             'endorsements',
             'receivedEndorsements',
             'endorsementHistory',
@@ -102,33 +112,24 @@ class SubjectEndorsementController extends DeanController
             ->all();
         $validated = $request->validate([
             'to_department' => ['required', Rule::in($destinationDepartments)],
-            'subject_code' => ['required', 'string', 'max:30'],
-            'subject_name' => ['required', 'string', 'max:150'],
-            'subject_type' => ['required', Rule::in(['Lecture', 'Laboratory', 'Internship'])],
-            'units' => ['required', 'numeric', 'between:0.5,12'],
+            'year_level' => ['required', 'integer', Rule::in([1, 2, 3, 4])],
+            'subject_id' => ['required', 'integer'],
         ]);
 
-        $subjectCode = strtoupper(trim($validated['subject_code']));
-        $subjectName = trim($validated['subject_name']);
         $subject = Subject::query()
             ->forDepartment($course)
             ->where('managed_by_gec', false)
-            ->where('code', $subjectCode)
-            ->where('subject_type', $validated['subject_type'])
-            ->where('units', $validated['units'])
-            ->latest('id')
+            ->whereKey($validated['subject_id'])
+            ->where('year_level', $validated['year_level'])
+            ->whereIn('semester', $this->enabledSemesters($request))
             ->first();
 
         if (! $subject) {
             throw ValidationException::withMessages([
-                'subject_code' => "Add {$subjectCode} to the {$course} Subjects page first, using the same subject type and units, before endorsing it.",
+                'subject_id' => "Select a subject from the {$course} Subjects list for the chosen year level.",
             ]);
         }
-        if (strcasecmp($subject->name, $subjectName) !== 0) {
-            throw ValidationException::withMessages([
-                'subject_name' => "The subject name must match {$subjectCode} in the {$course} Subjects list.",
-            ]);
-        }
+        $subjectCode = $subject->code;
 
         $endorsement = SubjectEndorsement::create([
             'subject_id' => $subject->id,
@@ -136,8 +137,8 @@ class SubjectEndorsementController extends DeanController
             'to_department' => $validated['to_department'],
             'subject_code' => $subjectCode,
             'subject_name' => $subject->name,
-            'subject_type' => $validated['subject_type'],
-            'units' => $validated['units'],
+            'subject_type' => $subject->subject_type,
+            'units' => $subject->units,
             'endorsed_by' => $request->user()->id,
         ]);
 

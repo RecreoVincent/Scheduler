@@ -7,8 +7,8 @@ use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\PortalAccountAccessController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\StudentRosterLoginController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,9 +17,9 @@ Route::middleware('guest')->group(function () {
         ->name('register');
 
     Route::post('register', [RegisteredUserController::class, 'store'])->middleware('throttle:10,1');
-    Route::get('register/verify-ms365', [RegisteredUserController::class, 'otp'])->name('register.otp');
-    Route::post('register/verify-ms365', [RegisteredUserController::class, 'verifyOtp'])->name('register.otp.verify')->middleware('throttle:10,1');
-    Route::post('register/verify-ms365/resend', [RegisteredUserController::class, 'resendOtp'])->name('register.otp.resend')->middleware('throttle:3,1');
+    Route::get('register/verify-email', [RegisteredUserController::class, 'otp'])->name('register.otp');
+    Route::post('register/verify-email', [RegisteredUserController::class, 'verifyOtp'])->name('register.otp.verify')->middleware('throttle:10,1');
+    Route::post('register/verify-email/resend', [RegisteredUserController::class, 'resendOtp'])->name('register.otp.resend')->middleware('throttle:3,1');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
@@ -40,7 +40,11 @@ Route::get('login', [AuthenticatedSessionController::class, 'create'])
 
 Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
-Route::post('login/student', [StudentRosterLoginController::class, 'store'])
+Route::post('login/identify', [PortalAccountAccessController::class, 'identify'])
+    ->name('login.identify')
+    ->middleware('throttle:5,1');
+
+Route::post('login/student', [PortalAccountAccessController::class, 'identifyStudent'])
     ->name('login.student')
     ->middleware('throttle:5,1');
 

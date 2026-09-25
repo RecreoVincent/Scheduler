@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Dean;
 use App\Models\ClassSchedule;
 use App\Models\User;
 use App\Services\InstructorAccountImporter;
+use App\Services\InstructorIdGenerator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use RuntimeException;
@@ -16,7 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InstructorController extends DeanController
 {
-    public function index(Request $request): View
+    public function index(Request $request, InstructorIdGenerator $instructorIds): View
     {
         $course = $this->course($request);
         $query = User::forDepartment($course)->where('role', 'instructor');
@@ -59,28 +61,33 @@ class InstructorController extends DeanController
         }
 
         $instructorAccountCount = User::forDepartment($course)->where('role', 'instructor')->count();
+        $instructorIdPreview = $instructorIds->preview();
 
-        return view('dean.instructors.index', compact('course', 'pendingInstructors', 'instructors', 'editingInstructor', 'instructorAccountCount'));
+        return view('dean.instructors.index', compact('course', 'pendingInstructors', 'instructors', 'editingInstructor', 'instructorAccountCount', 'instructorIdPreview'));
     }
 
-    public function create(Request $request): View
+    public function create(Request $request, InstructorIdGenerator $instructorIds): View
     {
-        return view('dean.instructors.form', ['course' => $this->course($request), 'instructor' => new User]);
+        return view('dean.instructors.form', [
+            'course' => $this->course($request),
+            'instructor' => new User,
+            'instructorIdPreview' => $instructorIds->preview(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validated($request);
 
-        User::create([
+        $instructor = User::create([
             ...$validated,
-            'password' => Hash::make($validated['password']),
+            'password' => Hash::make(Str::random(40)),
             'role' => 'instructor',
             'course' => $this->course($request),
             'account_status' => 'active',
         ]);
 
-        return redirect()->route('dean.instructors.index')->with('success', 'Instructor account created successfully.');
+        return redirect()->route('dean.instructors.index')->with('success', "Instructor account created successfully. Instructor ID: {$instructor->instructor_id}.");
     }
 
     public function edit(Request $request, User $instructor): View
@@ -94,12 +101,6 @@ class InstructorController extends DeanController
     {
         $this->ensureInstructor($request, $instructor);
         $validated = $this->validated($request, $instructor);
-
-        if (empty($validated['password'])) {
-            unset($validated['password']);
-        } else {
-            $validated['password'] = Hash::make($validated['password']);
-        }
 
         $instructor->update($validated);
 
@@ -207,10 +208,8 @@ class InstructorController extends DeanController
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'suffix' => ['nullable', 'string', 'max:30'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($instructor?->id)],
             'employment_type' => ['required', Rule::in(['full_time', 'industry_part_time', 'flexible_part_time'])],
             'outside_work_end_time' => ['nullable', 'required_if:employment_type,industry_part_time', 'date_format:H:i'],
-            'password' => [$instructor?->exists ? 'nullable' : 'required', 'string', 'min:8', 'confirmed'],
         ]);
     }
 }

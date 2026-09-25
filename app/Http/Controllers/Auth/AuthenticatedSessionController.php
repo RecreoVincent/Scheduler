@@ -43,6 +43,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        $selectedRole = strtolower((string) $request->input('role'));
         $guard = $request->authenticate();
 
         $request->session()->regenerate();
@@ -53,11 +54,10 @@ class AuthenticatedSessionController extends Controller
             Auth::guard($guard)->logout();
 
             throw ValidationException::withMessages([
-                'email' => 'Your account is still pending approval.',
+                $this->credentialField($selectedRole) => 'Your account is still pending approval.',
             ]);
         }
 
-        $selectedRole = strtolower((string) $request->input('role'));
         $accountRole = strtolower((string) ($user->role ?? 'user'));
         $selectedCourse = strtoupper((string) $request->input('course'));
         $accountCourse = strtoupper((string) ($user->course ?? ''));
@@ -67,7 +67,7 @@ class AuthenticatedSessionController extends Controller
             Auth::guard($guard)->logout();
 
             throw ValidationException::withMessages([
-                'email' => 'These credentials do not belong to the selected portal.',
+                $this->credentialField($selectedRole) => 'These credentials do not belong to the selected portal.',
             ]);
         }
 
@@ -75,7 +75,7 @@ class AuthenticatedSessionController extends Controller
             Auth::guard($guard)->logout();
 
             throw ValidationException::withMessages([
-                'email' => 'This dean account is not assigned to the selected course.',
+                $this->credentialField($selectedRole) => 'This dean account is not assigned to the selected course.',
             ]);
         }
 
@@ -96,5 +96,10 @@ class AuthenticatedSessionController extends Controller
         return $guard === 'web'
             ? redirect('/')
             : redirect()->route('logout.transition', ['portal' => $guard]);
+    }
+
+    private function credentialField(string $role): string
+    {
+        return in_array($role, ['instructor', 'student'], true) ? 'portal_id' : 'email';
     }
 }

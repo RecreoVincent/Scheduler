@@ -11,7 +11,7 @@
     .endorsement-schedule-summary span { margin-bottom:4px; font-size:9px; font-weight:800; letter-spacing:.65px; color:var(--muted); text-transform:uppercase; }
     .endorsement-schedule-summary strong { font-size:12px; color:var(--navy); }
     .endorsement-schedule-note { margin:0 0 20px; padding:13px 15px; font-size:11px; line-height:1.55; color:#5d5266; background:#fbf8fd; border:1px solid #e5dbea; border-radius:10px; }
-    .endorsement-priorities { grid-column:1/-1; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; padding:15px; background:#faf8fb; border:1px solid #eee7f1; border-radius:10px; }
+    .endorsement-priorities { grid-column:1/-1; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; padding:15px; background:#faf8fb; border:1px solid #eee7f1; border-radius:10px; }
     .endorsement-priorities > div { min-width:0; }
     .endorsement-priorities h3 { grid-column:1/-1; margin:0; font-size:12px; color:var(--navy); }
     .endorsement-priorities p { grid-column:1/-1; margin:-5px 0 0; font-size:10px; color:var(--muted); }
@@ -84,7 +84,7 @@
             <div class="endorsement-priorities">
                 <h3>Instructor Priorities</h3>
                 <p>Select active {{ auth()->user()->course }} instructors. Priority 1 is required; the remaining priorities are backups.</p>
-                @for($priority = 1; $priority <= 4; $priority++)
+                @for($priority = 1; $priority <= 6; $priority++)
                     <div>
                         <label for="endorsementInstructor{{ $priority }}">Priority {{ $priority }}</label>
                         <select id="endorsementInstructor{{ $priority }}" class="input endorsement-instructor" name="instructor_ids[]" @required($priority === 1)>

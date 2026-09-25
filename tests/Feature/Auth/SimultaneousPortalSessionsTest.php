@@ -18,16 +18,20 @@ class SimultaneousPortalSessionsTest extends TestCase
                 'role' => $role,
                 'course' => 'BSIT',
                 'account_status' => 'active',
+                'student_id' => $role === 'student' ? '2026-0001' : null,
             ])],
         );
 
         foreach ($users as $role => $user) {
-            $this->post(route('login'), [
-                'email' => $user->email,
-                'password' => 'password',
-                'role' => $role,
-                'course' => 'BSIT',
-            ])->assertRedirect(route("{$role}.login-transition"));
+            $credentials = ['password' => 'password', 'role' => $role, 'course' => 'BSIT'];
+            if (in_array($role, ['instructor', 'student'], true)) {
+                $credentials['portal_id'] = $role === 'instructor' ? $user->instructor_id : $user->student_id;
+            } else {
+                $credentials['email'] = $user->email;
+            }
+
+            $this->post(route('login'), $credentials)
+                ->assertRedirect(route("{$role}.login-transition"));
 
             $this->assertSame($user->id, Auth::guard($role)->id());
         }

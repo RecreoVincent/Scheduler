@@ -5,16 +5,15 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicSection;
 use App\Models\Department;
-use App\Models\User;
-use App\Models\Ms365StudentAccount;
 use App\Models\StudentRoster;
-use App\Services\MicrosoftGraphMailService;
+use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
@@ -22,42 +21,45 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
-    public function __construct(private readonly MicrosoftGraphMailService $graphMail)
-    {
-    }
+    private const REGISTRATION_SESSION = 'portal_id_registration';
+    private const OTP_SESSION = 'portal_registration_otp';
 
-    /**
-     * Display the registration view.
-     */
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse
     {
-        $roles = ['dean', 'instructor', 'student'];
-        $courses = Department::query()->orderBy('sort_order')->pluck('code')->all();
+        $portalRegistration = $this->portalRegistration($request);
         $requestedRole = strtolower((string) old('role', $request->role));
-        $requestedCourse = strtoupper((string) old('course', $request->course));
-        $selectedRole = in_array($requestedRole, $roles, true)
-            ? $requestedRole
-            : 'student';
-        $selectedCourse = in_array($requestedCourse, $courses, true)
-            ? $requestedCourse
-            : '';
+
+        if (in_array($requestedRole, ['instructor', 'student'], true)
+            && (! $portalRegistration || $portalRegistration['role'] !== $requestedRole)) {
+            return redirect()->route('login', ['role' => $requestedRole])
+                ->with('error', 'Enter your ID first so we can prepare the correct registration form.');
+        }
+
+        $roles = $portalRegistration ? [$portalRegistration['role']] : ['dean'];
+        $courses = Department::query()->orderBy('sort_order')->pluck('code')->all();
+        $selectedRole = $portalRegistration['role'] ?? 'dean';
+        $selectedCourse = strtoupper((string) old('course', $request->course));
         $sections = AcademicSection::query()
             ->select(['id', 'course', 'name', 'year_level', 'academic_year'])
-            ->orderBy('course')
-            ->orderBy('year_level')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('course')->orderBy('year_level')->orderBy('name')->get();
 
-        return view('auth.register', compact('roles', 'courses', 'sections', 'selectedRole', 'selectedCourse'));
+        return view('auth.register', compact(
+            'roles', 'courses', 'sections', 'selectedRole', 'selectedCourse', 'portalRegistration',
+        ));
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
+        if ($portalRegistration = $this->portalRegistration($request)) {
+            return $this->startPortalRegistration($request, $portalRegistration);
+        }
+
+        $role = strtolower($request->string('role')->toString());
+        if (in_array($role, ['instructor', 'student'], true)) {
+            return redirect()->route('login', ['role' => $role])
+                ->with('error', 'Enter your ID first so we can prepare the correct registration form.');
+        }
+
         $validated = $request->validate([
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
@@ -65,111 +67,88 @@ class RegisteredUserController extends Controller
             'suffix' => ['nullable', 'string', 'max:30'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', Rule::in(['dean', 'instructor', 'student'])],
+            'role' => ['required', Rule::in(['dean'])],
             'course' => ['required', Rule::exists('departments', 'code')],
-            'student_id' => ['nullable', 'required_if:role,student', 'string', 'max:30', 'unique:'.User::class],
-            'year_level' => ['nullable', 'required_if:role,student', 'integer', 'between:1,4'],
-            'academic_section_id' => [
-                'nullable',
-                'required_if:role,student',
-                'integer',
-                Rule::exists('academic_sections', 'id')->where(fn ($query) => $query
-                    ->where('department_id', Department::query()->where('code', strtoupper((string) $request->course))->value('id'))
-                    ->where('year_level', $request->integer('year_level'))),
-            ],
-            'employment_type' => ['nullable', 'required_if:role,instructor', Rule::in(['full_time', 'industry_part_time', 'flexible_part_time'])],
-            'outside_work_end_time' => ['nullable', 'required_if:employment_type,industry_part_time', 'date_format:H:i'],
         ]);
 
-        if ($validated['role'] === 'student' && ! Ms365StudentAccount::query()
-            ->where('email', strtolower($validated['email']))
-            ->where('is_blocked', false)
-            ->whereNull('soft_deleted_at')
-            ->exists()) {
-            throw ValidationException::withMessages([
-                'email' => 'This email is not an eligible MCC Microsoft 365 student account. Please use the MS365 email issued by the school.',
-            ]);
-        }
-
-        if ($validated['role'] === 'student' && ! StudentRoster::query()
-            ->where('student_id', $validated['student_id'])
-            ->exists()) {
-            throw ValidationException::withMessages([
-                'student_id' => 'This Student ID was not found in the official student roster. Please check the number or contact the registrar.',
-            ]);
-        }
-
-        if ($validated['role'] === 'student') {
-            try {
-                $this->startStudentOtpVerification($request, $validated);
-            } catch (\Throwable $exception) {
-                report($exception);
-
-                return back()->withInput()->with(
-                    'error',
-                    'We could not send the verification code to your Microsoft 365 email right now. Please try again in a moment, or contact the registrar if this keeps happening.',
-                );
-            }
-
-            return redirect()->route('register.otp');
-        }
-
-        $user = $this->createUser($validated);
+        $user = User::create([
+            'first_name' => $validated['first_name'],
+            'middle_name' => $validated['middle_name'] ?? null,
+            'last_name' => $validated['last_name'],
+            'suffix' => $validated['suffix'] ?? null,
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => 'dean',
+            'course' => $validated['course'],
+            'account_status' => 'pending',
+        ]);
 
         event(new Registered($user));
 
-        return redirect()
-            ->route('login', ['role' => $validated['role'], 'course' => $validated['course']])
+        return redirect()->route('login', ['role' => 'dean', 'course' => $validated['course']])
             ->with('success', 'Registration submitted. Your account is pending approval before you can sign in.');
     }
 
     public function otp(Request $request): View|RedirectResponse
     {
-        if (! $request->session()->has('student_registration_otp')) {
-            return redirect()->route('register', ['role'=>'student']);
+        if (! $request->session()->has(self::OTP_SESSION)) {
+            return redirect()->route('home');
         }
 
-        $pending = $request->session()->get('student_registration_otp');
-        return view('auth.register-otp', ['email'=>$pending['email'], 'expiresAt'=>$pending['expires_at']]);
+        $pending = $request->session()->get(self::OTP_SESSION);
+
+        return view('auth.register-otp', [
+            'email' => $pending['email'],
+            'role' => $pending['registration']['role'],
+            'expiresAt' => $pending['expires_at'],
+        ]);
     }
 
     public function verifyOtp(Request $request): RedirectResponse
     {
-        $request->validate(['otp'=>['required','digits:6']]);
-        $pending = $request->session()->get('student_registration_otp');
-        if (! $pending) return redirect()->route('register', ['role'=>'student'])->with('error','Your registration session has expired.');
-        if (now()->timestamp > $pending['expires_at']) return back()->withErrors(['otp'=>'The verification code has expired. Request a new code.']);
+        $request->validate(['otp' => ['required', 'digits:6']]);
+        $pending = $request->session()->get(self::OTP_SESSION);
 
-        $attemptKey = 'student-registration-otp:'.$request->session()->getId();
-        if (RateLimiter::tooManyAttempts($attemptKey, 5)) return back()->withErrors(['otp'=>'Too many incorrect attempts. Please request a new code.']);
+        if (! $pending) {
+            return redirect()->route('home')->with('error', 'Your registration session has expired. Please start again.');
+        }
+        if (now()->timestamp > $pending['expires_at']) {
+            return back()->withErrors(['otp' => 'The verification code has expired. Start again to request a new code.']);
+        }
+
+        $attemptKey = 'portal-registration-otp:'.$request->session()->getId();
+        if (RateLimiter::tooManyAttempts($attemptKey, 5)) {
+            return back()->withErrors(['otp' => 'Too many incorrect attempts. Please request a new code.']);
+        }
         if (! Hash::check($request->string('otp')->toString(), $pending['otp_hash'])) {
             RateLimiter::hit($attemptKey, 600);
-            return back()->withErrors(['otp'=>'The verification code is incorrect.']);
+
+            return back()->withErrors(['otp' => 'The verification code is incorrect.']);
         }
 
-        $validated = $pending['registration'];
-        if (User::where('email',$validated['email'])->exists()) {
-            $request->session()->forget('student_registration_otp');
-            return redirect()->route('login',['role'=>'student','course'=>$validated['course']])->with('error','An account with this email already exists.');
-        }
-        if (User::where('student_id',$validated['student_id'])->exists()) {
-            $request->session()->forget('student_registration_otp');
-            return redirect()->route('register',['role'=>'student'])->with('error','This Student ID was already used to register an account.');
-        }
+        $registration = $pending['registration'];
+        $user = $this->completePortalRegistration($registration);
 
-        $user = $this->createUser($validated);
         event(new Registered($user));
         RateLimiter::clear($attemptKey);
-        $request->session()->forget('student_registration_otp');
+        $request->session()->forget([self::OTP_SESSION, self::REGISTRATION_SESSION]);
 
-        return redirect()->route('login',['role'=>'student','course'=>$validated['course']])->with('success','Microsoft 365 email verified. Registration successful; you may now sign in.');
+        return redirect()->route('login', [
+            'role' => $registration['role'],
+            'portal_id' => $registration['portal_id'],
+            'step' => 'sign-in',
+        ])->with('success', 'Email verified. Your account has been created successfully. You can now sign in.');
     }
 
     public function resendOtp(Request $request): RedirectResponse
     {
-        $pending = $request->session()->get('student_registration_otp');
-        if (! $pending) return redirect()->route('register',['role'=>'student']);
-        if (now()->timestamp < ($pending['resend_at'] ?? 0)) return back()->withErrors(['otp'=>'Please wait before requesting another code.']);
+        $pending = $request->session()->get(self::OTP_SESSION);
+        if (! $pending) {
+            return redirect()->route('home')->with('error', 'Your registration session has expired. Please start again.');
+        }
+        if (now()->timestamp < ($pending['resend_at'] ?? 0)) {
+            return back()->withErrors(['otp' => 'Please wait before requesting another code.']);
+        }
 
         try {
             $this->sendOtp($request, $pending['registration']);
@@ -179,57 +158,202 @@ class RegisteredUserController extends Controller
             return back()->with('error', 'We could not resend the verification code right now. Please try again in a moment.');
         }
 
-        return back()->with('success','A new verification code was sent to your Microsoft 365 email.');
+        return back()->with('success', 'A new verification code was sent to your Gmail address.');
     }
 
-    private function startStudentOtpVerification(Request $request, array $validated): void
+    /** @param array{role:string,portal_id:string,expires_at:int} $portalRegistration */
+    private function startPortalRegistration(Request $request, array $portalRegistration): RedirectResponse
     {
-        $validated['password'] = Hash::make($validated['password']);
-        unset($validated['password_confirmation']);
-        $this->sendOtp($request, $validated);
+        $role = $portalRegistration['role'];
+        $portalId = $portalRegistration['portal_id'];
+        $account = $this->portalAccount($role, $portalId);
+
+        if (($role === 'instructor' && ! $account) || ($account && $account->role !== $role)) {
+            return redirect()->route('login', ['role' => $role])
+                ->with('error', 'That ID is no longer available. Please contact the school office.');
+        }
+        if ($role === 'student' && ! StudentRoster::query()->where('student_id', $portalId)->exists()) {
+            return redirect()->route('login', ['role' => $role])
+                ->with('error', 'That Student ID is no longer in the official student roster.');
+        }
+
+        $validated = $request->validate([
+            'username' => [
+                'required', 'string', 'lowercase', 'min:3', 'max:50', 'regex:/^[a-z0-9._-]+$/',
+                Rule::unique('users', 'username')->ignore($account?->id),
+            ],
+            'email' => [
+                'required', 'string', 'lowercase', 'email', 'max:255', 'ends_with:@gmail.com',
+                Rule::unique('users', 'email')->ignore($account?->id),
+            ],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        try {
+            $this->sendOtp($request, [
+                'role' => $role,
+                'portal_id' => $portalId,
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withInput($request->except(['password', 'password_confirmation']))->with(
+                'error',
+                'We could not send the verification code to that Gmail address right now. Please try again in a moment.',
+            );
+        }
+
+        return redirect()->route('register.otp');
     }
 
+    /** @param array{role:string,portal_id:string,username:string,email:string,password:string} $registration */
+    private function completePortalRegistration(array $registration): User
+    {
+        $role = $registration['role'];
+        $portalId = $registration['portal_id'];
+        $account = $this->portalAccount($role, $portalId);
+
+        if ($account && $account->role !== $role) {
+            throw ValidationException::withMessages(['otp' => 'This ID belongs to a different portal account.']);
+        }
+        if (User::withTrashed()->where('username', $registration['username'])->when($account, fn ($query) => $query->where('id', '!=', $account->id))->exists()) {
+            throw ValidationException::withMessages(['otp' => 'That username is no longer available. Start again and choose another one.']);
+        }
+        if (User::withTrashed()->where('email', $registration['email'])->when($account, fn ($query) => $query->where('id', '!=', $account->id))->exists()) {
+            throw ValidationException::withMessages(['otp' => 'That Gmail address is already used by another account.']);
+        }
+
+        if ($role === 'instructor') {
+            if (! $account) {
+                throw ValidationException::withMessages(['otp' => 'This Instructor ID is no longer available.']);
+            }
+            if ($account->trashed()) {
+                $account->restore();
+            }
+            $account->forceFill([
+                'username' => $registration['username'],
+                'email' => $registration['email'],
+                'password' => $registration['password'],
+                'account_status' => 'active',
+                'email_verified_at' => now(),
+            ])->save();
+
+            return $account;
+        }
+
+        $roster = StudentRoster::query()->where('student_id', $portalId)->first();
+        if (! $roster) {
+            throw ValidationException::withMessages(['otp' => 'This Student ID is no longer in the official student roster.']);
+        }
+        if ($account?->trashed()) {
+            $account->restore();
+        }
+
+        [$firstName, $middleName, $lastName] = $this->nameParts($roster->full_name);
+        $section = $this->matchingSection($roster);
+        $course = strtoupper((string) ($roster->course ?? $section?->course ?? $account?->course));
+        $account ??= new User(['role' => 'student', 'student_id' => $portalId]);
+        $account->forceFill([
+            'first_name' => $firstName,
+            'middle_name' => $middleName,
+            'last_name' => $lastName,
+            'username' => $registration['username'],
+            'email' => $registration['email'],
+            'password' => $registration['password'],
+            'role' => 'student',
+            'course' => $course !== '' ? $course : null,
+            'year_level' => $section?->year_level ?? $account->year_level,
+            'academic_section_id' => $section?->id ?? $account->academic_section_id,
+            'student_id' => $portalId,
+            'account_status' => 'active',
+            'email_verified_at' => now(),
+        ])->save();
+
+        return $account;
+    }
+
+    /** @param array{role:string,portal_id:string,username:string,email:string,password:string} $registration */
     private function sendOtp(Request $request, array $registration): void
     {
         $code = (string) random_int(100000, 999999);
-        $request->session()->put('student_registration_otp', [
-            'email'=>$registration['email'], 'otp_hash'=>Hash::make($code),
-            'expires_at'=>now()->addMinutes(10)->timestamp, 'resend_at'=>now()->addMinute()->timestamp,
-            'registration'=>$registration,
+        $request->session()->put(self::OTP_SESSION, [
+            'email' => $registration['email'],
+            'otp_hash' => Hash::make($code),
+            'expires_at' => now()->addMinutes(10)->timestamp,
+            'resend_at' => now()->addMinute()->timestamp,
+            'registration' => $registration,
         ]);
-        $subject = 'MCC Scheduler registration verification code';
-        $body = "Your MCC Scheduler student registration verification code is {$code}. This code expires in 10 minutes. Do not share it with anyone.";
 
-        if ($this->graphMail->isConfigured()) {
-            $this->graphMail->send($registration['email'], $subject, $body);
-        } else {
-            Mail::raw($body, function ($message) use ($registration, $subject) {
-                $message->to($registration['email'])->subject($subject);
-            });
-        }
+        $label = $registration['role'] === 'instructor' ? 'Instructor' : 'Student';
+        $subject = 'MCC Scheduler registration verification code';
+        $body = "Your MCC Scheduler {$label} Portal verification code is {$code}. This code expires in 10 minutes. Do not share it with anyone.";
+
+        Mail::raw($body, function ($message) use ($registration, $subject): void {
+            $message->to($registration['email'])->subject($subject);
+        });
     }
 
-    private function createUser(array $validated): User
+    /** @return array{role:string,portal_id:string,expires_at:int}|null */
+    private function portalRegistration(Request $request): ?array
     {
-        $accountStatus = $validated['role'] === 'student' ? 'active' : 'pending';
+        $registration = $request->session()->get(self::REGISTRATION_SESSION);
+        if (! is_array($registration)
+            || ! in_array($registration['role'] ?? null, ['instructor', 'student'], true)
+            || blank($registration['portal_id'] ?? null)
+            || now()->timestamp > ($registration['expires_at'] ?? 0)) {
+            $request->session()->forget(self::REGISTRATION_SESSION);
 
-        return User::create([
-            'first_name' => $validated['first_name'],
-            'middle_name' => $validated['middle_name'] ?? null,
-            'last_name' => $validated['last_name'],
-            'suffix' => $validated['suffix'] ?? null,
-            'email' => $validated['email'],
-            'password' => $validated['role'] === 'student' ? $validated['password'] : Hash::make($validated['password']),
-            'role' => $validated['role'],
-            'course' => $validated['course'],
-            'year_level' => $validated['role'] === 'student' ? $validated['year_level'] : null,
-            'academic_section_id' => $validated['role'] === 'student' ? $validated['academic_section_id'] : null,
-            'student_id' => $validated['role'] === 'student' ? $validated['student_id'] : null,
-            'employment_type' => $validated['role'] === 'instructor' ? $validated['employment_type'] : null,
-            'outside_work_end_time' => $validated['role'] === 'instructor' && $validated['employment_type'] === 'industry_part_time'
-                ? $validated['outside_work_end_time'] : null,
-            'account_status' => $accountStatus,
-        ]);
+            return null;
+        }
 
+        return $registration;
+    }
+
+    private function portalAccount(string $role, string $portalId): ?User
+    {
+        return User::withTrashed()->where(
+            $role === 'instructor' ? 'instructor_id' : 'student_id',
+            $portalId,
+        )->first();
+    }
+
+    private function matchingSection(StudentRoster $roster): ?AcademicSection
+    {
+        if (blank($roster->section)) {
+            return null;
+        }
+
+        $sectionKey = Str::lower(preg_replace('/[\s-]+/', '', trim($roster->section)) ?? '');
+        $sections = AcademicSection::query()
+            ->when(filled($roster->course), fn ($query) => $query->where('course', $roster->course))
+            ->whereRaw("LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = ?", [$sectionKey])
+            ->orderByDesc('academic_year')->get();
+
+        if (blank($roster->course) && $sections->pluck('course')->filter()->unique()->count() > 1) {
+            return null;
+        }
+
+        return $sections->first();
+    }
+
+    /** @return array{0:string,1:?string,2:string} */
+    private function nameParts(string $fullName): array
+    {
+        $fullName = Str::squish($fullName);
+        if (str_contains($fullName, ',')) {
+            [$lastName, $remainingNames] = array_map('trim', explode(',', $fullName, 2));
+            $parts = preg_split('/\s+/', $remainingNames) ?: [];
+
+            return [$parts[0] ?? $lastName, count($parts) > 1 ? implode(' ', array_slice($parts, 1)) : null, $lastName];
+        }
+
+        $parts = preg_split('/\s+/', $fullName) ?: [];
+        $firstName = array_shift($parts) ?: 'Student';
+        $lastName = array_pop($parts) ?: $firstName;
+
+        return [$firstName, $parts === [] ? null : implode(' ', $parts), $lastName];
     }
 }

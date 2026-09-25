@@ -24,7 +24,11 @@
         <div><label for="last_name">Last Name</label><input id="last_name" class="input" name="last_name" value="{{ old('last_name', $instructor->last_name) }}" required></div>
         <div><label for="middle_name">Middle Name</label><input id="middle_name" class="input" name="middle_name" value="{{ old('middle_name', $instructor->middle_name) }}"></div>
         <div><label for="suffix">Suffix</label><input id="suffix" class="input" name="suffix" value="{{ old('suffix', $instructor->suffix) }}" placeholder="Jr., III, etc."></div>
-        <div><label for="email">Email</label><input id="email" type="email" class="input" name="email" value="{{ old('email', $instructor->email) }}" required></div>
+        <div>
+            <label for="instructor_id">Instructor ID</label>
+            <input id="instructor_id" class="input" value="{{ $instructor->instructor_id ?? ($editing ? 'Assigned when saved' : $instructorIdPreview) }}" readonly>
+            <small style="display:block;margin-top:5px;color:var(--muted)">Generated automatically. The instructor enters their Gmail during first portal registration.</small>
+        </div>
         <div>
             <label for="employment_type">Employment Type</label>
             <select id="employment_type" class="input" name="employment_type" required>
@@ -38,10 +42,6 @@
             <input id="outside_work_end_time" type="time" class="input" name="outside_work_end_time" value="{{ old('outside_work_end_time', $instructor->outside_work_end_time) }}">
             <small style="display:block;margin-top:5px;color:var(--muted)">Required only for Industry Part-Time instructors.</small>
         </div>
-        @if (! $editing)
-            <div><label for="password">Password</label><input id="password" type="password" class="input" name="password" required></div>
-            <div><label for="password_confirmation">Confirm Password</label><input id="password_confirmation" type="password" class="input" name="password_confirmation" required></div>
-        @endif
     </div>
     <div class="form-actions"><button class="button">{{ $editing ? 'Save Changes' : 'Add Instructor' }}</button><a class="button button-secondary" href="{{ route('dean.instructors.index') }}">Cancel</a></div>
 </form>

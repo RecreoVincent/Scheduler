@@ -629,10 +629,6 @@
             Student Roster
         </a>
 
-        <a href="{{ route('admin.ms365-accounts.index') }}" class="menu-link {{ request()->routeIs('admin.ms365-accounts.*') ? 'active' : '' }}">
-            <span class="menu-icon"><x-icon name="at-sign" /></span>
-            MS365 Accounts
-        </a>
         </div>
         @include('layouts.partials.portal-sidebar-logout')
     </aside>
@@ -666,6 +662,8 @@
     </main>
 
 </div>
+
+@stack('portal-profile-overlay')
 
 <div id="adminProfileModal" class="admin-profile-modal" hidden>
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="adminProfileTitle">

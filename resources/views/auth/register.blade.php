@@ -113,12 +113,28 @@
     <section class="form-side">
         <div class="form-content">
             <a class="brand" href="{{ route('home') }}"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M13 14h3M8 18h3"/></svg></span><span>MCC | Scheduler</span></a>
-            <header class="heading"><span class="heading-kicker">Create your portal account</span><h1>Join your academic workspace</h1><p>{{ $selectedRole === 'student' ? 'Complete your student and section information, then sign in to your portal.' : 'Complete your information below. Your account requires approval before portal access is enabled.' }}</p></header>
+            <header class="heading"><span class="heading-kicker">Create your portal account</span><h1>Join your academic workspace</h1><p>{{ $portalRegistration ? 'Create your account details, then verify the code sent to your Gmail address.' : 'Complete your information below. Your account requires approval before portal access is enabled.' }}</p></header>
 
             <div class="portal-card"><span class="portal-symbol {{ $departmentBrand ? '' : 'mcc-symbol' }}"><img src="{{ asset($registrationBrand['logo']) }}" alt="{{ $registrationBrand['logo_alt'] }}"></span><div class="portal-copy"><span>Selected portal</span><strong>{{ $selectedRoleLabel }} Portal @if($selectedCourse)<em class="course-name">· {{ $selectedCourse }}</em>@endif</strong></div><a class="change-link" href="{{ route('home') }}#portals">Change</a></div>
             @if($errors->any())<div class="alert alert-error" role="alert">Please review the highlighted registration fields and try again.</div>@endif
             @if(session('error'))<div class="alert alert-error" role="alert">{{ session('error') }}</div>@endif
 
+            @if($portalRegistration)
+            @php($portalIdLabel = $selectedRole === 'instructor' ? 'Instructor ID' : 'Student ID')
+            <form id="registrationForm" method="POST" action="{{ route('register') }}">
+                @csrf
+                <input type="hidden" name="role" value="{{ $selectedRole }}">
+                <div class="account-step-note">Your {{ $portalIdLabel }} has been found. Create a username, then verify your Gmail address to activate your account.</div>
+                <div class="form-grid">
+                    <div class="form-group full"><label for="portal_id">{{ $portalIdLabel }}</label><input id="portal_id" class="form-control" value="{{ $portalRegistration['portal_id'] }}" readonly></div>
+                    <div class="form-group full"><label for="username">Username</label><input id="username" class="form-control" type="text" name="username" value="{{ old('username') }}" placeholder="e.g. juan.delacruz" required autofocus autocomplete="username">@error('username')<p class="field-error">{{ $message }}</p>@enderror</div>
+                    <div class="form-group full"><label for="email">Gmail Address</label><input id="email" class="form-control" type="email" name="email" value="{{ old('email') }}" placeholder="you@gmail.com" required autocomplete="email">@error('email')<p class="field-error">{{ $message }}</p>@enderror</div>
+                    <div class="form-group"><label for="password">Password</label><div class="password-wrap"><input id="password" class="form-control" type="password" name="password" placeholder="Create password" required autocomplete="new-password"><button class="toggle-password" type="button" data-password-target="password">Show</button></div>@error('password')<p class="field-error">{{ $message }}</p>@enderror</div>
+                    <div class="form-group"><label for="password_confirmation">Confirm Password</label><div class="password-wrap"><input id="password_confirmation" class="form-control" type="password" name="password_confirmation" placeholder="Repeat password" required autocomplete="new-password"><button class="toggle-password" type="button" data-password-target="password_confirmation">Show</button></div></div>
+                </div>
+                <div class="form-actions"><a class="login-link" href="{{ route('login', ['role' => $selectedRole]) }}">Use a different ID</a><div class="step-actions"><button class="register-button" type="submit">Create Account <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div></div>
+            </form>
+            @else
             @php($openAccountStep = $errors->hasAny(['email', 'password', 'password_confirmation']))
             <form id="registrationForm" method="POST" action="{{ route('register') }}" data-initial-step="{{ $openAccountStep ? 2 : 1 }}">
                 @csrf
@@ -159,6 +175,7 @@
                 <div class="form-actions"><a class="login-link" href="{{ route('login', ['role' => $selectedRole, 'course' => old('course', $selectedCourse)]) }}">Already registered? <strong>Sign in</strong></a><div class="step-actions"><button class="secondary-button" type="button" id="previousRegistrationStep">Back</button><button class="register-button" type="submit">Create {{ $selectedRoleLabel }} Account <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div></div>
                 </section>
             </form>
+            @endif
         </div>
     </section>
 

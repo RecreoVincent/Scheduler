@@ -4,20 +4,10 @@
 
 @push('styles')
 <style>
-    .assignment-table { table-layout:fixed; width:100%; }
-    .assignment-table th, .assignment-table td { padding:10px 9px; }
-    .assignment-table th { font-size:8.5px; }
-    .assignment-table td { font-size:10px; vertical-align:middle; word-wrap:break-word; }
-    .assignment-table th:nth-child(1), .assignment-table td:nth-child(1) { width:7%; white-space:nowrap; }
-    .assignment-table th:nth-child(2), .assignment-table td:nth-child(2) { width:8%; }
-    .assignment-table th:nth-child(3), .assignment-table td:nth-child(3) { width:16%; }
-    .assignment-table th:nth-child(4), .assignment-table td:nth-child(4) { width:7%; }
-    .assignment-table th:nth-child(5), .assignment-table td:nth-child(5) { width:8%; }
-    .assignment-table th:nth-child(6), .assignment-table td:nth-child(6) { width:12%; }
-    .assignment-table th:nth-child(7), .assignment-table td:nth-child(7) { width:25%; }
-    .assignment-table th:nth-child(8), .assignment-table td:nth-child(8) { width:17%; }
+    .assignment-table { width:100%; table-layout:fixed; }
+    .assignment-table td { vertical-align:middle; word-wrap:break-word; }
     .assignment-instructors { display:flex; flex-wrap:wrap; gap:5px; }
-    .assignment-instructors .badge { max-width:100%; padding:4px 10px; overflow:hidden; font-size:8.5px; line-height:1.2; text-overflow:ellipsis; text-transform:none; white-space:nowrap; }
+    .assignment-instructors .badge { max-width:100%; padding:4px 10px; overflow-wrap:anywhere; font-size:8.5px; line-height:1.2; text-transform:none; white-space:normal; }
     .assignment-table .department-badge {
         display:inline-flex !important;
         width:auto !important;
@@ -25,15 +15,13 @@
         align-items:center;
         white-space:nowrap;
     }
-    .assignment-actions { width:1%; white-space:nowrap; text-align:right; }
-    .assignment-actions .actions { justify-content:flex-end; flex-wrap:nowrap; }
-    .assignment-actions .button { min-width:100px; }
+    .assignment-table :is(th,td).assignment-actions { width:auto !important; padding-right:14px !important; padding-left:14px !important; white-space:nowrap; text-align:right; }
+    .assignment-actions .actions { width:100%; min-width:0; justify-content:flex-end; flex-wrap:nowrap; }
+    .assignment-actions .button { flex:1 1 0; min-width:0; padding-right:10px; padding-left:10px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }
-    .assignment-page-heading { color:#ec4899; }
     .assignment-filters { grid-template-columns:repeat(4,minmax(0,1fr)) auto; }
     .assignment-filter-submit { align-self:end; white-space:nowrap; }
-    @media(max-width:1100px) { .assignment-table { min-width:940px; } }
     @media(max-width:900px) { .assignment-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media(max-width:560px) { .assignment-filters { grid-template-columns:1fr; } .assignment-filter-submit { width:100%; } }
 </style>
@@ -43,6 +31,10 @@
 @include('gec.subject-assignments.form')
 
 <div class="page-header">
+    <div>
+        <h2 class="assignment-page-heading">Existing Subject Assignments</h2>
+        <p>Search, filter, and update GEC instructor priorities for a minor subject.</p>
+    </div>
     <div class="actions">
         <button type="button" class="button assignment-form-trigger" aria-label="Assign Instructor to a Subject">Assign Instructor</button>
         <button
@@ -55,10 +47,6 @@
             data-delete-confirm-label="Remove All Assignments"
             @disabled($assignmentCount === 0)
         >Remove All Subject Assignments</button>
-    </div>
-    <div style="order:-1">
-        <h2 class="assignment-page-heading">Existing Subject Assignments</h2>
-        <p>Search, filter, and update GEC instructor priorities for a minor subject.</p>
     </div>
 </div>
 
@@ -106,6 +94,10 @@
 
     <div class="table-wrap">
         <table class="assignment-table">
+            <colgroup>
+                <col style="width:8%"><col style="width:10%"><col style="width:14%"><col style="width:9%">
+                <col style="width:9%"><col style="width:12%"><col style="width:19%"><col style="width:19%">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Department</th>

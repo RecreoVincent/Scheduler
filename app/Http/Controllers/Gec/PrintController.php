@@ -30,8 +30,10 @@ class PrintController extends GecController
         abort_unless(in_array($type, ['teaching-loads', 'instructor-workload', 'class-schedules'], true), 404);
         $course = 'GEC';
         $dean = $request->user();
+        $activeSemester = $this->enabledSemesters($request)[0] ?? '1st';
         $schedules = $this->minorSchedules()
             ->with(['section', 'subject', 'instructor', 'room'])
+            ->where('semester', $activeSemester)
             ->orderByRaw(ClassSchedule::dayOrderSql())->orderBy('start_time')->get();
         $instructors = User::where('role', 'instructor')
             ->forDepartment('GEC')
@@ -136,8 +138,10 @@ class PrintController extends GecController
     {
         $course = 'GEC';
         $dean = $request->user();
+        $activeSemester = $this->enabledSemesters($request)[0] ?? '1st';
         $schedules = $this->minorSchedules()
             ->with(['section', 'subject', 'instructor', 'room'])
+            ->where('semester', $activeSemester)
             ->orderByRaw(ClassSchedule::dayOrderSql())
             ->orderBy('start_time')
             ->get();

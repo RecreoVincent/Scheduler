@@ -77,11 +77,11 @@ class AuthenticationTest extends TestCase
                 ->assertSee($welcome)
                 ->assertSee($label);
 
-            if ($role === 'student') {
+            if (in_array($role, ['instructor', 'student'], true)) {
                 $response
-                    ->assertSee('Student number')
-                    ->assertSee('Last name')
-                    ->assertDontSee('value="student"', false);
+                    ->assertSee($role === 'instructor' ? 'Instructor ID' : 'Student ID')
+                    ->assertSee('Enter your ID to sign in or create your portal account.')
+                    ->assertSee('value="'.$role.'"', false);
             } else {
                 $response->assertSee('value="'.$role.'"', false);
             }
@@ -140,17 +140,18 @@ class AuthenticationTest extends TestCase
             'role' => 'student',
             'course' => 'BSIT',
             'account_status' => 'pending',
+            'student_id' => '2026-0099',
         ]);
 
         $response = $this->post('/login', [
-            'email' => $user->email,
+            'portal_id' => $user->student_id,
             'password' => 'password',
             'role' => 'student',
             'course' => 'BSIT',
         ]);
 
         $this->assertGuest();
-        $response->assertSessionHasErrors('email');
+        $response->assertSessionHasErrors('portal_id');
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void

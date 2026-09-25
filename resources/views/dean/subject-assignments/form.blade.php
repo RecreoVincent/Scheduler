@@ -119,7 +119,7 @@
             <div id="priorityAssignmentGroup" class="assignment-priority-group">
                 <label>Instructor Priorities</label>
                 <div class="priority-list">
-                    @for($priority=1;$priority<=4;$priority++)
+                    @for($priority=1;$priority<=6;$priority++)
                         <div class="priority-row">
                             <span class="priority-label"><span class="priority-number">{{ $priority }}</span>Priority {{ $priority }}</span>
                             <div class="priority-combobox">
@@ -154,7 +154,7 @@
                     <p id="noDepartmentInstructors" class="priority-empty" role="status" aria-live="polite"></p>
                 </div>
                 <div class="priority-explanation">
-                    Priority 1 receives sections first. When that instructor reaches the configured workload-hour limit or has no conflict-free time, the scheduler tries Priority 2, followed by Priority 3 and Priority 4. The same instructor cannot occupy two priority positions.
+                    Priority 1 receives sections first. When that instructor reaches the configured workload-hour limit or has no conflict-free time, the scheduler continues through the selected backup priorities, up to Priority 6. The same instructor cannot occupy two priority positions.
                     Instructors who cannot accept the selected subject without exceeding their workload-hour limit are hidden.
                     @if($activeAcademicYear) Current generated loads are checked against A.Y. {{ $activeAcademicYear }}. @endif
                 </div>

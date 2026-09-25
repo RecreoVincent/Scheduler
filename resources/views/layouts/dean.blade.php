@@ -242,7 +242,7 @@
             display:grid;
             place-items:center;
             color:#fff !important;
-            font-size:18px;
+            font-size:20px !important;
             font-weight:850;
             line-height:1;
         }

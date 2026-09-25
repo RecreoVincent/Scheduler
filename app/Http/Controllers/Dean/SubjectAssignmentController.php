@@ -192,7 +192,7 @@ class SubjectAssignmentController extends DeanController
             'year_level' => ['nullable', 'integer', 'between:1,4'],
             'subject_id' => ['required', 'integer'],
             'instructor_department' => ['required', Rule::in(self::DEPARTMENTS)],
-            'instructor_ids' => ['nullable', 'array', 'max:4'],
+            'instructor_ids' => ['nullable', 'array', 'max:6'],
             'instructor_ids.*' => ['nullable', 'integer'],
             'return_search' => ['nullable', 'string', 'max:100'],
             'return_year_level' => ['nullable', 'integer', 'between:1,4'],

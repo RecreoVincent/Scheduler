@@ -87,7 +87,7 @@ class SubjectEndorsementScheduleController extends DeanController
             'academic_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
             'semester' => ['required', Rule::in($this->enabledSemesters($request))],
             'number_of_sections' => ['required', 'integer', 'between:1,20'],
-            'instructor_ids' => ['required', 'array', 'min:1', 'max:4'],
+            'instructor_ids' => ['required', 'array', 'min:1', 'max:6'],
             'instructor_ids.*' => ['nullable', 'integer'],
         ]);
         $instructorIds = collect($validated['instructor_ids'])

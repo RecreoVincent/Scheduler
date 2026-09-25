@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToDepartment;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use App\Services\InstructorIdGenerator;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -16,12 +17,25 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'profile_photo_path', 'password', 'role', 'course', 'department_id', 'year_level', 'academic_section_id', 'student_id', 'employment_type', 'outside_work_end_time', 'teaching_unit_limit', 'unit_limit_note', 'unit_limit_updated_at', 'account_status', 'last_login_at'])]
+#[Fillable(['name', 'first_name', 'middle_name', 'last_name', 'suffix', 'email', 'username', 'profile_photo_path', 'password', 'role', 'course', 'department_id', 'year_level', 'academic_section_id', 'student_id', 'instructor_id', 'employment_type', 'outside_work_end_time', 'teaching_unit_limit', 'unit_limit_note', 'unit_limit_updated_at', 'account_status', 'last_login_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use BelongsToDepartment, HasFactory, Notifiable, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user): void {
+            if ($user->role === 'instructor' && blank($user->instructor_id)) {
+                $user->instructor_id = app(InstructorIdGenerator::class)->next();
+            }
+
+            if ($user->role === 'instructor' && blank($user->email)) {
+                $user->email = 'instructor.'.strtolower((string) $user->instructor_id).'@pending.mcc.local';
+            }
+        });
+    }
 
     public function classSchedules(): HasMany
     {

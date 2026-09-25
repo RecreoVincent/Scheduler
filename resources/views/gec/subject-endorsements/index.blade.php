@@ -9,6 +9,7 @@
     .endorsement-form-grid .input { width:100%; min-width:0; }
     .endorsement-form-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:20px; padding-top:18px; border-top:1px solid #eee8f1; }
     .endorsement-source { color:var(--muted); background:#faf8fb; cursor:default; }
+    .endorsement-derived { color:var(--muted); background:#faf8fb; cursor:default; }
     .endorsement-help { margin:0 0 18px; padding:12px 14px; font-size:11px; line-height:1.55; color:#5e5367; background:#f8f2fc; border:1px solid #e4d0f1; border-radius:10px; }
     .endorsement-history-header { margin:0 0 14px; }
     .endorsement-history-header h3 { margin:0 0 4px; color:var(--navy); }
@@ -34,7 +35,7 @@
 </div>
 
 <section class="card" style="margin-bottom:20px">
-    <p class="endorsement-help">GEC submits this endorsement on behalf of the department that owns the Minor subject. The selected subject must already exist in GEC's Minor Subjects list with the same code, name, type, and units.</p>
+    <p class="endorsement-help">GEC submits this endorsement on behalf of the department that owns the Minor subject. Choose the source department and year level, then select an existing Minor subject.</p>
     <form method="POST" action="{{ route('gec.subject-endorsements.store') }}">
         @csrf
         <div class="form-grid endorsement-form-grid">
@@ -63,29 +64,39 @@
                 @error('to_department')<p class="error">{{ $message }}</p>@enderror
             </div>
             <div class="form-group">
-                <label for="subjectCode">Subject code</label>
-                <input id="subjectCode" class="input" name="subject_code" value="{{ old('subject_code') }}" maxlength="30" placeholder="Example: GE 101" required>
-                @error('subject_code')<p class="error">{{ $message }}</p>@enderror
+                <label for="yearLevel">Year level</label>
+                <select id="yearLevel" class="input" name="year_level" required>
+                    <option value="">Select a year level</option>
+                    @foreach([1 => 'First Year', 2 => 'Second Year', 3 => 'Third Year', 4 => 'Fourth Year'] as $level => $label)
+                        <option value="{{ $level }}" @selected((string) old('year_level') === (string) $level)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('year_level')<p class="error">{{ $message }}</p>@enderror
             </div>
             <div class="form-group">
-                <label for="subjectName">Subject name</label>
-                <input id="subjectName" class="input" name="subject_name" value="{{ old('subject_name') }}" maxlength="150" placeholder="Example: Understanding the Self" required>
-                @error('subject_name')<p class="error">{{ $message }}</p>@enderror
+                <label for="endorsementSubject">Subject code and name</label>
+                <select id="endorsementSubject" class="input" name="subject_id" required disabled>
+                    <option value="">Select the department and year level first</option>
+                    @foreach($endorsementSubjects as $subject)
+                        <option
+                            value="{{ $subject->id }}"
+                            data-department="{{ $subject->course }}"
+                            data-year-level="{{ $subject->year_level }}"
+                            data-subject-type="{{ $subject->subject_type }}"
+                            data-units="{{ $subject->units }}"
+                            @selected((string) old('subject_id') === (string) $subject->id)
+                        >{{ $subject->code }} &mdash; {{ $subject->name }}</option>
+                    @endforeach
+                </select>
+                @error('subject_id')<p class="error">{{ $message }}</p>@enderror
             </div>
             <div class="form-group">
                 <label for="subjectType">Type of subject</label>
-                <select id="subjectType" class="input" name="subject_type" required>
-                    <option value="">Select subject type</option>
-                    @foreach(['Lecture', 'Laboratory'] as $type)
-                        <option value="{{ $type }}" @selected(old('subject_type') === $type)>{{ $type }}</option>
-                    @endforeach
-                </select>
-                @error('subject_type')<p class="error">{{ $message }}</p>@enderror
+                <input id="subjectType" class="input endorsement-derived" type="text" value="" placeholder="Selected automatically" readonly>
             </div>
             <div class="form-group">
                 <label for="subjectUnits">Units</label>
-                <input id="subjectUnits" class="input" type="number" name="units" value="{{ old('units') }}" min="0.5" max="12" step="0.5" placeholder="Example: 3" required>
-                @error('units')<p class="error">{{ $message }}</p>@enderror
+                <input id="subjectUnits" class="input endorsement-derived" type="text" value="" placeholder="Selected automatically" readonly>
             </div>
         </div>
         <div class="endorsement-form-actions">
@@ -164,6 +175,10 @@
     (() => {
         const fromDepartment = document.getElementById('fromDepartment');
         const toDepartment = document.getElementById('toDepartment');
+        const yearLevel = document.getElementById('yearLevel');
+        const subject = document.getElementById('endorsementSubject');
+        const subjectType = document.getElementById('subjectType');
+        const subjectUnits = document.getElementById('subjectUnits');
 
         const updateDestinationOptions = () => {
             [...toDepartment.options].forEach(option => {
@@ -173,8 +188,44 @@
             if (toDepartment.value === fromDepartment.value) toDepartment.value = '';
         };
 
-        fromDepartment.addEventListener('change', updateDestinationOptions);
+        const updateSubjectDetails = () => {
+            const option = subject.options[subject.selectedIndex];
+            subjectType.value = option?.dataset.subjectType || '';
+            subjectUnits.value = option?.dataset.units || '';
+        };
+
+        const updateSubjectOptions = () => {
+            const source = fromDepartment.value;
+            const level = yearLevel.value;
+            let selectedOptionIsAvailable = false;
+
+            [...subject.options].forEach(option => {
+                if (! option.value) return;
+
+                const available = Boolean(source && level)
+                    && option.dataset.department === source
+                    && option.dataset.yearLevel === level;
+                option.hidden = ! available;
+                option.disabled = ! available;
+                selectedOptionIsAvailable ||= option.selected && available;
+            });
+
+            subject.disabled = ! source || ! level;
+            if (! selectedOptionIsAvailable) subject.value = '';
+            subject.options[0].text = source && level
+                ? 'Select a subject'
+                : 'Select the department and year level first';
+            updateSubjectDetails();
+        };
+
+        fromDepartment.addEventListener('change', () => {
+            updateDestinationOptions();
+            updateSubjectOptions();
+        });
+        yearLevel.addEventListener('change', updateSubjectOptions);
+        subject.addEventListener('change', updateSubjectDetails);
         updateDestinationOptions();
+        updateSubjectOptions();
     })();
 </script>
 @endpush

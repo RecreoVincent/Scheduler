@@ -514,6 +514,15 @@
             color:#24152f !important;
         }
 
+        body.gec-institution-portal .content .card .instructor-cell > .instructor-mark {
+            display:grid;
+            place-items:center;
+            color:#fff !important;
+            font-size:20px !important;
+            font-weight:850;
+            line-height:1;
+        }
+
         body.gec-institution-portal .content .card .badge,
         body.gec-institution-portal .content .card .role-badge {
             color:#450693 !important;

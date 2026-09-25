@@ -77,12 +77,12 @@
     <x-pagination :paginator="$instructors" label="Instructor account pages" mode="summary" />
     <div class="table-wrap">
         <table>
-            <thead><tr><th>Name</th><th>Email</th><th>Employment</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Name</th><th>Instructor ID</th><th>Employment</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
             @forelse ($instructors as $instructor)
                 <tr>
                     <td>{{ $instructor->name }}</td>
-                    <td>{{ $instructor->email }}</td>
+                    <td>{{ $instructor->instructor_id ?? 'Not assigned' }}</td>
                     <td>{{ str($instructor->employment_type ?? 'Unspecified')->replace('_', ' ')->title() }}</td>
                     <td><span class="badge">Active</span></td>
                     <td>
@@ -157,9 +157,9 @@
                     @error('suffix')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
                 <div class="admin-profile-field">
-                    <label for="modal_email">Email</label>
-                    <input id="modal_email" type="email" class="input" name="email" value="{{ old('email', $editingInstructor?->email) }}" required>
-                    @error('email')<span class="admin-profile-error">{{ $message }}</span>@enderror
+                    <label for="modal_instructor_id">Instructor ID</label>
+                    <input id="modal_instructor_id" class="input" value="{{ $editingInstructor?->instructor_id ?? ($editingInstructor ? 'Assigned when saved' : $instructorIdPreview) }}" readonly>
+                    <small style="display:block;margin-top:5px;color:var(--muted)">Generated automatically. The instructor enters their Gmail during first portal registration.</small>
                 </div>
                 <div class="admin-profile-field">
                     <label for="modal_employment_type">Employment Type</label>
@@ -176,17 +176,6 @@
                     <small style="display:block;margin-top:5px;color:var(--muted)">Required only for Industry Part-Time instructors.</small>
                     @error('outside_work_end_time')<span class="admin-profile-error">{{ $message }}</span>@enderror
                 </div>
-                @if (! $editingInstructor)
-                    <div class="admin-profile-field">
-                        <label for="modal_password">Password</label>
-                        <input id="modal_password" type="password" class="input" name="password" required>
-                        @error('password')<span class="admin-profile-error">{{ $message }}</span>@enderror
-                    </div>
-                    <div class="admin-profile-field">
-                        <label for="modal_password_confirmation">Confirm Password</label>
-                        <input id="modal_password_confirmation" type="password" class="input" name="password_confirmation" required>
-                    </div>
-                @endif
             </div>
 
             <footer class="admin-profile-actions">
@@ -239,7 +228,7 @@
         modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) closeModal(); });
 
-        @if($errors->hasAny(['first_name', 'last_name', 'middle_name', 'suffix', 'email', 'employment_type', 'outside_work_end_time', 'password']) || $editingInstructor)
+        @if($errors->hasAny(['first_name', 'last_name', 'middle_name', 'suffix', 'email', 'employment_type', 'outside_work_end_time']) || $editingInstructor)
             openModal();
         @endif
     })();

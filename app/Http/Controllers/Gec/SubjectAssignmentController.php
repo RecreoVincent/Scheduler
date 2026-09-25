@@ -173,7 +173,7 @@ class SubjectAssignmentController extends GecController
             'semester' => ['required', Rule::in($this->enabledSemesters($request))],
             'year_level' => ['nullable', 'integer', 'between:1,4'],
             'subject_id' => ['required', 'integer'],
-            'instructor_ids' => ['required', 'array', 'min:1', 'max:10'],
+            'instructor_ids' => ['required', 'array', 'min:1', 'max:6'],
             'instructor_ids.*' => ['nullable', 'integer'],
             'return_search' => ['nullable', 'string', 'max:100'],
             'return_year_level' => ['nullable', 'integer', 'between:1,4'],

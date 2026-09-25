@@ -76,11 +76,6 @@
         justify-content: flex-end;
     }
 
-    .small-button {
-        padding: 7px 10px;
-        font-size: 12px;
-    }
-
     .pagination {
         display: flex;
         justify-content: center;
@@ -298,13 +293,13 @@
                     <td>
                         <div class="actions">
                             <a href="{{ route('admin.users.index', array_merge(request()->query(), ['edit' => $user->id])) }}#userFormModal"
-                               class="button button-secondary small-button">
+                               class="button button-secondary">
                                 Edit
                             </a>
 
                             <button
                                 type="button"
-                                class="button button-danger small-button delete-trigger"
+                                class="button button-danger delete-trigger"
                                 data-delete-url="{{ route('admin.users.destroy', $user) }}"
                                 data-delete-name="{{ $user->name }}"
                             >

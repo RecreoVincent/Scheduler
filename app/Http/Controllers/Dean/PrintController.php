@@ -26,7 +26,9 @@ class PrintController extends DeanController
         abort_unless(in_array($type, ['teaching-loads', 'instructor-workload', 'class-schedules'], true), 404);
         $course = $this->course($request);
         $dean = $request->user();
+        $activeSemester = $this->enabledSemesters($request)[0] ?? '1st';
         $schedules = ClassSchedule::with(['section', 'subject', 'instructor', 'room'])->forDepartment($course)
+            ->where('semester', $activeSemester)
             ->orderByRaw(ClassSchedule::dayOrderSql())->orderBy('start_time')->get();
         $instructors = User::where('role', 'instructor')
             ->forDepartment($course)
@@ -145,8 +147,10 @@ class PrintController extends DeanController
     {
         $course = $this->course($request);
         $dean = $request->user();
+        $activeSemester = $this->enabledSemesters($request)[0] ?? '1st';
         $schedules = ClassSchedule::with(['section', 'subject', 'instructor', 'room'])
             ->forDepartment($course)
+            ->where('semester', $activeSemester)
             ->orderByRaw(ClassSchedule::dayOrderSql())
             ->orderBy('start_time')
             ->get();

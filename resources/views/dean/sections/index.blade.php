@@ -13,26 +13,26 @@
     </div>
 </div>
 
-<div class="card">
-    <form class="filters" style="grid-template-columns:1fr 1fr;" method="GET" data-auto-filter>
-        <select class="input" name="year_level">
-            <option value="">All year levels</option>
-            @for ($i = 1; $i <= 4; $i++)
-                <option value="{{ $i }}" @selected(request('year_level') == $i)>Year {{ $i }}</option>
-            @endfor
-        </select>
-        <input class="input" name="academic_year" value="{{ request('academic_year') }}" placeholder="2026-2027">
-    </form>
+<form class="filters" style="grid-template-columns:1fr 1fr;" method="GET" data-auto-filter>
+    <select class="input" name="year_level">
+        <option value="">All year levels</option>
+        @for ($i = 1; $i <= 4; $i++)
+            <option value="{{ $i }}" @selected(request('year_level') == $i)>Year {{ $i }}</option>
+        @endfor
+    </select>
+    <input class="input" name="academic_year" value="{{ request('academic_year') }}" placeholder="2026-2027">
+</form>
 
-    <div style="display:flex;justify-content:flex-end;margin:14px 0">
-        <button type="button" class="button button-danger delete-confirmation-trigger"
-            data-delete-url="{{ route('dean.sections.destroy-all') }}"
-            data-delete-name="All {{ $course }} sections"
-            data-delete-title="Delete All Sections?"
-            data-delete-message="This permanently removes every {{ $course }} section and every schedule linked to those sections. This cannot be undone."
-            data-delete-confirm-label="Delete All Sections">Delete All Sections</button>
-    </div>
+<div style="display:flex;justify-content:flex-end;margin:14px 0">
+    <button type="button" class="button button-danger delete-confirmation-trigger"
+        data-delete-url="{{ route('dean.sections.destroy-all') }}"
+        data-delete-name="All {{ $course }} sections"
+        data-delete-title="Delete All Sections?"
+        data-delete-message="This permanently removes every {{ $course }} section and every schedule linked to those sections. This cannot be undone."
+        data-delete-confirm-label="Delete All Sections">Delete All Sections</button>
+</div>
 
+<section class="card">
     <x-pagination :paginator="$sections" label="Section pages" mode="summary" />
     <div class="table-wrap">
         <table>
@@ -57,7 +57,7 @@
         </table>
     </div>
     <x-pagination :paginator="$sections" label="Section pages" mode="navigation" />
-</div>
+</section>
 
 @push('portal-profile-overlay')
 <div id="sectionCreateModal" class="admin-profile-modal" hidden>

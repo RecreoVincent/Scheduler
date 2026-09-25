@@ -12,6 +12,10 @@
     .subject-year-title h3 { margin:0 0 3px; color:var(--navy); }
     .subject-year-title p { margin:0; color:#64748b; font-size:13px; }
     .subject-empty { padding:28px !important; color:#64748b; text-align:center; }
+    .subject-table .instructors-cell { min-width:0; overflow-wrap:anywhere; }
+    .subject-table .subject-actions-cell { padding-right:14px !important; padding-left:14px !important; }
+    .subject-table .subject-actions-cell .actions { width:100%; min-width:0; }
+    .subject-table .subject-actions-cell .button { flex:1 1 0; min-width:0; padding-right:10px; padding-left:10px; }
     @media(max-width:780px) {
         .subject-year-header { align-items:flex-start; flex-direction:column; }
     }
@@ -58,7 +62,11 @@
             </header>
 
             <div class="table-wrap">
-                <table>
+                <table class="subject-table">
+                    <colgroup>
+                        <col style="width:13%"><col style="width:16%"><col style="width:11%"><col style="width:11%">
+                        <col style="width:8%"><col style="width:7%"><col style="width:18%"><col style="width:16%">
+                    </colgroup>
                     <thead><tr><th>Subject Code</th><th>Subject Description</th><th>Type</th><th>Classification</th><th>Semester</th><th>Unit</th><th>Instructors</th><th>Actions</th></tr></thead>
                     <tbody>
                         @forelse($yearSubjects as $subject)
@@ -69,8 +77,8 @@
                                 <td>{{ $subject->classification }}</td>
                                 <td>{{ $subject->semester }}</td>
                                 <td>{{ number_format((float) $subject->units, 0) }}</td>
-                                <td>{{ $subject->instructors->map(fn ($instructor) => $instructor->name.' ('.$instructor->course.')')->join(', ') ?: 'Unassigned' }}</td>
-                                <td>
+                                <td class="instructors-cell">{{ $subject->instructors->map(fn ($instructor) => $instructor->name.' ('.$instructor->course.')')->join(', ') ?: 'Unassigned' }}</td>
+                                <td class="subject-actions-cell">
                                     <div class="actions">
                                         <a class="button button-secondary" href="{{ route('dean.subjects.index', array_merge(request()->query(), ['edit' => $subject->id])) }}#subjectCreateModal">Edit</a>
                                         <button type="button" class="button button-danger delete-confirmation-trigger" data-delete-url="{{ route('dean.subjects.destroy', $subject) }}" data-delete-name="{{ $subject->code }} — {{ $subject->name }}">Delete</button>

@@ -28,6 +28,14 @@ class LoginRequest extends FormRequest
      */
     public function rules(): array
     {
+        if ($this->usesPortalId()) {
+            return [
+                'portal_id' => ['required', 'string', 'max:30'],
+                'password' => ['required', 'string'],
+                'role' => ['required', Rule::in(['instructor', 'student'])],
+            ];
+        }
+
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
@@ -45,11 +53,15 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
         $guard = $this->guardName();
 
-        if (! Auth::guard($guard)->attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->usesPortalId()
+            ? [$this->portalIdColumn() => trim($this->string('portal_id')->toString()), 'password' => $this->input('password')]
+            : $this->only('email', 'password');
+
+        if (! Auth::guard($guard)->attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                $this->credentialField() => trans('auth.failed'),
             ]);
         }
 
@@ -75,7 +87,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            $this->credentialField() => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -87,7 +99,7 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->guardName().'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->string($this->credentialField())).'|'.$this->guardName().'|'.$this->ip());
     }
 
     public function guardName(): string
@@ -95,5 +107,22 @@ class LoginRequest extends FormRequest
         $role = strtolower($this->string('role')->toString());
 
         return in_array($role, ['admin', 'dean', 'gec', 'instructor', 'student'], true) ? $role : 'web';
+    }
+
+    private function usesPortalId(): bool
+    {
+        return in_array(strtolower($this->string('role')->toString()), ['instructor', 'student'], true);
+    }
+
+    private function portalIdColumn(): string
+    {
+        return strtolower($this->string('role')->toString()) === 'instructor'
+            ? 'instructor_id'
+            : 'student_id';
+    }
+
+    private function credentialField(): string
+    {
+        return $this->usesPortalId() ? 'portal_id' : 'email';
     }
 }

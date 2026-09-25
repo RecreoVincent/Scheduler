@@ -2,6 +2,7 @@
 @section('title','Rooms') @section('page-title','Rooms and Usage')
 @push('styles')
 <style>
+    .room-list-card { padding:28px; }
     .room-card { margin-bottom:18px; }
     .room-head { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:14px; }
     .room-head .actions { display:flex; flex-wrap:wrap; gap:8px; }
@@ -60,6 +61,7 @@
         data-delete-confirm-label="Delete All Rooms">Delete All Rooms</button>
 </div>
 
+<section class="card room-list-card">
 <x-pagination :paginator="$rooms" label="Room pages" mode="summary" />
 @forelse($rooms as $room)
 <div class="card room-card">
@@ -103,6 +105,7 @@
 <div class="card">{{ request()->hasAny(['search', 'room_type']) ? 'No rooms match the current filters.' : 'No rooms added yet.' }}</div>
 @endforelse
 <x-pagination :paginator="$rooms" label="Room pages" mode="navigation" />
+</section>
 @push('portal-profile-overlay')
 <div id="roomQrModal" class="admin-profile-modal" hidden>
     <section class="admin-profile-dialog" role="dialog" aria-modal="true" aria-labelledby="roomQrTitle">

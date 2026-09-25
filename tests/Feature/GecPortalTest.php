@@ -62,10 +62,8 @@ class GecPortalTest extends TestCase
         $this->actingAs($gec)->post(route('gec.subject-endorsements.store'), [
             'from_department' => 'BSIT',
             'to_department' => 'BSBA',
-            'subject_code' => 'ge 101',
-            'subject_name' => 'Understanding the Self',
-            'subject_type' => 'Lecture',
-            'units' => 3,
+            'year_level' => 1,
+            'subject_id' => $subject->id,
         ])->assertRedirect(route('gec.subject-endorsements.index'));
 
         $this->assertDatabaseHas('subject_endorsements', [
@@ -84,8 +82,41 @@ class GecPortalTest extends TestCase
         $this->actingAs($gec)->get(route('gec.subject-endorsements.index'))
             ->assertOk()
             ->assertSee('Subject Endorsement')
+            ->assertSee('name="year_level"', false)
+            ->assertSee('name="subject_id"', false)
             ->assertSee('GE 101')
             ->assertSee('BSBA');
+    }
+
+    public function test_gec_subject_endorsements_only_list_and_accept_subjects_from_the_active_semester(): void
+    {
+        $gec = $this->gecUser();
+        $firstSemesterSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 101', 'name' => 'First Semester Minor',
+            'subject_type' => 'Lecture', 'classification' => 'Minor', 'managed_by_gec' => true,
+            'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $secondSemesterSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 201', 'name' => 'Second Semester Minor',
+            'subject_type' => 'Lecture', 'classification' => 'Minor', 'managed_by_gec' => true,
+            'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+
+        $this->actingAs($gec)
+            ->withSession(['gec.active_semester' => '2nd'])
+            ->get(route('gec.subject-endorsements.index'))
+            ->assertOk()
+            ->assertSee($secondSemesterSubject->code)
+            ->assertDontSee($firstSemesterSubject->code);
+
+        $this->actingAs($gec)
+            ->withSession(['gec.active_semester' => '2nd'])
+            ->post(route('gec.subject-endorsements.store'), [
+                'from_department' => 'BSIT',
+                'to_department' => 'BSBA',
+                'year_level' => 1,
+                'subject_id' => $firstSemesterSubject->id,
+            ])->assertSessionHasErrors('subject_id');
     }
 
     public function test_gec_dashboard_analytics_only_use_the_active_semester(): void
@@ -130,14 +161,59 @@ class GecPortalTest extends TestCase
         $this->actingAs($gec)->get(route('gec.dashboard'))
             ->assertOk()
             ->assertSee('1st Semester General Education analytics')
+            ->assertSee('Total GEC instructors')
+            ->assertSee('Assigned minor subjects')
             ->assertSee('GE 101')
             ->assertDontSee('GE 201')
             ->assertViewHas('statistics', fn (array $statistics): bool => $statistics === [
                 'instructors' => 1,
                 'subjects' => 1,
                 'assignments' => 0,
+                'sections' => 2,
                 'schedules' => 1,
             ]);
+    }
+
+    public function test_gec_printable_reports_only_include_the_personal_active_semester(): void
+    {
+        $gec = $this->gecUser();
+        $instructor = User::factory()->create([
+            'role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active',
+        ]);
+        $section = AcademicSection::create([
+            'course' => 'BSIT', 'name' => '1 - Print', 'year_level' => 1,
+            'academic_year' => '2026-2027', 'semester' => 'All',
+        ]);
+        $firstSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 101', 'name' => 'GEC First Semester Print Only',
+            'subject_type' => 'Lecture', 'classification' => 'Minor',
+            'year_level' => 1, 'semester' => '1st', 'units' => 3,
+        ]);
+        $secondSubject = Subject::create([
+            'course' => 'BSIT', 'code' => 'GE 201', 'name' => 'GEC Second Semester Print Only',
+            'subject_type' => 'Lecture', 'classification' => 'Minor',
+            'year_level' => 1, 'semester' => '2nd', 'units' => 3,
+        ]);
+
+        foreach ([
+            [$firstSubject, '1st', '08:30'],
+            [$secondSubject, '2nd', '11:00'],
+        ] as [$subject, $semester, $startTime]) {
+            ClassSchedule::create([
+                'course' => 'BSIT', 'section_id' => $section->id, 'subject_id' => $subject->id,
+                'instructor_id' => $instructor->id, 'academic_year' => '2026-2027',
+                'semester' => $semester, 'day' => 'M - W', 'start_time' => $startTime, 'end_time' => '12:30',
+            ]);
+        }
+
+        foreach (['teaching-loads', 'instructor-workload', 'class-schedules'] as $type) {
+            $this->actingAs($gec)
+                ->withSession(['gec.active_semester' => '2nd'])
+                ->get(route('gec.print.report', $type))
+                ->assertOk()
+                ->assertSee('GEC Second Semester Print Only')
+                ->assertDontSee('GEC First Semester Print Only');
+        }
     }
 
     public function test_gec_cannot_delete_a_minor_subject_from_an_inactive_semester(): void
@@ -165,7 +241,7 @@ class GecPortalTest extends TestCase
         $this->assertModelExists($secondSubject);
     }
 
-    public function test_instructor_registering_under_gec_course_lands_pending_and_can_be_approved(): void
+    public function test_instructor_registration_requires_an_issued_instructor_id(): void
     {
         $this->post(route('register'), [
             'role' => 'instructor',
@@ -176,20 +252,9 @@ class GecPortalTest extends TestCase
             'password' => 'password123',
             'password_confirmation' => 'password123',
             'employment_type' => 'full_time',
-        ])->assertRedirect();
+        ])->assertRedirect(route('login', ['role' => 'instructor']));
 
-        $instructor = User::where('email', 'maria.santos@example.com')->firstOrFail();
-        $this->assertSame('GEC', $instructor->course);
-        $this->assertSame('pending', $instructor->account_status);
-
-        $gec = $this->gecUser();
-        $this->actingAs($gec)->patch(route('gec.instructors.approve', $instructor))
-            ->assertRedirect();
-        $this->assertSame('active', $instructor->fresh()->account_status);
-
-        $this->actingAs($gec)->get(route('gec.instructors.index'))
-            ->assertOk()
-            ->assertSee('Maria Santos');
+        $this->assertDatabaseMissing('users', ['email' => 'maria.santos@example.com']);
     }
 
     public function test_gec_can_manage_minor_subjects_across_departments(): void
@@ -354,10 +419,10 @@ class GecPortalTest extends TestCase
         ]);
     }
 
-    public function test_gec_can_assign_up_to_ten_instructor_priorities_to_a_minor_subject(): void
+    public function test_gec_can_assign_up_to_six_instructor_priorities_to_a_minor_subject(): void
     {
         $gec = $this->gecUser();
-        $instructors = User::factory()->count(10)->create([
+        $instructors = User::factory()->count(6)->create([
             'role' => 'instructor', 'course' => 'GEC', 'account_status' => 'active',
             'employment_type' => 'full_time',
         ]);
@@ -367,6 +432,12 @@ class GecPortalTest extends TestCase
             'year_level' => 1, 'semester' => '1st', 'units' => 3,
         ]);
 
+        $this->actingAs($gec)
+            ->get(route('gec.subject-assignments.create'))
+            ->assertOk()
+            ->assertSee('Priority 6')
+            ->assertDontSee('Priority 7');
+
         $this->actingAs($gec)->post(route('gec.subject-assignments.store'), [
             'semester' => '1st',
             'year_level' => 1,
@@ -374,11 +445,11 @@ class GecPortalTest extends TestCase
             'instructor_ids' => $instructors->modelKeys(),
         ])->assertRedirect();
 
-        $this->assertSame(10, $subject->fresh('instructors')->instructors->count());
+        $this->assertSame(6, $subject->fresh('instructors')->instructors->count());
         $this->assertDatabaseHas('subject_instructor', [
             'subject_id' => $subject->id,
             'instructor_id' => $instructors->last()->id,
-            'priority' => 10,
+            'priority' => 6,
         ]);
     }
 
@@ -708,5 +779,39 @@ class GecPortalTest extends TestCase
 
         $this->assertStringNotContainsString('name="password"', $instructorForm);
         $this->assertStringNotContainsString('name="password_confirmation"', $instructorForm);
+    }
+
+    public function test_gec_creates_an_instructor_with_an_automatic_id_without_email_or_password_input(): void
+    {
+        $gec = $this->gecUser();
+        $year = now()->format('Y');
+
+        $response = $this->actingAs($gec)->post(route('gec.instructors.store'), [
+            'first_name' => 'Automatic',
+            'last_name' => 'Identifier',
+            'employment_type' => 'full_time',
+        ]);
+
+        $response->assertRedirect(route('gec.instructors.index'))
+            ->assertSessionHas('success', "Instructor account created successfully. Instructor ID: {$year}-0000.");
+
+        $this->assertDatabaseHas('users', [
+            'email' => "instructor.{$year}-0000@pending.mcc.local",
+            'role' => 'instructor',
+            'instructor_id' => "{$year}-0000",
+        ]);
+
+        $page = $this->actingAs($gec)->get(route('gec.instructors.index'))
+            ->assertOk()
+            ->assertSee('Instructor ID');
+
+        $instructorForm = str($page->getContent())
+            ->after('<form id="instructorCreateForm"')
+            ->before('</form>')
+            ->toString();
+
+        $this->assertStringNotContainsString('name="password"', $instructorForm);
+        $this->assertStringNotContainsString('name="password_confirmation"', $instructorForm);
+        $this->assertStringNotContainsString('name="email"', $instructorForm);
     }
 }

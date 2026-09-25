@@ -48,6 +48,7 @@
     .timetable-header-actions .button { width:auto !important; white-space:nowrap; }
     .timetable-header-actions .button[disabled] { opacity:.5; cursor:not-allowed; }
     .timetable-filters { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
+    .timetable-pagination-summary { margin-top:28px; }
     @media (max-width:1200px) {
         .timetable-filters { grid-template-columns:repeat(3,minmax(0,1fr)) !important; }
     }
@@ -167,7 +168,9 @@
         <a class="button" href="{{ route('gec.schedules.create') }}">Generate Schedule</a>
     </div>
 @else
-    <x-pagination :paginator="$sectionPages" label="Timetable section pages" mode="summary" />
+    <div class="timetable-pagination-summary">
+        <x-pagination :paginator="$sectionPages" label="Timetable section pages" mode="summary" />
+    </div>
     <div class="timetable-list">
         @foreach($sectionPages as $section)
             @php($sectionSchedules = $schedulesBySection->get($section->id, collect()))

@@ -75,7 +75,7 @@ class CrossDepartmentInstructorRequestController extends DeanController
         );
 
         $validated = $request->validate([
-            'instructor_ids' => ['required', 'array', 'min:1', 'max:4'],
+            'instructor_ids' => ['required', 'array', 'min:1', 'max:6'],
             'instructor_ids.*' => ['nullable', 'integer'],
         ]);
         $priorityInstructorIds = collect($validated['instructor_ids'])
@@ -120,7 +120,7 @@ class CrossDepartmentInstructorRequestController extends DeanController
             $newInstructorCount = $instructors
                 ->reject(fn (User $instructor): bool => $existingPriorities->has($instructor->id))
                 ->count();
-            $remainingPrioritySlots = 4 - $existingPriorities->count();
+            $remainingPrioritySlots = max(0, 6 - $existingPriorities->count());
 
             if ($newInstructorCount > $remainingPrioritySlots) {
                 throw ValidationException::withMessages([

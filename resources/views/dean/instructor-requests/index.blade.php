@@ -18,7 +18,7 @@
 
 @section('content')
 <div class="page-header">
-    <div><h2>Cross-Department Instructor Requests</h2><p>Review requests from other departments and assign up to four active {{ $course }} instructors in priority order.</p></div>
+    <div><h2>Cross-Department Instructor Requests</h2><p>Review requests from other departments and assign up to six active {{ $course }} instructors in priority order.</p></div>
 </div>
 
 <section class="card" style="margin-bottom:20px">
@@ -38,7 +38,7 @@
                         <form method="POST" action="{{ route('dean.instructor-requests.fulfill', $instructorRequest) }}" class="request-priority-form" data-request-priority-form>
                             @csrf
                             <div class="request-priority-list">
-                                @for($priority = 1; $priority <= 4; $priority++)
+                                @for($priority = 1; $priority <= 6; $priority++)
                                     <div class="request-priority-row">
                                         <label class="request-priority-label" for="request-{{ $instructorRequest->id }}-priority-{{ $priority }}">Priority {{ $priority }}</label>
                                         <select id="request-{{ $instructorRequest->id }}-priority-{{ $priority }}" class="input request-priority-select" name="instructor_ids[]" @required($priority === 1)>

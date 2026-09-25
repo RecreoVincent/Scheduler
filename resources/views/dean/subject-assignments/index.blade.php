@@ -4,18 +4,15 @@
 
 @push('styles')
 <style>
-    .assignment-table { min-width:820px; width:100%; }
-    .assignment-table th, .assignment-table td { padding:16px 24px; }
+    .assignment-table { width:100%; table-layout:fixed; }
     .assignment-table td { vertical-align:middle; word-wrap:break-word; }
-    .assignment-table th:nth-child(6), .assignment-table td:nth-child(6) { min-width:220px; }
     .assignment-instructors { display:flex; flex-wrap:wrap; gap:5px; }
-    .assignment-instructors .badge { text-transform:none; }
-    .assignment-actions { white-space:nowrap; text-align:center; }
-    .assignment-actions .actions { justify-content:center; flex-wrap:nowrap; }
-    .assignment-actions .button { min-width:100px; }
+    .assignment-instructors .badge { max-width:100%; overflow-wrap:anywhere; text-transform:none; white-space:normal; }
+    .assignment-table :is(th,td).assignment-actions { width:auto !important; padding-right:14px !important; padding-left:14px !important; white-space:nowrap; text-align:center; }
+    .assignment-actions .actions { width:100%; min-width:0; justify-content:center; flex-wrap:nowrap; }
+    .assignment-actions .button { flex:1 1 0; min-width:0; padding-right:10px; padding-left:10px; }
     .assignment-empty { padding:28px !important; color:var(--muted); text-align:center; }
     .assignment-search { min-width:min(290px,100%); }
-    .assignment-page-heading { color:#ec4899; }
     .assignment-filters { grid-template-columns:repeat(3,minmax(0,1fr)) auto; }
     .assignment-filter-submit { align-self:end; white-space:nowrap; }
     @media(max-width:760px) { .assignment-filters { grid-template-columns:1fr; } .assignment-filter-submit { width:100%; } }
@@ -26,6 +23,10 @@
 @include('dean.subject-assignments.form')
 
 <div class="page-header">
+    <div>
+        <h2 class="assignment-page-heading">Existing Subject Assignments</h2>
+        <p>Search, filter, and update instructor priorities for a subject.</p>
+    </div>
     <div class="actions">
         <button type="button" class="button assignment-form-trigger" aria-label="Assign Instructor to a Subject">Assign Instructor</button>
         <button
@@ -38,10 +39,6 @@
             data-delete-confirm-label="Remove All Assignments"
             @disabled($assignmentCount === 0)
         >Remove All Subject Assignments</button>
-    </div>
-    <div style="order:-1">
-        <h2 class="assignment-page-heading">Existing Subject Assignments</h2>
-        <p>Search, filter, and update instructor priorities for a subject.</p>
     </div>
 </div>
 
@@ -71,6 +68,10 @@
 
     <div class="table-wrap">
         <table class="assignment-table">
+            <colgroup>
+                <col style="width:13%"><col style="width:15%"><col style="width:9%"><col style="width:9%">
+                <col style="width:14%"><col style="width:20%"><col style="width:20%">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Subject Code</th>
