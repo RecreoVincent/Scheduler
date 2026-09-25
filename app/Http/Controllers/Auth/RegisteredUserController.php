@@ -32,7 +32,7 @@ class RegisteredUserController extends Controller
         if (in_array($requestedRole, ['instructor', 'student'], true)
             && (! $portalRegistration || $portalRegistration['role'] !== $requestedRole)) {
             return redirect()->route('login', ['role' => $requestedRole])
-                ->with('error', 'Enter your ID first so we can prepare the correct registration form.');
+                ->with('error', 'Enter your ID first we can prepare the correct registration form.');
         }
 
         $roles = $portalRegistration ? [$portalRegistration['role']] : ['dean'];
