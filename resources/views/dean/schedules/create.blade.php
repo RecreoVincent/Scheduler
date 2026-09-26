@@ -49,7 +49,7 @@
 @endphp
 
 <div class="page-header">
-    <div><h2>Generate {{ $course }} Class Schedules</h2><p>Use the first existing sections for the selected year level and academic year.</p></div>
+    <div><h2 style="color: red">Generate {{ $course }} Class Schedules</h2><p>Use the first existing sections for the selected year level and academic year.</p></div>
 </div>
 
 <div class="card">
