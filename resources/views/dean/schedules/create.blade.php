@@ -57,7 +57,7 @@
     <form id="scheduleForm" method="POST" action="{{ route('dean.schedules.store') }}">
         @csrf
         <div class="form-grid">
-            <div><label>Program / Degree</label><input class="input" value="{{ $course }}" disabled></div>
+            <div><label>1Program / Degree</label><input class="input" value="{{ $course }}" disabled></div>
             <div>
                 <label for="academic_year">Academic Year</label>
                 <select id="academic_year" class="input" name="academic_year" required>
