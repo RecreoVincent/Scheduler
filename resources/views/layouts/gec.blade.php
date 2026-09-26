@@ -455,6 +455,7 @@
     @include('layouts.partials.sidebar-toggle-styles')
     @stack('styles')
     @include('layouts.partials.portal-unified-theme')
+    @include('layouts.partials.portal-mobile-styles')
     @include('layouts.partials.schedule-notification-styles')
     <style>
         body.gec-institution-portal,
@@ -772,6 +773,7 @@
     </main>
 
 </div>
+@include('layouts.partials.portal-mobile-navigation')
 @stack('portal-profile-overlay')
 
 <div id="gecProfileModal" class="admin-profile-modal" hidden>

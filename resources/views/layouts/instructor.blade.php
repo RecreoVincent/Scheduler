@@ -44,6 +44,7 @@
     @include('layouts.partials.sidebar-toggle-styles')
     @stack('styles')
     @include('layouts.partials.portal-unified-theme')
+    @include('layouts.partials.portal-mobile-styles')
     @include('layouts.partials.schedule-notification-styles')
     @include('layouts.partials.scrollbar-styles')
 </head>
@@ -85,6 +86,7 @@
         <section class="content">@yield('content')</section>
     </main>
 </div>
+@include('layouts.partials.portal-mobile-navigation')
 @stack('portal-profile-overlay')
 @php $hasNotice=session()->has('success')||session()->has('error')||($errors->any()&&!old('profile_modal')); @endphp
 @if($hasNotice)

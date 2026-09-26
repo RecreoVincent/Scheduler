@@ -350,6 +350,7 @@
     @include('layouts.partials.sidebar-toggle-styles')
     @stack('styles')
     @include('layouts.partials.portal-unified-theme')
+    @include('layouts.partials.portal-mobile-styles')
     <style>
         body.admin-institution-portal,
         body.admin-institution-portal .app,
@@ -662,6 +663,7 @@
     </main>
 
 </div>
+@include('layouts.partials.portal-mobile-navigation')
 
 @stack('portal-profile-overlay')
 

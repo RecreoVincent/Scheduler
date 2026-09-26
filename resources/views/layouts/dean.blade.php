@@ -148,6 +148,7 @@
     @include('layouts.partials.sidebar-toggle-styles')
     @stack('styles')
     @include('layouts.partials.portal-unified-theme')
+    @include('layouts.partials.portal-mobile-styles')
     @include('layouts.partials.schedule-notification-styles')
     <style>
         body.dean-department-portal,
@@ -338,6 +339,7 @@
         <section class="content">@yield('content')</section>
     </main>
 </div>
+@include('layouts.partials.portal-mobile-navigation')
 @stack('portal-profile-overlay')
 
 @php
